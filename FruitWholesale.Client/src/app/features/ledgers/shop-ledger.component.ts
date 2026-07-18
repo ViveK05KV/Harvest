@@ -1,0 +1,115 @@
+import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { LedgerService } from './ledger.service';
+import { ShopMasterService } from '../shop-master/shop-master.service';
+import { ShopLedgerEntry } from '../../core/models/ledger.model';
+import { ShopMaster } from '../../core/models/master-data.model';
+import { PaginationRequest } from '../../core/models/common.model';
+import { ExportService } from '../../core/services/export.service';
+
+@Component({
+  selector: 'app-shop-ledger',
+  standalone: true,
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    FormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatProgressBarModule,
+    MatIconModule,
+    MatButtonModule,
+    MatMenuModule,
+    MatTooltipModule
+  ],
+  templateUrl: './shop-ledger.component.html'
+})
+export class ShopLedgerComponent implements OnInit {
+  private readonly ledgerService = inject(LedgerService);
+  private readonly shopService = inject(ShopMasterService);
+  private readonly exportService = inject(ExportService);
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+  readonly displayedColumns = ['transactionDate', 'transactionType', 'narration', 'debit', 'credit', 'runningBalance'];
+  readonly shops = signal<ShopMaster[]>([]);
+  readonly items = signal<ShopLedgerEntry[]>([]);
+  readonly totalCount = signal(0);
+  readonly loading = signal(false);
+
+  shopId: number | null = null;
+  fromDate: Date | null = null;
+  toDate: Date | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 20 };
+
+  ngOnInit(): void {
+    this.shopService.getAllActive().subscribe((shops) => {
+      this.shops.set(shops);
+      if (shops.length > 0) {
+        this.shopId = shops[0].shopID;
+        this.load();
+      }
+    });
+  }
+
+  onFilterChange(): void {
+    if (!this.shopId) return;
+    this.request.pageNumber = 1;
+    this.load();
+  }
+
+  onPage(event: PageEvent): void {
+    this.request.pageNumber = event.pageIndex + 1;
+    this.request.pageSize = event.pageSize;
+    this.load();
+  }
+
+  load(): void {
+    if (!this.shopId) return;
+    this.loading.set(true);
+    const from = this.fromDate ? this.fromDate.toISOString().slice(0, 10) : null;
+    const to = this.toDate ? this.toDate.toISOString().slice(0, 10) : null;
+    this.ledgerService.getShopLedger(this.shopId, this.request, from, to).subscribe({
+      next: (result) => {
+        this.items.set(result.items);
+        this.totalCount.set(result.totalCount);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  exportExcel(): void {
+    this.exportService.exportToExcel(
+      this.items(),
+      [
+        { header: 'Date', field: 'transactionDate' },
+        { header: 'Type', field: 'transactionType' },
+        { header: 'Narration', field: 'narration' },
+        { header: 'Debit', field: 'debit' },
+        { header: 'Credit', field: 'credit' },
+        { header: 'Balance', field: 'runningBalance' }
+      ],
+      'shop-ledger'
+    );
+  }
+}

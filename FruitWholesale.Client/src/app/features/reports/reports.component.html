@@ -1,0 +1,211 @@
+<div class="page-toolbar">
+  <h1>Reports</h1>
+
+  @if (activeTab() !== 5) {
+    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
+      <mat-label>From</mat-label>
+      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" (dateChange)="onFilterChange()" />
+      <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+      <mat-datepicker #fromPicker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
+      <mat-label>To</mat-label>
+      <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" (dateChange)="onFilterChange()" />
+      <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+      <mat-datepicker #toPicker></mat-datepicker>
+    </mat-form-field>
+  }
+
+  <span class="spacer"></span>
+
+  <button mat-stroked-button (click)="exportExcel()">
+    <mat-icon>grid_on</mat-icon>
+    Export to Excel
+  </button>
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<mat-tab-group (selectedIndexChange)="onTabChange($event)">
+  <mat-tab label="Daily Sales">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="dailySales()">
+        <ng-container matColumnDef="supplyDate">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let row">{{ row.supplyDate | date: 'dd-MMM-yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="invoiceNo">
+          <th mat-header-cell *matHeaderCellDef>Invoice No</th>
+          <td mat-cell *matCellDef="let row">{{ row.invoiceNo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="shopName">
+          <th mat-header-cell *matHeaderCellDef>Shop</th>
+          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalAmount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="dailySalesColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: dailySalesColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Daily Collection">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="dailyCollection()">
+        <ng-container matColumnDef="collectionDate">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let row">{{ row.collectionDate | date: 'dd-MMM-yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="shopName">
+          <th mat-header-cell *matHeaderCellDef>Shop</th>
+          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="amountReceived">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.amountReceived | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="paymentMode">
+          <th mat-header-cell *matHeaderCellDef>Mode</th>
+          <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="dailyCollectionColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: dailyCollectionColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Daily Expense">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="dailyExpense()">
+        <ng-container matColumnDef="expenseDate">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let row">{{ row.expenseDate | date: 'dd-MMM-yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="categoryName">
+          <th mat-header-cell *matHeaderCellDef>Category</th>
+          <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="paidTo">
+          <th mat-header-cell *matHeaderCellDef>Paid To</th>
+          <td mat-cell *matCellDef="let row">{{ row.paidTo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="paymentMode">
+          <th mat-header-cell *matHeaderCellDef>Mode</th>
+          <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="dailyExpenseColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: dailyExpenseColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Purchase Report">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="purchaseReport()">
+        <ng-container matColumnDef="purchaseDate">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let row">{{ row.purchaseDate | date: 'dd-MMM-yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="invoiceNo">
+          <th mat-header-cell *matHeaderCellDef>Invoice No</th>
+          <td mat-cell *matCellDef="let row">{{ row.invoiceNo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="supplierName">
+          <th mat-header-cell *matHeaderCellDef>Supplier</th>
+          <td mat-cell *matCellDef="let row">{{ row.supplierName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalAmount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="purchaseColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: purchaseColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Fruit Sales">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="fruitSales()">
+        <ng-container matColumnDef="fruitName">
+          <th mat-header-cell *matHeaderCellDef>Fruit</th>
+          <td mat-cell *matCellDef="let row">{{ row.fruitName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="unit">
+          <th mat-header-cell *matHeaderCellDef>Unit</th>
+          <td mat-cell *matCellDef="let row">{{ row.unit }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalQuantity">
+          <th mat-header-cell *matHeaderCellDef>Quantity</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalQuantity | number: '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalAmount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="fruitSalesColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: fruitSalesColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Outstanding">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="outstanding()">
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let row">{{ row.type }}</td>
+        </ng-container>
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="outstandingAmount">
+          <th mat-header-cell *matHeaderCellDef>Outstanding</th>
+          <td mat-cell *matCellDef="let row">{{ row.outstandingAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="outstandingColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: outstandingColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Profit Summary">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="profitSummary()">
+        <ng-container matColumnDef="month">
+          <th mat-header-cell *matHeaderCellDef>Month</th>
+          <td mat-cell *matCellDef="let row">{{ row.month }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalSales">
+          <th mat-header-cell *matHeaderCellDef>Sales</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalSales | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalPurchases">
+          <th mat-header-cell *matHeaderCellDef>Purchases</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalPurchases | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalExpenses">
+          <th mat-header-cell *matHeaderCellDef>Expenses</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalExpenses | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="netProfit">
+          <th mat-header-cell *matHeaderCellDef>Net Profit</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ row.netProfit | currency: 'INR' : 'symbol' : '1.0-0' }}</strong></td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="profitColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: profitColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+</mat-tab-group>

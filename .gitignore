@@ -1,0 +1,27 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+.vs/
+
+# Serilog runtime output
+src/FruitWholesale.Api/Logs/
+
+# Angular build artifacts (client also has its own .gitignore)
+FruitWholesale.Client/node_modules/
+FruitWholesale.Client/dist/
+FruitWholesale.Client/.angular/
+
+# Uploaded user content (company logo etc.) - runtime data, not source
+src/FruitWholesale.Api/wwwroot/uploads/*
+!src/FruitWholesale.Api/wwwroot/uploads/.gitkeep
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store

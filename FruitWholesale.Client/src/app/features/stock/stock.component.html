@@ -1,0 +1,54 @@
+<div class="page-toolbar">
+  <h1>Stock</h1>
+  <span class="spacer"></span>
+  @if (canAdjust) {
+    <button mat-flat-button color="primary" (click)="openAdjustment()">
+      <mat-icon>tune</mat-icon>
+      Stock Adjustment
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<div class="table-container">
+  <table mat-table [dataSource]="items()">
+    <ng-container matColumnDef="fruitName">
+      <th mat-header-cell *matHeaderCellDef>Fruit</th>
+      <td mat-cell *matCellDef="let row">{{ row.fruitName }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="currentStock">
+      <th mat-header-cell *matHeaderCellDef>Current Stock</th>
+      <td mat-cell *matCellDef="let row">
+        <mat-chip [color]="isLow(row) ? 'warn' : undefined" highlighted>{{ row.currentStock }}</mat-chip>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="unit">
+      <th mat-header-cell *matHeaderCellDef>Unit</th>
+      <td mat-cell *matCellDef="let row">{{ row.unit }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button matTooltip="View Ledger" (click)="viewLedger(row)">
+          <mat-icon>history</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  @if (!loading() && items().length === 0) {
+    <div class="empty-state">
+      <mat-icon>inventory_2</mat-icon>
+      <p>No fruits found. Add fruits in Fruit Master to start tracking stock.</p>
+    </div>
+  }
+</div>

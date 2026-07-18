@@ -1,0 +1,21 @@
+<h2 mat-dialog-title>{{ data ? 'Edit Category' : 'Add Category' }}</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <mat-form-field class="full-width">
+      <mat-label>Category Name</mat-label>
+      <input matInput formControlName="categoryName" />
+      @if (form.controls.categoryName.touched && form.controls.categoryName.hasError('required')) {
+        <mat-error>Category name is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" type="submit">Save</button>
+  </mat-dialog-actions>
+</form>

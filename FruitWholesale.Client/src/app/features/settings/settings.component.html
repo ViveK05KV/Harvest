@@ -1,0 +1,122 @@
+<div class="page-toolbar">
+  <h1>Settings</h1>
+</div>
+
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40" />
+  </div>
+} @else {
+  <mat-tab-group>
+    <mat-tab label="Company Profile">
+      <mat-card class="settings-card">
+        <div class="logo-row">
+          @if (branding.logoUrl(); as logo) {
+            <img [src]="logo" alt="Company logo" class="logo-preview" />
+          } @else {
+            <div class="logo-preview logo-placeholder">
+              <mat-icon>store</mat-icon>
+            </div>
+          }
+          <div>
+            <button mat-stroked-button type="button" (click)="logoFileInput.click()" [disabled]="uploadingLogo()">
+              @if (uploadingLogo()) {
+                <mat-spinner diameter="18" />
+              } @else {
+                <mat-icon>upload</mat-icon>
+              }
+              Upload Logo
+            </button>
+            <p class="muted">PNG, JPG, SVG, or WEBP — up to 2 MB</p>
+          </div>
+          <input #logoFileInput type="file" hidden accept="image/png,image/jpeg,image/svg+xml,image/webp" (change)="onLogoSelected($event)" />
+        </div>
+
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+          <mat-form-field class="full-width">
+            <mat-label>Company Name</mat-label>
+            <input matInput formControlName="companyName" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>Owner Name</mat-label>
+            <input matInput formControlName="ownerName" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>Address</mat-label>
+            <textarea matInput formControlName="address" rows="2"></textarea>
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>Phone</mat-label>
+            <input matInput formControlName="phone" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>GST No</mat-label>
+            <input matInput formControlName="gstNo" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>Opening Cash Balance</mat-label>
+            <input matInput type="number" formControlName="openingCashBalance" />
+            <mat-hint>Use Cash Adjustment tab to change the balance after go-live</mat-hint>
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" type="submit" [disabled]="savingProfile()">Save Changes</button>
+        </form>
+      </mat-card>
+    </mat-tab>
+
+    <mat-tab label="Change Password">
+      <mat-card class="settings-card">
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+          <mat-form-field class="full-width">
+            <mat-label>Current Password</mat-label>
+            <input matInput type="password" formControlName="currentPassword" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>New Password</mat-label>
+            <input matInput type="password" formControlName="newPassword" />
+            @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('minlength')) {
+              <mat-error>Password must be at least 6 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" type="submit" [disabled]="savingPassword()">Update Password</button>
+        </form>
+      </mat-card>
+    </mat-tab>
+
+    @if (canAdjustCash) {
+      <mat-tab label="Cash Adjustment">
+        <mat-card class="settings-card">
+          <p class="muted">
+            Cash adjustments create a manual ledger entry. Use this only for corrections — every other cash movement is
+            automatic.
+          </p>
+          <form [formGroup]="adjustmentForm" (ngSubmit)="applyAdjustment()">
+            <mat-radio-group formControlName="isIncrease" class="radio-row">
+              <mat-radio-button [value]="true">Increase Cash</mat-radio-button>
+              <mat-radio-button [value]="false">Decrease Cash</mat-radio-button>
+            </mat-radio-group>
+
+            <mat-form-field class="full-width">
+              <mat-label>Amount</mat-label>
+              <input matInput type="number" formControlName="amount" />
+            </mat-form-field>
+
+            <mat-form-field class="full-width">
+              <mat-label>Narration / Reason</mat-label>
+              <textarea matInput formControlName="narration" rows="2"></textarea>
+            </mat-form-field>
+
+            <button mat-flat-button color="primary" type="submit" [disabled]="savingAdjustment()">Apply Adjustment</button>
+          </form>
+        </mat-card>
+      </mat-tab>
+    }
+  </mat-tab-group>
+}

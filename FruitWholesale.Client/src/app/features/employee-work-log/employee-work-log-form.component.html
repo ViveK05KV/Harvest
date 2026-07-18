@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>{{ data ? 'Edit Work Entry' : 'New Work Entry' }}</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <mat-form-field class="full-width">
+      <mat-label>Employee</mat-label>
+      <mat-select formControlName="employeeID">
+        @for (employee of employees(); track employee.employeeID) {
+          <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.employeeID.touched && form.controls.employeeID.hasError('required')) {
+        <mat-error>Employee is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Date</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="workDate" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Job Done</mat-label>
+      <mat-select formControlName="jobType">
+        @for (job of jobTypes; track job) {
+          <mat-option [value]="job">{{ job }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (showRoute()) {
+      <mat-form-field class="full-width">
+        <mat-label>Route</mat-label>
+        <mat-select formControlName="routeID">
+          <mat-option [value]="null">No specific route</mat-option>
+          @for (route of routes(); track route.routeID) {
+            <mat-option [value]="route.routeID">{{ route.routeName }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    <mat-form-field class="full-width">
+      <mat-label>Salary / Amount Paid</mat-label>
+      <input matInput type="number" formControlName="amount" />
+      @if (form.controls.amount.touched && form.controls.amount.invalid) {
+        <mat-error>Enter a valid amount</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Payment Mode</mat-label>
+      <mat-select formControlName="paymentMode">
+        @for (mode of paymentModes; track mode) {
+          <mat-option [value]="mode">{{ mode }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Remarks</mat-label>
+      <textarea matInput formControlName="remarks" rows="2"></textarea>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" type="submit">Save</button>
+  </mat-dialog-actions>
+</form>

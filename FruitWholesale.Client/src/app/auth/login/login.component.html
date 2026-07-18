@@ -1,0 +1,41 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <div class="brand">
+      <mat-icon class="brand-icon">eco</mat-icon>
+      <div>
+        <h1>Fruit Wholesale</h1>
+        <p>Management System</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field class="full-width">
+        <mat-label>Username</mat-label>
+        <input matInput formControlName="username" autocomplete="username" />
+        <mat-icon matSuffix>person</mat-icon>
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+          <mat-error>Username is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>Password</mat-label>
+        <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password" autocomplete="current-password" />
+        <button mat-icon-button matSuffix type="button" (click)="hidePassword.set(!hidePassword())">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <mat-error>Password is required</mat-error>
+        }
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" class="full-width login-btn" type="submit" [disabled]="loading()">
+        @if (loading()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Sign In
+        }
+      </button>
+    </form>
+  </mat-card>
+</div>

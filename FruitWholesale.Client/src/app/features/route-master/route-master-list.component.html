@@ -1,0 +1,62 @@
+<div class="page-toolbar">
+  <h1>Routes</h1>
+  <mat-form-field subscriptSizing="dynamic" class="search-field">
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput placeholder="Search routes..." (input)="onSearch($any($event.target).value)" />
+  </mat-form-field>
+  <button mat-flat-button color="primary" (click)="openCreate()">
+    <mat-icon>add</mat-icon>
+    Add Route
+  </button>
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<div class="table-container">
+  <table mat-table [dataSource]="items()" matSort (matSortChange)="onSort($event)">
+    <ng-container matColumnDef="routeName">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Route Name</th>
+      <td mat-cell *matCellDef="let row">{{ row.routeName }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="description">
+      <th mat-header-cell *matHeaderCellDef>Description</th>
+      <td mat-cell *matCellDef="let row">{{ row.description || '-' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="shopCount">
+      <th mat-header-cell *matHeaderCellDef>Shops</th>
+      <td mat-cell *matCellDef="let row"><mat-chip>{{ row.shopCount }}</mat-chip></td>
+    </ng-container>
+
+    <ng-container matColumnDef="isActive">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let row">
+        <mat-slide-toggle [checked]="row.isActive" (change)="toggleActive(row)"></mat-slide-toggle>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  @if (!loading() && items().length === 0) {
+    <div class="empty-state">
+      <mat-icon>alt_route</mat-icon>
+      <p>No routes found. Add your first route to get started.</p>
+    </div>
+  }
+</div>
+
+<mat-paginator [length]="totalCount()" [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" (page)="onPage($event)"></mat-paginator>

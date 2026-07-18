@@ -1,0 +1,72 @@
+<div class="page-toolbar">
+  <h1>Dashboard</h1>
+</div>
+
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40" />
+  </div>
+} @else {
+  <div class="cards-grid">
+    @for (card of cards(); track card.label) {
+      <mat-card class="summary-card" [class.summary-card--emphasis]="card.emphasis">
+        <mat-icon class="card-icon">{{ card.icon }}</mat-icon>
+        <div class="card-body">
+          <span class="card-value">{{ card.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+          <span class="card-label">{{ card.label }}</span>
+        </div>
+      </mat-card>
+    }
+  </div>
+
+  <div class="charts-grid">
+    <mat-card class="chart-card">
+      <h3>Sales by Month</h3>
+      <div class="chart-holder">
+        <app-chart type="line" [data]="salesChartData()" />
+      </div>
+    </mat-card>
+
+    <mat-card class="chart-card">
+      <h3>Collections by Month</h3>
+      <div class="chart-holder">
+        <app-chart type="line" [data]="collectionsChartData()" />
+      </div>
+    </mat-card>
+
+    <mat-card class="chart-card">
+      <h3>Expenses by Category</h3>
+      <div class="chart-holder">
+        <app-chart type="doughnut" [data]="expensesChartData()" />
+      </div>
+    </mat-card>
+
+    <mat-card class="chart-card">
+      <h3>Top Selling Fruits</h3>
+      <div class="list-holder">
+        @for (fruit of topFruits(); track fruit.fruitName) {
+          <div class="ranked-row">
+            <span>{{ fruit.fruitName }}</span>
+            <strong>{{ fruit.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+          </div>
+        } @empty {
+          <p class="muted">No sales recorded yet.</p>
+        }
+      </div>
+    </mat-card>
+
+    <mat-card class="chart-card">
+      <h3>Top Customers</h3>
+      <div class="list-holder">
+        @for (customer of topCustomers(); track customer.shopName) {
+          <div class="ranked-row">
+            <span>{{ customer.shopName }}</span>
+            <strong>{{ customer.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+          </div>
+        } @empty {
+          <p class="muted">No sales recorded yet.</p>
+        }
+      </div>
+    </mat-card>
+  </div>
+}

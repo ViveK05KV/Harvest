@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit User' : 'Add User' }}</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <mat-form-field class="full-width">
+      <mat-label>Full Name</mat-label>
+      <input matInput formControlName="fullName" />
+      @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
+        <mat-error>Full name is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Username</mat-label>
+      <input matInput formControlName="username" />
+      @if (form.controls.username.touched && form.controls.username.hasError('required')) {
+        <mat-error>Username is required</mat-error>
+      }
+    </mat-form-field>
+
+    @if (!isEdit) {
+      <mat-form-field class="full-width">
+        <mat-label>Password</mat-label>
+        <input matInput type="password" formControlName="password" />
+        @if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
+          <mat-error>Password must be at least 6 characters</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    <mat-form-field class="full-width">
+      <mat-label>Role</mat-label>
+      <mat-select formControlName="role">
+        @for (role of roles; track role) {
+          <mat-option [value]="role">{{ role }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" type="submit">Save</button>
+  </mat-dialog-actions>
+</form>

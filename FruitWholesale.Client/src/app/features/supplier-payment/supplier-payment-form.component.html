@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>{{ data ? 'Edit Supplier Payment' : 'New Supplier Payment' }}</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <mat-form-field class="full-width">
+      <mat-label>Supplier</mat-label>
+      <mat-select formControlName="supplierID">
+        @for (supplier of suppliers(); track supplier.supplierID) {
+          <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.supplierID.touched && form.controls.supplierID.hasError('required')) {
+        <mat-error>Supplier is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Date</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="paymentDate" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" formControlName="amountPaid" />
+      @if (form.controls.amountPaid.touched && form.controls.amountPaid.invalid) {
+        <mat-error>Enter a valid amount</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Discount Received</mat-label>
+      <input matInput type="number" formControlName="discountAmount" />
+      <mat-hint>Optional — reduces the supplier's outstanding in addition to the amount paid</mat-hint>
+      @if (form.controls.discountAmount.touched && form.controls.discountAmount.invalid) {
+        <mat-error>Discount cannot be negative</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Payment Mode</mat-label>
+      <mat-select formControlName="paymentMode">
+        @for (mode of paymentModes; track mode) {
+          <mat-option [value]="mode">{{ mode }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Reference Number</mat-label>
+      <input matInput formControlName="referenceNumber" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Remarks</mat-label>
+      <textarea matInput formControlName="remarks" rows="2"></textarea>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" type="submit">Save</button>
+  </mat-dialog-actions>
+</form>
