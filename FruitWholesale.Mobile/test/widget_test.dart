@@ -10,7 +10,7 @@ import 'package:fruit_wholesale_mobile/features/auth/login_screen.dart';
 void main() {
   testWidgets('shows the login form when not authenticated', (tester) async {
     final tokenStorage = TokenStorage();
-    final apiClient = ApiClient(tokenStorage);
+    final apiClient = ApiClient();
     final authService = AuthService(apiClient, tokenStorage);
 
     await tester.pumpWidget(

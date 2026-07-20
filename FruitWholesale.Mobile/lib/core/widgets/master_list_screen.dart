@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/api_exception.dart';
 import '../models/paginated_list.dart';
+import 'paginated_list_view.dart';
 
 /// Generic list+search+activate/deactivate screen for simple master-data
 /// modules (Shops, Suppliers, Fruits, Routes, Employees, Expense Categories) —
@@ -39,36 +40,17 @@ class MasterListScreen<T> extends StatefulWidget {
 }
 
 class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
-  List<T>? _items;
-  String? _error;
-  bool _loading = true;
+  Key _listKey = UniqueKey();
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final page = await widget.fetchPaged(1);
-      setState(() => _items = page.items);
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
+  // PaginatedListView only fetches once per widget identity, so force a
+  // fresh instance (and thus a fresh fetch) whenever data may have changed.
+  void _reload() => setState(() => _listKey = UniqueKey());
 
   Future<void> _openForm({int? id}) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (context) => widget.formBuilder(context, id: id)),
     );
-    if (changed == true) _load();
+    if (changed == true) _reload();
   }
 
   Future<void> _toggleActive(T item) async {
@@ -76,7 +58,7 @@ class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
     final active = widget.isActiveOf(item);
     try {
       await widget.onSetActive(id, !active);
-      _load();
+      _reload();
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -87,54 +69,32 @@ class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
+      body: PaginatedListView<T>(
+        key: _listKey,
+        fetchPage: widget.fetchPaged,
+        emptyState: Column(
+          children: [
+            const SizedBox(height: 80),
+            Icon(widget.emptyIcon, size: 48),
+            const SizedBox(height: 12),
+            Center(child: Text(widget.emptyLabel)),
+          ],
+        ),
+        padding: const EdgeInsets.only(bottom: 88),
+        itemBuilder: (context, item) {
+          final active = widget.isActiveOf(item);
+          return ListTile(
+            title: Text(widget.titleOf(item)),
+            subtitle: Text(widget.subtitleOf(item)),
+            trailing: Switch(value: active, onChanged: (_) => _toggleActive(item)),
+            onTap: () => _openForm(id: widget.idOf(item)),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
         child: const Icon(Icons.add),
       ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_loading && _items == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 12),
-          Center(child: Text(_error!, textAlign: TextAlign.center)),
-        ],
-      );
-    }
-    final items = _items ?? [];
-    if (items.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          Icon(widget.emptyIcon, size: 48),
-          const SizedBox(height: 12),
-          Center(child: Text(widget.emptyLabel)),
-        ],
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 88),
-      itemCount: items.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final active = widget.isActiveOf(item);
-        return ListTile(
-          title: Text(widget.titleOf(item)),
-          subtitle: Text(widget.subtitleOf(item)),
-          trailing: Switch(value: active, onChanged: (_) => _toggleActive(item)),
-          onTap: () => _openForm(id: widget.idOf(item)),
-        );
-      },
     );
   }
 }

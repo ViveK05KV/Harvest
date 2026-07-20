@@ -7,6 +7,10 @@ import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
 import '../../core/models/fruit_option.dart';
 import '../../core/models/supplier_option.dart';
+import '../../core/utils/number_format_utils.dart';
+import '../../core/widgets/date_picker_field.dart';
+import '../../core/widgets/error_banner.dart';
+import '../../core/widgets/save_button.dart';
 import 'purchase_models.dart';
 import 'purchase_service.dart';
 
@@ -89,8 +93,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           ..clear()
           ..addAll(detail.items.map((i) {
             final form = _LineItemForm()..fruitId = i.fruitId;
-            form.quantityController.text = _trimZeros(i.quantity);
-            form.priceController.text = _trimZeros(i.purchasePrice);
+            form.quantityController.text = trimZeros(i.quantity);
+            form.priceController.text = trimZeros(i.purchasePrice);
             return form;
           }));
         if (_items.isEmpty) _items.add(_LineItemForm());
@@ -109,10 +113,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     }
   }
 
-  String _trimZeros(double value) {
-    return value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toString();
-  }
-
   double get _grandTotal => _items.fold(0, (sum, item) => sum + item.amount);
 
   void _addRow() => setState(() => _items.add(_LineItemForm()));
@@ -123,16 +123,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       _items.removeAt(index);
       if (_items.isEmpty) _items.add(_LineItemForm());
     });
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-    if (picked != null) setState(() => _date = picked);
   }
 
   Future<void> _save() async {
@@ -193,19 +183,13 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildForm() {
-    final scheme = Theme.of(context).colorScheme;
     return Form(
       key: _formKey,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (_error != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(8)),
-              child: Text(_error!, style: TextStyle(color: scheme.onErrorContainer)),
-            ),
+            ErrorBanner(_error!),
             const SizedBox(height: 16),
           ],
           TextFormField(
@@ -214,13 +198,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Invoice number is required' : null,
           ),
           const SizedBox(height: 16),
-          InkWell(
-            onTap: _pickDate,
-            child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Date', suffixIcon: Icon(Icons.calendar_today)),
-              child: Text(DateFormat('dd-MMM-yyyy').format(_date)),
-            ),
-          ),
+          DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
             initialValue: _selectedSupplierId,
@@ -324,13 +302,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
-            FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.save),
-              label: const Text('Save'),
-            ),
+            SaveButton(saving: _saving, onPressed: _save),
           ],
         ),
       ),

@@ -7,6 +7,8 @@ import '../../core/api/api_exception.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/config/api_config.dart';
 import '../../core/models/user_role.dart';
+import '../../core/widgets/error_banner.dart';
+import '../../core/widgets/save_button.dart';
 import 'company_settings_models.dart';
 import 'company_settings_service.dart';
 
@@ -179,19 +181,11 @@ class _CompanyProfileTabState extends State<_CompanyProfileTab> {
         padding: const EdgeInsets.all(16),
         children: [
           if (widget.loadError != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(8)),
-              child: Text(widget.loadError!, style: TextStyle(color: scheme.onErrorContainer)),
-            ),
+            ErrorBanner(widget.loadError!),
             const SizedBox(height: 16),
           ],
           if (_error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(8)),
-              child: Text(_error!, style: TextStyle(color: scheme.onErrorContainer)),
-            ),
+            ErrorBanner(_error!),
             const SizedBox(height: 16),
           ],
           Row(
@@ -238,13 +232,7 @@ class _CompanyProfileTabState extends State<_CompanyProfileTab> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save),
-            label: const Text('Save Changes'),
-          ),
+          SaveButton(saving: _saving, onPressed: _save, label: 'Save Changes'),
         ],
       ),
     );
@@ -301,14 +289,7 @@ class _ChangePasswordTabState extends State<_ChangePasswordTab> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
-            ),
+            ErrorBanner(_error!),
             const SizedBox(height: 16),
           ],
           TextFormField(
@@ -325,13 +306,7 @@ class _ChangePasswordTabState extends State<_ChangePasswordTab> {
             validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
           ),
           const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.lock_reset),
-            label: const Text('Update Password'),
-          ),
+          SaveButton(saving: _saving, onPressed: _save, label: 'Update Password', icon: Icons.lock_reset),
         ],
       ),
     );
@@ -397,14 +372,7 @@ class _CashAdjustmentTabState extends State<_CashAdjustmentTab> {
           ),
           const SizedBox(height: 16),
           if (_error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
-            ),
+            ErrorBanner(_error!),
             const SizedBox(height: 16),
           ],
           RadioGroup<bool>(
@@ -435,13 +403,7 @@ class _CashAdjustmentTabState extends State<_CashAdjustmentTab> {
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Narration is required' : null,
           ),
           const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save),
-            label: const Text('Apply Adjustment'),
-          ),
+          SaveButton(saving: _saving, onPressed: _save, label: 'Apply Adjustment'),
         ],
       ),
     );

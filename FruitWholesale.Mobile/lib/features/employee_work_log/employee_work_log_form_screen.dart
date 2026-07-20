@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
@@ -7,6 +6,10 @@ import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
 import '../../core/models/employee_option.dart';
 import '../../core/models/route_option.dart';
+import '../../core/utils/number_format_utils.dart';
+import '../../core/widgets/date_picker_field.dart';
+import '../../core/widgets/error_banner.dart';
+import '../../core/widgets/save_footer_bar.dart';
 import 'employee_work_log_models.dart';
 import 'employee_work_log_service.dart';
 
@@ -70,7 +73,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
         _date = log.workDate;
         _jobType = log.jobType;
         _paymentMode = log.paymentMode;
-        _amountController.text = _trimZeros(log.amount);
+        _amountController.text = trimZeros(log.amount);
         _remarksController.text = log.remarks ?? '';
       }
 
@@ -83,20 +86,6 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
     } finally {
       setState(() => _loading = false);
     }
-  }
-
-  String _trimZeros(double value) {
-    return value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toString();
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-    if (picked != null) setState(() => _date = picked);
   }
 
   Future<void> _save() async {
@@ -142,33 +131,21 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.isEditing ? 'Edit Work Log' : 'New Work Log Entry')),
       body: _loading ? const Center(child: CircularProgressIndicator()) : _buildForm(),
-      bottomNavigationBar: _loading ? null : _buildFooter(),
+      bottomNavigationBar: _loading ? null : SaveFooterBar(saving: _saving, onPressed: _save),
     );
   }
 
   Widget _buildForm() {
-    final scheme = Theme.of(context).colorScheme;
     return Form(
       key: _formKey,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (_error != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(8)),
-              child: Text(_error!, style: TextStyle(color: scheme.onErrorContainer)),
-            ),
+            ErrorBanner(_error!),
             const SizedBox(height: 16),
           ],
-          InkWell(
-            onTap: _pickDate,
-            child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Date', suffixIcon: Icon(Icons.calendar_today)),
-              child: Text(DateFormat('dd-MMM-yyyy').format(_date)),
-            ),
-          ),
+          DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
             initialValue: _selectedEmployeeId,
@@ -224,24 +201,4 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
     );
   }
 
-  Widget _buildFooter() {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: scheme.surface, border: Border(top: BorderSide(color: scheme.outlineVariant))),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save),
-            label: const Text('Save'),
-          ),
-        ),
-      ),
-    );
-  }
 }

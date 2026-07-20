@@ -5,6 +5,8 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
 import '../../core/models/route_option.dart';
+import '../../core/widgets/error_banner.dart';
+import '../../core/widgets/save_button.dart';
 import 'shop_master_models.dart';
 import 'shop_master_service.dart';
 
@@ -124,14 +126,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   if (_error != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
-                    ),
+                    ErrorBanner(_error!),
                     const SizedBox(height: 16),
                   ],
                   TextFormField(
@@ -181,13 +176,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
                   const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: _saving
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save),
-                    label: const Text('Save'),
-                  ),
+                  SaveButton(saving: _saving, onPressed: _save),
                 ],
               ),
             ),

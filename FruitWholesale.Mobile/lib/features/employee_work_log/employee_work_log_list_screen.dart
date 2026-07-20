@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
-import '../../core/api/api_exception.dart';
+import '../../core/widgets/paginated_list_view.dart';
 import 'employee_work_log_form_screen.dart';
 import 'employee_work_log_models.dart';
 import 'employee_work_log_service.dart';
@@ -17,88 +17,37 @@ class EmployeeWorkLogListScreen extends StatefulWidget {
 
 class _EmployeeWorkLogListScreenState extends State<EmployeeWorkLogListScreen> {
   late final EmployeeWorkLogService _service = EmployeeWorkLogService(context.read<ApiClient>());
+  Key _listKey = UniqueKey();
 
-  List<EmployeeWorkLog>? _items;
-  String? _error;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final page = await _service.getPaged();
-      setState(() => _items = page.items);
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
+  void _reload() => setState(() => _listKey = UniqueKey());
 
   Future<void> _openNewLog() async {
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const EmployeeWorkLogFormScreen()),
     );
-    if (created == true) _load();
+    if (created == true) _reload();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Employee Salary')),
-      body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openNewLog,
-        icon: const Icon(Icons.add),
-        label: const Text('New Entry'),
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_loading && _items == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 12),
-          Center(child: Text(_error!, textAlign: TextAlign.center)),
-        ],
-      );
-    }
-    final items = _items ?? [];
-    if (items.isEmpty) {
-      return ListView(
-        children: const [
-          SizedBox(height: 80),
-          Icon(Icons.work_history_outlined, size: 48),
-          SizedBox(height: 12),
-          Center(child: Text('No work log entries yet')),
-        ],
-      );
-    }
-
     final dateFormat = DateFormat('dd-MMM-yyyy');
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
-    return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 88),
-      itemCount: items.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return ListTile(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Employee Salary')),
+      body: PaginatedListView<EmployeeWorkLog>(
+        key: _listKey,
+        fetchPage: (page) => _service.getPaged(pageNumber: page),
+        padding: const EdgeInsets.only(bottom: 88),
+        emptyState: const Column(
+          children: [
+            SizedBox(height: 80),
+            Icon(Icons.work_history_outlined, size: 48),
+            SizedBox(height: 12),
+            Center(child: Text('No work log entries yet')),
+          ],
+        ),
+        itemBuilder: (context, item) => ListTile(
           leading: const CircleAvatar(child: Icon(Icons.work_history_outlined)),
           title: Text(item.employeeName ?? ''),
           subtitle: Text(
@@ -109,10 +58,15 @@ class _EmployeeWorkLogListScreenState extends State<EmployeeWorkLogListScreen> {
             final updated = await Navigator.of(context).push<bool>(
               MaterialPageRoute(builder: (_) => EmployeeWorkLogFormScreen(logId: item.employeeWorkLogId)),
             );
-            if (updated == true) _load();
+            if (updated == true) _reload();
           },
-        );
-      },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openNewLog,
+        icon: const Icon(Icons.add),
+        label: const Text('New Entry'),
+      ),
     );
   }
 }

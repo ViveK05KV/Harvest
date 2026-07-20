@@ -24,11 +24,16 @@ class AuthService extends ChangeNotifier {
   /// True while the stored session is still being read on app startup.
   bool get isRestoring => _restoring;
 
+  void _setUser(CurrentUser? user) {
+    _user = user;
+    _api.updateToken(user?.token);
+  }
+
   /// Restores a previously saved session, if any and not expired.
   Future<void> restoreSession() async {
     final stored = await _storage.read();
     if (stored != null && !stored.isExpired) {
-      _user = stored;
+      _setUser(stored);
     } else if (stored != null) {
       await _storage.clear();
     }
@@ -44,7 +49,7 @@ class AuthService extends ChangeNotifier {
         'password': password,
       });
       final user = CurrentUser.fromJson(json as Map<String, dynamic>);
-      _user = user;
+      _setUser(user);
       await _storage.save(user);
       notifyListeners();
       return null;
@@ -54,14 +59,14 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    _user = null;
+    _setUser(null);
     await _storage.clear();
     notifyListeners();
   }
 
   void _handleUnauthorized() {
     if (_user == null) return;
-    _user = null;
+    _setUser(null);
     _storage.clear();
     notifyListeners();
   }

@@ -10,7 +10,7 @@ import 'features/home/home_shell.dart';
 
 void main() {
   final tokenStorage = TokenStorage();
-  final apiClient = ApiClient(tokenStorage);
+  final apiClient = ApiClient();
   final authService = AuthService(apiClient, tokenStorage);
 
   runApp(
