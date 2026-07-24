@@ -9,6 +9,21 @@
   border-right: none;
   background: #0e1726;
   padding-bottom: 16px;
+
+  // MDC list pulls text/icon color per state (default/hover/focus) from
+  // these tokens, not the .mdc-list-item__* classes below - without this
+  // hover/focus fall back to the app's light-theme on-surface (near-black),
+  // which is invisible against the dark navy sidebar.
+  --mdc-list-list-item-label-text-color: #b2bcd4;
+  --mdc-list-list-item-hover-label-text-color: #fff;
+  --mdc-list-list-item-focus-label-text-color: #fff;
+  --mdc-list-list-item-leading-icon-color: #7a83a0;
+  --mdc-list-list-item-hover-leading-icon-color: #fff;
+  --mdc-list-list-item-focus-leading-icon-color: #fff;
+  --mdc-list-list-item-hover-state-layer-color: #fff;
+  --mdc-list-list-item-hover-state-layer-opacity: 0.04;
+  --mdc-list-list-item-focus-state-layer-color: #fff;
+  --mdc-list-list-item-focus-state-layer-opacity: 0.06;
 }
 
 .sidenav-brand {
@@ -54,15 +69,24 @@
   }
 
   ::ng-deep .mdc-list-item__primary-text {
-    color: #b2bcd4;
+    color: #b2bcd4 !important;
   }
 
   ::ng-deep .mdc-list-item__start {
-    color: #7a83a0;
+    color: #7a83a0 !important;
   }
 
-  ::ng-deep .mdc-list-item:hover {
+  ::ng-deep .mdc-list-item:hover,
+  ::ng-deep .mdc-list-item:focus {
     background: rgba(255, 255, 255, 0.04);
+
+    .mdc-list-item__primary-text {
+      color: #fff !important;
+    }
+
+    .mdc-list-item__start {
+      color: #fff !important;
+    }
   }
 }
 
