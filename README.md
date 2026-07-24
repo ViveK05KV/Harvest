@@ -159,6 +159,25 @@ The one gap that isn't a hard wall: outbound data egress has a small free monthl
 
 Practical tradeoff of the free tier: App Service F1 sleeps after ~20 minutes of inactivity, so the first request after idle can take 10-20s to wake up (same cold-start pattern as the database). Fine for casual use; upgrading the API to Basic B1 (~$13/month) would remove it if it becomes annoying.
 
+#### Free-tier limits, in detail
+
+None of these are billed by "number of API calls" or "GB of data stored" the way a metered service would be — each tier is capped by compute-time, storage, or bandwidth instead. Here's what that means concretely:
+
+| Resource | Free allowance | What happens if exceeded |
+|---|---|---|
+| SQL Database storage | **32 GB** | Writes start failing once full; would need a paid tier to grow past it |
+| SQL Database compute | **100,000 vCore-seconds/month** (≈13.9 hours of *active query time* at our 2-vCore size — idle/paused time doesn't count against this) | DB auto-pauses for the rest of the month (`AutoPause` behavior, configured) — reads/writes fail until the new month starts, no billing |
+| App Service (API) CPU | **60 CPU-minutes/day** | App throttles/stops responding until the quota resets the next day |
+| App Service (API) outbound bandwidth | **165 MB/day** | Requests start failing until the daily quota resets |
+| App Service (API) storage | **1 GB** | Deploys/logs fail once full |
+| Static Web App (frontend) bandwidth | **100 GB/month** | No pay-as-you-go overage on the Free plan — would need to upgrade to Standard to get more |
+| Static Web App (frontend) storage | **0.5 GB** | Same — upgrade required past this |
+| GitHub Actions (private repo) | **2,000 minutes/month** on Linux runners | Workflow runs stop until the next billing cycle (or you add a payment method for overage) |
+
+**Translated to this app:**
+- **Data storage** — ERP rows (invoices, ledger entries, master data) run a few hundred bytes to a couple of KB each. 32 GB comfortably holds tens of millions of transaction rows — realistically more than a small wholesale business will generate in decades, not months.
+- **API calls** — there's no published hard cap on request *count*; the real constraint is the 60 CPU-minutes/day on the API. A typical simple CRUD JSON endpoint burns single-digit-to-tens of milliseconds of actual CPU time, so the daily quota translates to roughly tens of thousands of lightweight requests/day before throttling — heavier endpoints (reports doing aggregation across many rows) cost more per call than a simple lookup, so this is a rough estimate, not a guarantee. For a handful of friends doing manual data entry, this ceiling is very unlikely to be reached.
+
 ## Modules
 
 Dashboard · Users (Admin) · Shop Management · Supplier Management · Fruit Master · Routes · Employees · Employee Salary · Stock · Supply · Purchase · Collections · Supplier Payments · Expense Category · Daily Expenses · Shop Ledger · Supplier Ledger · Cash Ledger · Reports (Daily Sales, Daily Collection, Daily Expense, Purchase, Fruit Sales, Outstanding, Profit Summary) · Settings (Company Profile, Change Password, Cash Adjustment) · Authentication
