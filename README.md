@@ -114,6 +114,51 @@ npm run start
 
 App: http://localhost:4200 — configured (`src/environments/environment.ts`) to call the API at `http://localhost:5080/api`.
 
+## Deployment
+
+The app is hosted on **Azure**, chosen mainly because it's a native fit for the stack already in use — the backend is ASP.NET Core and the ledger engine leans heavily on SQL Server-specific T-SQL (stored procedures, `USE`, `sp_Recalculate*` procs), so swapping the database engine for a cheaper Postgres/MySQL managed tier wasn't a realistic option without rewriting the ledger layer. Azure also happens to offer genuine free tiers for every layer of this stack (compute, database, static hosting), which is what actually made "free" achievable end to end.
+
+### Architecture
+
+```mermaid
+flowchart TB
+    subgraph clients["Friends / Users"]
+        browser["Browser"]
+    end
+
+    subgraph gh["GitHub"]
+        repo["Harvest repo (main branch)"]
+        actions["GitHub Actions\n(hosted runners)"]
+    end
+
+    subgraph azure["Azure — resource group: harvest-erp-rg"]
+        swa["Static Web App\nharvest-erp-web\n(Angular SPA, Free tier)"]
+        api["App Service\nharvest-erp-api\n(.NET 10 API, F1 Free tier)"]
+        sql["SQL Database\nFruitWholesaleDB\n(Serverless, Free-limit tier,\nauto-pause after 60 min idle)"]
+    end
+
+    browser -->|HTTPS| swa
+    browser -->|HTTPS + JWT| api
+    api -->|SQL over TLS| sql
+
+    repo -->|push to main| actions
+    actions -->|OIDC login, no stored secret| api
+    actions -->|deployment token| swa
+```
+
+- **Frontend** — Angular production build, deployed to Azure Static Web Apps. `staticwebapp.config.json` adds a navigation fallback so deep-links/refreshes on client-side routes (e.g. `/dashboard`) don't 404.
+- **Backend** — ASP.NET Core API published to Azure App Service (Linux, F1 Free plan). Production `Jwt:Secret` and the SQL connection string are set as App Service application settings (not committed to the repo); `appsettings.Development.json` stays secret-free.
+- **Database** — Azure SQL Database on the serverless **free-limit** tier (one free DB per subscription; 100,000 vCore-seconds + 32GB storage/month free). Configured with `freeLimitExhaustionBehavior=AutoPause`, so exceeding the free monthly compute pauses the DB rather than billing overage. The connection string includes `ConnectRetryCount=5;ConnectRetryInterval=10` so the driver silently retries through the ~10-30s wake-up window after the DB auto-pauses from inactivity (60 min idle timeout) — without this, the first request after a pause can surface as a transient 500.
+- **CI/CD** — GitHub Actions, authenticating to Azure via **OIDC federated credentials** (no long-lived secrets stored in GitHub). `pr-checks.yml` runs a compile-only build check (`dotnet build`, `ng build`) on PRs targeting `main` — no test suite exists yet, so a green check means "compiles," not "verified correct." `deploy.yml` deploys both the API and frontend automatically on every push to `main`.
+
+### Cost
+
+Everything above runs on **hard-capped free tiers** — App Service F1, Static Web Apps Free, and the SQL Database free-limit offer all either sleep/throttle or auto-pause rather than bill overage. GitHub Actions is also free at this usage level (private repo, but well under the 2,000 free minutes/month personal accounts get on `ubuntu-latest` runners).
+
+The one gap that isn't a hard wall: outbound data egress has a small free monthly allowance across the subscription, then a few cents/GB beyond it — practically irrelevant for a handful of users entering ERP data, but not a guaranteed-zero the way the compute tiers are. A **₹10/month budget alert** is configured on the Azure subscription (email notifications at 50%, 100% actual spend, and if forecasted to exceed 100%) as a safety net.
+
+Practical tradeoff of the free tier: App Service F1 sleeps after ~20 minutes of inactivity, so the first request after idle can take 10-20s to wake up (same cold-start pattern as the database). Fine for casual use; upgrading the API to Basic B1 (~$13/month) would remove it if it becomes annoying.
+
 ## Modules
 
 Dashboard · Users (Admin) · Shop Management · Supplier Management · Fruit Master · Routes · Employees · Employee Salary · Stock · Supply · Purchase · Collections · Supplier Payments · Expense Category · Daily Expenses · Shop Ledger · Supplier Ledger · Cash Ledger · Reports (Daily Sales, Daily Collection, Daily Expense, Purchase, Fruit Sales, Outstanding, Profit Summary) · Settings (Company Profile, Change Password, Cash Adjustment) · Authentication
