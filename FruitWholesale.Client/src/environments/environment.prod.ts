@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
-  serverUrl: ''
+  apiUrl: 'https://harvest-erp-api.azurewebsites.net/api',
+  serverUrl: 'https://harvest-erp-api.azurewebsites.net'
 };
