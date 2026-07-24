@@ -91,7 +91,7 @@ export class MainLayoutComponent {
       label: 'Reports',
       items: [
         { label: 'Reports', icon: 'assessment', route: '/reports', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: MainLayoutComponent.BACK_OFFICE }
+        { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: ['Admin'] }
       ]
     },
     {

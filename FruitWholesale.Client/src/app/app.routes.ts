@@ -130,7 +130,7 @@ export const routes: Routes = [
       {
         path: 'profit',
         loadComponent: () => import('./features/profit/profit.component').then((m) => m.ProfitComponent),
-        canActivate: backOfficeGuard
+        canActivate: [roleGuard('Admin')]
       },
       {
         path: 'users',

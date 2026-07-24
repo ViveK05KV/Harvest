@@ -11,6 +11,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCardModule } from '@angular/material/card';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ProfitService } from './profit.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopMaster } from '../../core/models/master-data.model';
@@ -48,7 +49,8 @@ function toIso(date: Date): string {
     MatNativeDateModule,
     MatIconModule,
     MatProgressBarModule,
-    MatCardModule
+    MatCardModule,
+    MatButtonToggleModule
   ],
   templateUrl: './profit.component.html'
 })
@@ -61,6 +63,7 @@ export class ProfitComponent implements OnInit {
   readonly loading = signal(false);
   readonly activeTab = signal(0);
   readonly shops = signal<ShopMaster[]>([]);
+  tillToday = false;
   selectedShopId: number | null = null;
 
   readonly businessTotal = signal<BusinessProfitTotal | null>(null);
@@ -88,9 +91,14 @@ export class ProfitComponent implements OnInit {
     this.loadActiveTab();
   }
 
+  onTillTodayChange(): void {
+    this.loadActiveTab();
+  }
+
   loadActiveTab(): void {
-    const from = toIso(this.fromDate);
-    const to = toIso(this.toDate);
+    const useAllTime = this.tillToday && (this.activeTab() === 1 || this.activeTab() === 2);
+    const from = useAllTime ? undefined : toIso(this.fromDate);
+    const to = useAllTime ? undefined : toIso(this.toDate);
     this.loading.set(true);
 
     const finish = () => this.loading.set(false);

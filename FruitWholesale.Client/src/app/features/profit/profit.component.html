@@ -4,17 +4,24 @@
   @if (activeTab() !== 0) {
     <mat-form-field subscriptSizing="dynamic" style="width: 150px">
       <mat-label>From</mat-label>
-      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" (dateChange)="onFilterChange()" />
+      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)" (dateChange)="onFilterChange()" />
       <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
       <mat-datepicker #fromPicker></mat-datepicker>
     </mat-form-field>
 
     <mat-form-field subscriptSizing="dynamic" style="width: 150px">
       <mat-label>To</mat-label>
-      <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" (dateChange)="onFilterChange()" />
+      <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)" (dateChange)="onFilterChange()" />
       <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
       <mat-datepicker #toPicker></mat-datepicker>
     </mat-form-field>
+  }
+
+  @if (activeTab() === 1 || activeTab() === 2) {
+    <mat-button-toggle-group [(ngModel)]="tillToday" (change)="onTillTodayChange()">
+      <mat-button-toggle [value]="false">Date Range</mat-button-toggle>
+      <mat-button-toggle [value]="true">Till Today</mat-button-toggle>
+    </mat-button-toggle-group>
   }
 
   @if (activeTab() === 1 || activeTab() === 3) {
