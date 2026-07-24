@@ -1,0 +1,211 @@
+<div class="page-toolbar">
+  <h1>Profit Calculator</h1>
+
+  @if (activeTab() !== 0) {
+    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
+      <mat-label>From</mat-label>
+      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" (dateChange)="onFilterChange()" />
+      <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+      <mat-datepicker #fromPicker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
+      <mat-label>To</mat-label>
+      <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" (dateChange)="onFilterChange()" />
+      <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+      <mat-datepicker #toPicker></mat-datepicker>
+    </mat-form-field>
+  }
+
+  @if (activeTab() === 1 || activeTab() === 3) {
+    <mat-form-field subscriptSizing="dynamic" style="width: 200px">
+      <mat-label>Shop {{ activeTab() === 1 ? '(for daily breakdown)' : '(optional filter)' }}</mat-label>
+      <mat-select [(ngModel)]="selectedShopId" (selectionChange)="onFilterChange()">
+        <mat-option [value]="null">All Shops</mat-option>
+        @for (shop of shops(); track shop.shopID) {
+          <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+
+  <span class="spacer"></span>
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<mat-tab-group (selectedIndexChange)="onTabChange($event)">
+  <mat-tab label="Business Total">
+    @if (businessTotal(); as total) {
+      <div class="table-container" style="display: flex; gap: 16px; flex-wrap: wrap; padding: 16px 0">
+        <mat-card style="flex: 1; min-width: 200px">
+          <mat-card-subtitle>Total Revenue (Till Date)</mat-card-subtitle>
+          <mat-card-title>{{ total.revenue | currency: 'INR' : 'symbol' : '1.0-0' }}</mat-card-title>
+        </mat-card>
+        <mat-card style="flex: 1; min-width: 200px">
+          <mat-card-subtitle>Total Cost of Goods</mat-card-subtitle>
+          <mat-card-title>{{ total.cost | currency: 'INR' : 'symbol' : '1.0-0' }}</mat-card-title>
+        </mat-card>
+        <mat-card style="flex: 1; min-width: 200px">
+          <mat-card-subtitle>Total Profit (Till Date)</mat-card-subtitle>
+          <mat-card-title [style.color]="total.profit < 0 ? '#c62828' : '#2e7d32'">
+            {{ total.profit | currency: 'INR' : 'symbol' : '1.0-0' }}
+          </mat-card-title>
+        </mat-card>
+        <mat-card style="flex: 1; min-width: 200px">
+          <mat-card-subtitle>Margin</mat-card-subtitle>
+          <mat-card-title [style.color]="total.marginPercent < 0 ? '#c62828' : '#2e7d32'">
+            {{ total.marginPercent | number: '1.2-2' }}%
+          </mat-card-title>
+        </mat-card>
+      </div>
+    }
+  </mat-tab>
+
+  <mat-tab label="By Shop">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="shopSummary()">
+        <ng-container matColumnDef="shopName">
+          <th mat-header-cell *matHeaderCellDef>Shop</th>
+          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="revenue">
+          <th mat-header-cell *matHeaderCellDef>Revenue</th>
+          <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cost">
+          <th mat-header-cell *matHeaderCellDef>Cost</th>
+          <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="profit">
+          <th mat-header-cell *matHeaderCellDef>Profit</th>
+          <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
+            <strong>{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</strong>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="marginPercent">
+          <th mat-header-cell *matHeaderCellDef>Margin</th>
+          <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
+            {{ row.marginPercent | number: '1.2-2' }}%
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="shopSummaryColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: shopSummaryColumns"></tr>
+      </table>
+    </div>
+
+    @if (selectedShopId) {
+      <h3 style="margin: 16px 0 8px">Day-by-Day Profit</h3>
+      <div class="table-container tab-table">
+        <table mat-table [dataSource]="shopDaily()">
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef>Date</th>
+            <td mat-cell *matCellDef="let row">{{ row.date | date: 'dd-MMM-yyyy' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="revenue">
+            <th mat-header-cell *matHeaderCellDef>Revenue</th>
+            <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="cost">
+            <th mat-header-cell *matHeaderCellDef>Cost</th>
+            <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="profit">
+            <th mat-header-cell *matHeaderCellDef>Profit</th>
+            <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
+              {{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="marginPercent">
+            <th mat-header-cell *matHeaderCellDef>Margin</th>
+            <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
+              {{ row.marginPercent | number: '1.2-2' }}%
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="shopDailyColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: shopDailyColumns"></tr>
+        </table>
+      </div>
+    }
+  </mat-tab>
+
+  <mat-tab label="By Fruit">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="fruitSummary()">
+        <ng-container matColumnDef="fruitName">
+          <th mat-header-cell *matHeaderCellDef>Fruit</th>
+          <td mat-cell *matCellDef="let row">{{ row.fruitName }} ({{ row.unit }})</td>
+        </ng-container>
+        <ng-container matColumnDef="quantitySold">
+          <th mat-header-cell *matHeaderCellDef>Quantity Sold</th>
+          <td mat-cell *matCellDef="let row">{{ row.quantitySold | number: '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="revenue">
+          <th mat-header-cell *matHeaderCellDef>Revenue</th>
+          <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cost">
+          <th mat-header-cell *matHeaderCellDef>Cost</th>
+          <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="profit">
+          <th mat-header-cell *matHeaderCellDef>Profit</th>
+          <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
+            <strong>{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</strong>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="marginPercent">
+          <th mat-header-cell *matHeaderCellDef>Margin</th>
+          <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
+            {{ row.marginPercent | number: '1.2-2' }}%
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="fruitSummaryColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: fruitSummaryColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="By Shop &amp; Fruit">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="shopFruit()">
+        <ng-container matColumnDef="shopName">
+          <th mat-header-cell *matHeaderCellDef>Shop</th>
+          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="fruitName">
+          <th mat-header-cell *matHeaderCellDef>Fruit</th>
+          <td mat-cell *matCellDef="let row">{{ row.fruitName }} ({{ row.unit }})</td>
+        </ng-container>
+        <ng-container matColumnDef="quantitySold">
+          <th mat-header-cell *matHeaderCellDef>Quantity Sold</th>
+          <td mat-cell *matCellDef="let row">{{ row.quantitySold | number: '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="revenue">
+          <th mat-header-cell *matHeaderCellDef>Revenue</th>
+          <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cost">
+          <th mat-header-cell *matHeaderCellDef>Cost</th>
+          <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="profit">
+          <th mat-header-cell *matHeaderCellDef>Profit</th>
+          <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
+            <strong>{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</strong>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="marginPercent">
+          <th mat-header-cell *matHeaderCellDef>Margin</th>
+          <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
+            {{ row.marginPercent | number: '1.2-2' }}%
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="shopFruitColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: shopFruitColumns"></tr>
+      </table>
+    </div>
+  </mat-tab>
+</mat-tab-group>

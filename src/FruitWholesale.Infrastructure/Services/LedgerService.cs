@@ -272,6 +272,76 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         connection.ExecuteAsync("dbo.sp_RecalculateStockLedgerBalance", new { FruitID = fruitId },
             transaction, commandType: CommandType.StoredProcedure);
 
+    public async Task RecalculateFruitCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId)
+    {
+        const string eventsSql = """
+            SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
+                   p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.PurchasePrice AS UnitCost
+            FROM dbo.PurchaseItems pi
+            INNER JOIN dbo.Purchase p ON p.PurchaseID = pi.PurchaseID
+            WHERE pi.FruitID = @FruitID
+
+            UNION ALL
+
+            SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
+                   s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS UnitCost
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            WHERE si.FruitID = @FruitID
+
+            ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
+            """;
+        var events = await connection.QueryAsync<CostBasisEvent>(eventsSql, new { FruitID = fruitId }, transaction);
+
+        var quantityOnHand = 0m;
+        var averageCost = 0m;
+        var supplyCostBasis = new Dictionary<int, decimal>();
+
+        foreach (var evt in events)
+        {
+            if (evt.EventType == "PURCHASE")
+            {
+                var newQuantity = quantityOnHand + evt.Quantity;
+                averageCost = newQuantity > 0
+                    ? (quantityOnHand * averageCost + evt.Quantity * (evt.UnitCost ?? 0m)) / newQuantity
+                    : 0m;
+                quantityOnHand = newQuantity;
+            }
+            else
+            {
+                supplyCostBasis[evt.ItemID] = averageCost;
+                quantityOnHand -= evt.Quantity;
+            }
+        }
+
+        foreach (var (supplyItemId, costBasis) in supplyCostBasis)
+        {
+            await connection.ExecuteAsync(
+                "UPDATE dbo.SupplyItems SET CostBasis = @CostBasis WHERE SupplyItemID = @SupplyItemID",
+                new { CostBasis = costBasis, SupplyItemID = supplyItemId }, transaction);
+        }
+
+        const string upsertSql = """
+            UPDATE dbo.FruitCostBasis SET QuantityOnHand = @QuantityOnHand, AverageCost = @AverageCost, UpdatedAt = SYSUTCDATETIME()
+            WHERE FruitID = @FruitID;
+
+            IF @@ROWCOUNT = 0
+                INSERT INTO dbo.FruitCostBasis (FruitID, QuantityOnHand, AverageCost, UpdatedAt)
+                VALUES (@FruitID, @QuantityOnHand, @AverageCost, SYSUTCDATETIME());
+            """;
+        await connection.ExecuteAsync(upsertSql, new { FruitID = fruitId, QuantityOnHand = quantityOnHand, AverageCost = averageCost }, transaction);
+    }
+
+    private sealed class CostBasisEvent
+    {
+        public string EventType { get; set; } = string.Empty;
+        public int ItemID { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public DateTime ParentCreatedAt { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal? UnitCost { get; set; }
+    }
+
     public async Task<decimal> GetCurrentStockAsync(int fruitId)
     {
         using var connection = connectionFactory.CreateConnection();

@@ -24,6 +24,7 @@ IF OBJECT_ID('dbo.CashLedger', 'U') IS NOT NULL DROP TABLE dbo.CashLedger;
 IF OBJECT_ID('dbo.SupplierLedger', 'U') IS NOT NULL DROP TABLE dbo.SupplierLedger;
 IF OBJECT_ID('dbo.ShopLedger', 'U') IS NOT NULL DROP TABLE dbo.ShopLedger;
 IF OBJECT_ID('dbo.StockLedger', 'U') IS NOT NULL DROP TABLE dbo.StockLedger;
+IF OBJECT_ID('dbo.FruitCostBasis', 'U') IS NOT NULL DROP TABLE dbo.FruitCostBasis;
 IF OBJECT_ID('dbo.EmployeeWorkLog', 'U') IS NOT NULL DROP TABLE dbo.EmployeeWorkLog;
 IF OBJECT_ID('dbo.EmployeeSupplyDay', 'U') IS NOT NULL DROP TABLE dbo.EmployeeSupplyDay;
 IF OBJECT_ID('dbo.DailyExpense', 'U') IS NOT NULL DROP TABLE dbo.DailyExpense;
@@ -99,6 +100,23 @@ CREATE TABLE dbo.FruitMaster
     UpdatedAt   DATETIME2          NULL,
     CONSTRAINT PK_FruitMaster PRIMARY KEY CLUSTERED (FruitID),
     CONSTRAINT UQ_FruitMaster_FruitName UNIQUE (FruitName)
+);
+GO
+
+/* =====================================================================
+   FruitCostBasis (weighted-average cost tracking for profit calculation
+   — see database/08_AddProfitTracking.sql for the full design rationale)
+   ===================================================================== */
+IF OBJECT_ID('dbo.FruitCostBasis', 'U') IS NOT NULL DROP TABLE dbo.FruitCostBasis;
+GO
+CREATE TABLE dbo.FruitCostBasis
+(
+    FruitID          INT            NOT NULL,
+    QuantityOnHand   DECIMAL(18,3)  NOT NULL CONSTRAINT DF_FruitCostBasis_QuantityOnHand DEFAULT (0),
+    AverageCost      DECIMAL(18,4)  NOT NULL CONSTRAINT DF_FruitCostBasis_AverageCost DEFAULT (0),
+    UpdatedAt        DATETIME2      NOT NULL CONSTRAINT DF_FruitCostBasis_UpdatedAt DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT PK_FruitCostBasis PRIMARY KEY CLUSTERED (FruitID),
+    CONSTRAINT FK_FruitCostBasis_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
 );
 GO
 
@@ -216,6 +234,7 @@ CREATE TABLE dbo.SupplyItems
     Quantity      DECIMAL(18,3)      NOT NULL,
     UnitPrice     DECIMAL(18,2)      NOT NULL,
     TotalAmount   DECIMAL(18,2)      NOT NULL,
+    CostBasis     DECIMAL(18,4)      NOT NULL CONSTRAINT DF_SupplyItems_CostBasis DEFAULT (0), -- weighted-avg fruit cost at time of sale; see 08_AddProfitTracking.sql
     CONSTRAINT PK_SupplyItems PRIMARY KEY CLUSTERED (SupplyItemID),
     CONSTRAINT FK_SupplyItems_Supply FOREIGN KEY (SupplyID) REFERENCES dbo.Supply(SupplyID) ON DELETE CASCADE,
     CONSTRAINT FK_SupplyItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)

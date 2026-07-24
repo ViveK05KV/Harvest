@@ -53,6 +53,13 @@ public interface ILedgerService
 
     Task RecalculateStockLedgerAsync(IDbConnection connection, IDbTransaction transaction, int fruitId);
 
+    /// <summary>
+    /// Walks a fruit's Purchase/Supply history in date order to recompute its
+    /// weighted-average cost, snapshotting the cost onto every SupplyItems row
+    /// it passes (see database/08_AddProfitTracking.sql for the rationale).
+    /// </summary>
+    Task RecalculateFruitCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId);
+
     Task<decimal> GetCurrentStockAsync(int fruitId);
 
     Task<Dictionary<int, decimal>> GetCurrentStockForAllFruitsAsync();

@@ -128,6 +128,11 @@ export const routes: Routes = [
         canActivate: backOfficeGuard
       },
       {
+        path: 'profit',
+        loadComponent: () => import('./features/profit/profit.component').then((m) => m.ProfitComponent),
+        canActivate: backOfficeGuard
+      },
+      {
         path: 'users',
         loadComponent: () => import('./features/users/user-list.component').then((m) => m.UserListComponent),
         canActivate: [roleGuard('Admin')]
