@@ -10,15 +10,12 @@
   align-items: center;
   gap: 14px;
   padding: 18px !important;
-  box-shadow: none !important;
-  border: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .summary-card--emphasis {
   background: var(--mat-sys-primary-container);
-  border-color: transparent;
 
   .card-icon {
     background: var(--mat-sys-primary);
@@ -43,9 +40,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 12px;
   background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface-variant);
+}
+
+// Materio-style multicolor stat avatars: cycle a tint per card instead of
+// one flat gray icon for every metric.
+.summary-card:nth-of-type(4n+1) .card-icon {
+  background: color-mix(in srgb, var(--mat-sys-primary) 14%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.summary-card:nth-of-type(4n+2) .card-icon {
+  background: color-mix(in srgb, var(--mat-sys-tertiary) 16%, transparent);
+  color: var(--mat-sys-tertiary);
+}
+
+.summary-card:nth-of-type(4n+3) .card-icon {
+  background: color-mix(in srgb, var(--app-color-positive) 14%, transparent);
+  color: var(--app-color-positive);
+}
+
+.summary-card:nth-of-type(4n+4) .card-icon {
+  background: color-mix(in srgb, var(--app-color-negative) 14%, transparent);
+  color: var(--app-color-negative);
 }
 
 .card-body {
@@ -76,9 +95,7 @@
 
 .chart-card {
   padding: 18px !important;
-  box-shadow: none !important;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 12px;
+  border-radius: 10px;
 
   h3 {
     margin: 0 0 12px;

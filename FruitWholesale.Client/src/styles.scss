@@ -10,7 +10,7 @@ html {
   @include mat.theme((
     color: (
       theme-type: light,
-      primary: mat.$blue-palette,
+      primary: mat.$violet-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Roboto,
@@ -22,7 +22,7 @@ html.dark-theme {
   @include mat.theme((
     color: (
       theme-type: dark,
-      primary: mat.$blue-palette,
+      primary: mat.$violet-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Roboto,
@@ -54,11 +54,13 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 :root {
   --app-color-positive: #2e7d32;
   --app-color-negative: #c62828;
+  --app-shadow-rgb: 47, 43, 61;
 }
 
 html.dark-theme {
   --app-color-positive: #81c995;
   --app-color-negative: #f28b82;
+  --app-shadow-rgb: 19, 17, 32;
 }
 
 .amount-in {
@@ -182,8 +184,16 @@ mat-form-field.full-width {
 .table-container {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid var(--mat-sys-outline-variant);
+  border: none;
   background: var(--mat-sys-surface);
+  box-shadow: 0 2px 10px 0 rgba(var(--app-shadow-rgb), 0.08);
+}
+
+// Materio-inspired soft-elevation cards: shadow instead of a flat outline,
+// slightly larger radius than default mat-card.
+.mat-mdc-card:not(.mdc-card--outlined) {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 10px 0 rgba(var(--app-shadow-rgb), 0.08) !important;
 }
 
 table.mat-mdc-table {
