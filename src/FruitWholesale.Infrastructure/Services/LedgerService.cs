@@ -132,6 +132,26 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             new { ShopID = shopId }) ?? 0m;
     }
 
+    public async Task<Dictionary<int, decimal>> GetShopOutstandingBatchAsync(IEnumerable<int> shopIds)
+    {
+        var ids = shopIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT ShopID, RunningBalance
+            FROM (
+                SELECT ShopID, RunningBalance,
+                       ROW_NUMBER() OVER (PARTITION BY ShopID ORDER BY TransactionDate DESC, LedgerID DESC) AS rn
+                FROM dbo.ShopLedger
+                WHERE ShopID IN @ShopIDs
+            ) ranked
+            WHERE rn = 1;
+            """;
+        var rows = await connection.QueryAsync<(int ShopID, decimal RunningBalance)>(sql, new { ShopIDs = ids });
+        return rows.ToDictionary(r => r.ShopID, r => r.RunningBalance);
+    }
+
     public async Task<decimal> GetSupplierOutstandingAsync(int supplierId)
     {
         using var connection = connectionFactory.CreateConnection();
@@ -140,12 +160,26 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             new { SupplierID = supplierId }) ?? 0m;
     }
 
-    public async Task<decimal> GetCurrentCashBalanceAsync()
+    public async Task<Dictionary<int, decimal>> GetSupplierOutstandingBatchAsync(IEnumerable<int> supplierIds)
     {
+        var ids = supplierIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<decimal?>(
-            "SELECT TOP 1 RunningBalance FROM dbo.CashLedger ORDER BY TransactionDate DESC, CashLedgerID DESC") ?? 0m;
+        const string sql = """
+            SELECT SupplierID, RunningBalance
+            FROM (
+                SELECT SupplierID, RunningBalance,
+                       ROW_NUMBER() OVER (PARTITION BY SupplierID ORDER BY TransactionDate DESC, LedgerID DESC) AS rn
+                FROM dbo.SupplierLedger
+                WHERE SupplierID IN @SupplierIDs
+            ) ranked
+            WHERE rn = 1;
+            """;
+        var rows = await connection.QueryAsync<(int SupplierID, decimal RunningBalance)>(sql, new { SupplierIDs = ids });
+        return rows.ToDictionary(r => r.SupplierID, r => r.RunningBalance);
     }
+
 
     public async Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize)
     {

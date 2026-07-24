@@ -89,4 +89,16 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
         return await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM dbo.ShopMaster WHERE RouteID = @RouteID", new { RouteID = routeId });
     }
+
+    public async Task<Dictionary<int, int>> GetShopCountBatchAsync(IEnumerable<int> routeIds)
+    {
+        var ids = routeIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        using var connection = connectionFactory.CreateConnection();
+        var rows = await connection.QueryAsync<(int RouteID, int ShopCount)>(
+            "SELECT RouteID, COUNT(*) AS ShopCount FROM dbo.ShopMaster WHERE RouteID IN @RouteIDs GROUP BY RouteID",
+            new { RouteIDs = ids });
+        return rows.ToDictionary(r => r.RouteID, r => r.ShopCount);
+    }
 }

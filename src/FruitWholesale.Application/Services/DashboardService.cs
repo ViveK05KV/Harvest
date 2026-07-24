@@ -18,13 +18,21 @@ public class DashboardService(IDashboardRepository repository) : IDashboardServi
         var toDate = DateTime.UtcNow.Date;
         var fromDate = toDate.AddMonths(-6);
 
+        var salesByMonthTask = repository.GetSalesByMonthAsync(6);
+        var collectionsByMonthTask = repository.GetCollectionsByMonthAsync(6);
+        var expensesByCategoryTask = repository.GetExpensesByCategoryAsync(fromDate, toDate);
+        var topSellingFruitsTask = repository.GetTopSellingFruitsAsync(10, fromDate, toDate);
+        var topCustomersTask = repository.GetTopCustomersAsync(10, fromDate, toDate);
+
+        await Task.WhenAll(salesByMonthTask, collectionsByMonthTask, expensesByCategoryTask, topSellingFruitsTask, topCustomersTask);
+
         return new DashboardChartsDto
         {
-            SalesByMonth = await repository.GetSalesByMonthAsync(6),
-            CollectionsByMonth = await repository.GetCollectionsByMonthAsync(6),
-            ExpensesByCategory = await repository.GetExpensesByCategoryAsync(fromDate, toDate),
-            TopSellingFruits = await repository.GetTopSellingFruitsAsync(10, fromDate, toDate),
-            TopCustomers = await repository.GetTopCustomersAsync(10, fromDate, toDate)
+            SalesByMonth = await salesByMonthTask,
+            CollectionsByMonth = await collectionsByMonthTask,
+            ExpensesByCategory = await expensesByCategoryTask,
+            TopSellingFruits = await topSellingFruitsTask,
+            TopCustomers = await topCustomersTask
         };
     }
 }

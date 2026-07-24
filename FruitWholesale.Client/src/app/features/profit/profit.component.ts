@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -15,6 +16,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ProfitService } from './profit.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopMaster } from '../../core/models/master-data.model';
+import { firstOfMonth, toIso } from '../../core/utils/date.util';
 import {
   BusinessProfitTotal,
   FruitProfitSummaryRow,
@@ -22,15 +24,6 @@ import {
   ShopFruitProfitRow,
   ShopProfitSummaryRow
 } from '../../core/models/profit.model';
-
-function firstOfMonth(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-}
-
-function toIso(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 @Component({
   selector: 'app-profit',
@@ -113,20 +106,20 @@ export class ProfitComponent implements OnInit {
           error: finish
         });
         break;
-      case 1:
-        this.profitService.getShopProfitSummary(from, to).subscribe({
-          next: (r) => {
-            this.shopSummary.set(r);
+      case 1: {
+        const shopDaily$ = this.selectedShopId
+          ? this.profitService.getShopDailyProfit(this.selectedShopId, from, to)
+          : of<ShopDailyProfitRow[]>([]);
+        forkJoin({ summary: this.profitService.getShopProfitSummary(from, to), daily: shopDaily$ }).subscribe({
+          next: ({ summary, daily }) => {
+            this.shopSummary.set(summary);
+            this.shopDaily.set(daily);
             finish();
           },
           error: finish
         });
-        if (this.selectedShopId) {
-          this.profitService.getShopDailyProfit(this.selectedShopId, from, to).subscribe((r) => this.shopDaily.set(r));
-        } else {
-          this.shopDaily.set([]);
-        }
         break;
+      }
       case 2:
         this.profitService.getFruitProfitSummary(from, to).subscribe({
           next: (r) => {
