@@ -2,10 +2,12 @@
   height: 100vh;
 }
 
+// Mazer signature: fixed dark navy sidebar, independent of the app's own
+// light/dark toggle (which only affects the content area).
 .app-sidenav {
   width: 264px;
   border-right: none;
-  background: var(--mat-sys-surface);
+  background: #0e1726;
   padding-bottom: 16px;
 }
 
@@ -16,7 +18,11 @@
   padding: 20px 16px 12px;
   font: var(--mat-sys-title-medium);
   font-weight: 600;
-  color: var(--mat-sys-primary);
+  color: #fff;
+
+  mat-icon {
+    color: #6d78ff;
+  }
 
   span {
     overflow: hidden;
@@ -33,22 +39,44 @@
   flex-shrink: 0;
 }
 
+.nav-section-label {
+  color: #5b6482 !important;
+}
+
 .nav-section-list {
   padding-top: 0;
 
   ::ng-deep .mdc-list-item {
-    border-radius: 20px;
-    margin: 2px 12px;
+    border-radius: 8px;
+    margin: 2px 12px 2px 9px;
     height: 44px;
+    border-left: 3px solid transparent;
+  }
+
+  ::ng-deep .mdc-list-item__primary-text {
+    color: #b2bcd4;
+  }
+
+  ::ng-deep .mdc-list-item__start {
+    color: #7a83a0;
+  }
+
+  ::ng-deep .mdc-list-item:hover {
+    background: rgba(255, 255, 255, 0.04);
   }
 }
 
 .active-link {
-  background: var(--mat-sys-secondary-container);
-  color: var(--mat-sys-on-secondary-container);
+  background: rgba(109, 120, 255, 0.14) !important;
+  border-left: 3px solid #6d78ff !important;
+
+  ::ng-deep .mdc-list-item__primary-text {
+    color: #fff !important;
+    font-weight: 600;
+  }
 
   ::ng-deep .mdc-list-item__start {
-    color: var(--mat-sys-on-secondary-container);
+    color: #6d78ff !important;
   }
 }
 
@@ -95,6 +123,7 @@
   margin: 0 auto;
   min-height: calc(100vh - 64px);
   box-sizing: border-box;
+  background: var(--mat-sys-surface-container-lowest, var(--mat-sys-surface));
 }
 
 @media (max-width: 599px) {

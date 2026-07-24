@@ -1,9 +1,48 @@
 .login-page {
   min-height: 100vh;
   display: flex;
+}
+
+// Mazer-style split auth screen: colored brand panel + white form panel.
+.login-hero {
+  flex: 1 1 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%);
+  background: linear-gradient(135deg, #0e1726 0%, #3d3d99 55%, #6d78ff 100%);
+  padding: 32px;
+}
+
+.hero-content {
+  text-align: center;
+  color: #fff;
+
+  h1 {
+    margin: 16px 0 4px;
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+}
+
+.hero-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: #fff;
+}
+
+.login-form-panel {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mat-sys-surface);
   padding: 16px;
 }
 
@@ -11,10 +50,11 @@
   width: 100%;
   max-width: 400px;
   padding: 32px;
+  box-shadow: none !important;
 }
 
-.brand {
-  display: flex;
+.brand-mobile {
+  display: none;
   align-items: center;
   gap: 12px;
   margin-bottom: 24px;
@@ -23,7 +63,7 @@
     font-size: 40px;
     width: 40px;
     height: 40px;
-    color: #1565c0;
+    color: var(--mat-sys-primary);
   }
 
   h1 {
@@ -38,6 +78,17 @@
   }
 }
 
+.welcome-title {
+  margin: 0 0 4px;
+  font: var(--mat-sys-title-large);
+}
+
+.welcome-subtitle {
+  margin: 0 0 24px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 14px;
+}
+
 .full-width {
   width: 100%;
 }
@@ -45,4 +96,14 @@
 .login-btn {
   height: 44px;
   margin-top: 8px;
+}
+
+@media (max-width: 767px) {
+  .login-hero {
+    display: none;
+  }
+
+  .brand-mobile {
+    display: flex;
+  }
 }

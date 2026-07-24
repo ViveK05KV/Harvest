@@ -10,7 +10,7 @@ html {
   @include mat.theme((
     color: (
       theme-type: light,
-      primary: mat.$violet-palette,
+      primary: mat.$azure-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Roboto,
@@ -22,7 +22,7 @@ html.dark-theme {
   @include mat.theme((
     color: (
       theme-type: dark,
-      primary: mat.$violet-palette,
+      primary: mat.$azure-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Roboto,
@@ -183,16 +183,16 @@ mat-form-field.full-width {
 
 .table-container {
   overflow-x: auto;
-  border-radius: 12px;
+  border-radius: 8px;
   border: none;
   background: var(--mat-sys-surface);
   box-shadow: 0 2px 10px 0 rgba(var(--app-shadow-rgb), 0.08);
 }
 
-// Materio-inspired soft-elevation cards: shadow instead of a flat outline,
-// slightly larger radius than default mat-card.
+// Mazer-inspired soft-elevation cards: shadow instead of a flat outline,
+// crisp 8px radius.
 .mat-mdc-card:not(.mdc-card--outlined) {
-  border-radius: 10px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 10px 0 rgba(var(--app-shadow-rgb), 0.08) !important;
 }
 
