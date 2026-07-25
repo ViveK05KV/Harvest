@@ -124,40 +124,45 @@ The app is hosted on **Azure**, chosen mainly because it's a native fit for the 
 flowchart TB
     subgraph clients["Friends / Users"]
         browser["Browser"]
+        mobile["Mobile app (Flutter)"]
     end
 
     subgraph gh["GitHub"]
         repo["Harvest repo (main branch)"]
         actions["GitHub Actions\n(hosted runners)"]
+        ghcr["GitHub Container Registry\nghcr.io/vivek05kv/harvest-erp-api\n(private)"]
     end
 
     subgraph azure["Azure — resource group: harvest-erp-rg"]
         swa["Static Web App\nharvest-erp-web\n(Angular SPA, Free tier)"]
-        api["App Service\nharvest-erp-api\n(.NET 10 API, F1 Free tier)"]
+        aca["Container App\nharvest-erp-api\n(.NET 10 API, Consumption plan,\nscale-to-zero, 0.25 vCPU / 0.5Gi)"]
         sql["SQL Database\nFruitWholesaleDB\n(Serverless, Free-limit tier,\nauto-pause after 60 min idle)"]
     end
 
     browser -->|HTTPS| swa
-    browser -->|HTTPS + JWT| api
-    api -->|SQL over TLS| sql
+    browser -->|HTTPS + JWT| aca
+    mobile -->|HTTPS + JWT| aca
+    aca -->|SQL over TLS| sql
 
     repo -->|push to main| actions
-    actions -->|OIDC login, no stored secret| api
+    actions -->|build + push image| ghcr
+    actions -->|OIDC login, no stored secret| aca
+    aca -->|pull image, PAT-authenticated| ghcr
     actions -->|deployment token| swa
 ```
 
 - **Frontend** — Angular production build, deployed to Azure Static Web Apps. `staticwebapp.config.json` adds a navigation fallback so deep-links/refreshes on client-side routes (e.g. `/dashboard`) don't 404.
-- **Backend** — ASP.NET Core API published to Azure App Service (Linux, F1 Free plan). Production `Jwt:Secret` and the SQL connection string are set as App Service application settings (not committed to the repo); `appsettings.Development.json` stays secret-free.
+- **Backend** — ASP.NET Core API, containerized (multi-stage `src/FruitWholesale.Api/Dockerfile`, Alpine-based runtime, ~216MB image) and deployed to **Azure Container Apps** (Consumption plan, scale-to-zero). CI builds the image and pushes it to **GitHub Container Registry** (kept private, since the repo is owned by a different GitHub account than the one CI/CLI operations run as), then `az containerapp update` swaps in the new image on every push to `main`. The Container App authenticates its image pulls with a registry credential (a classic GitHub PAT, `read:packages` scope, configured once via `az containerapp registry set`). Production `Jwt:Secret` and the SQL connection string are stored as Container Apps **secrets** (not committed to the repo, referenced by env vars via `secretref:`, never in plaintext); `appsettings.Development.json` stays secret-free. Migrated off Azure App Service in July 2026 — see [Migration Log](#migration-log-app-service--container-apps) for the full why/what/cost breakdown.
 - **Database** — Azure SQL Database on the serverless **free-limit** tier (one free DB per subscription; 100,000 vCore-seconds + 32GB storage/month free). Configured with `freeLimitExhaustionBehavior=AutoPause`, so exceeding the free monthly compute pauses the DB rather than billing overage. The connection string includes `ConnectRetryCount=5;ConnectRetryInterval=10` so the driver silently retries through the ~10-30s wake-up window after the DB auto-pauses from inactivity (60 min idle timeout) — without this, the first request after a pause can surface as a transient 500.
-- **CI/CD** — GitHub Actions, authenticating to Azure via **OIDC federated credentials** (no long-lived secrets stored in GitHub). `pr-checks.yml` runs a compile-only build check (`dotnet build`, `ng build`) on PRs targeting `main` — no test suite exists yet, so a green check means "compiles," not "verified correct." `deploy.yml` deploys both the API and frontend automatically on every push to `main`.
+- **CI/CD** — GitHub Actions, authenticating to Azure via **OIDC federated credentials** (no long-lived secrets stored in GitHub). `pr-checks.yml` runs a compile-only build check (`dotnet build`, `ng build`) on PRs targeting `main` — no test suite exists yet, so a green check means "compiles," not "verified correct." `deploy.yml` deploys both the API (build image → push to GHCR → `az containerapp update`) and frontend automatically on every push to `main`.
 
 ### Cost
 
-Everything above runs on **hard-capped free tiers** — App Service F1, Static Web Apps Free, and the SQL Database free-limit offer all either sleep/throttle or auto-pause rather than bill overage. GitHub Actions is also free at this usage level (private repo, but well under the 2,000 free minutes/month personal accounts get on `ubuntu-latest` runners).
+Everything above runs on **hard-capped free tiers/grants** — Container Apps Consumption, Static Web Apps Free, and the SQL Database free-limit all either scale-to-zero, throttle, or auto-pause rather than bill overage. GitHub Actions is also free at this usage level (private repo, but well under the 2,000 free minutes/month personal accounts get on `ubuntu-latest` runners).
 
 The one gap that isn't a hard wall: outbound data egress has a small free monthly allowance across the subscription, then a few cents/GB beyond it — practically irrelevant for a handful of users entering ERP data, but not a guaranteed-zero the way the compute tiers are. A **₹10/month budget alert** is configured on the Azure subscription (email notifications at 50%, 100% actual spend, and if forecasted to exceed 100%) as a safety net.
 
-Practical tradeoff of the free tier: App Service F1 sleeps after ~20 minutes of inactivity, so the first request after idle can take 10-20s to wake up (same cold-start pattern as the database). Fine for casual use; upgrading the API to Basic B1 (~$13/month) would remove it if it becomes annoying.
+Practical tradeoff of the free tier: with `minReplicas: 0`, the Container App scales to zero after a few minutes of no traffic, so the first request after idle can take 10-20s+ to wake up (same cold-start pattern as the database, and as App Service F1 before it).
 
 #### Free-tier limits, in detail
 
@@ -167,20 +172,104 @@ None of these are billed by "number of API calls" or "GB of data stored" the way
 |---|---|---|
 | SQL Database storage | **32 GB** | Writes start failing once full; would need a paid tier to grow past it |
 | SQL Database compute | **100,000 vCore-seconds/month** (≈13.9 hours of *active query time* at our 2-vCore size — idle/paused time doesn't count against this) | DB auto-pauses for the rest of the month (`AutoPause` behavior, configured) — reads/writes fail until the new month starts, no billing |
-| App Service (API) CPU | **60 CPU-minutes/day** | App throttles/stops responding until the quota resets the next day |
-| App Service (API) outbound bandwidth | **165 MB/day** | Requests start failing until the daily quota resets |
-| App Service (API) storage | **1 GB** | Deploys/logs fail once full |
+| Container Apps vCPU | **180,000 vCPU-seconds/month** (at our 0.25 vCPU allocation, ≈200 hours/month of combined active+idle replica runtime) | Billed at **$0.000034/vCPU-second** active, **$0.000004/vCPU-second** idle beyond the free grant (Azure Retail Prices API, `westus2`, 2026-07-25) |
+| Container Apps memory | **360,000 GiB-seconds/month** (at our 0.5Gi allocation, ≈200 hours/month — lines up with the vCPU grant by design) | Billed at **$0.000004/GiB-second** beyond the free grant |
+| Container Apps requests | **2,000,000 requests/month** | Billed at **$0.40 per additional 1,000,000 requests** |
 | Static Web App (frontend) bandwidth | **100 GB/month** | No pay-as-you-go overage on the Free plan — would need to upgrade to Standard to get more |
 | Static Web App (frontend) storage | **0.5 GB** | Same — upgrade required past this |
 | GitHub Actions (private repo) | **2,000 minutes/month** on Linux runners | Workflow runs stop until the next billing cycle (or you add a payment method for overage) |
+| GitHub Container Registry | **Free** (public images: unlimited; this repo's images are private but small and low-traffic) | N/A at this usage level |
 
 **Translated to this app:**
 - **Data storage** — ERP rows (invoices, ledger entries, master data) run a few hundred bytes to a couple of KB each. 32 GB comfortably holds tens of millions of transaction rows — realistically more than a small wholesale business will generate in decades, not months.
-- **API calls** — there's no published hard cap on request *count*; the real constraint is the 60 CPU-minutes/day on the API. A typical simple CRUD JSON endpoint burns single-digit-to-tens of milliseconds of actual CPU time, so the daily quota translates to roughly tens of thousands of lightweight requests/day before throttling — heavier endpoints (reports doing aggregation across many rows) cost more per call than a simple lookup, so this is a rough estimate, not a guarantee. For a handful of friends doing manual data entry, this ceiling is very unlikely to be reached.
+- **API compute** — with scale-to-zero, you're only billed for the minutes the API is actually handling (or just finished handling) traffic, not 24/7 uptime. ~200 hours/month of allowed runtime is a very high bar for a handful of friends doing manual data entry a few times a day — realistically this app will spend most of the month at zero replicas, costing nothing.
+
+### Migration Log: App Service → Container Apps
+
+On 2026-07-25 the API moved from Azure App Service to Azure Container Apps. Recorded here in full, since it touched CI/CD, secrets, and the frontend config, not just one file.
+
+**What changed**
+- Added `src/FruitWholesale.Api/Dockerfile` — multi-stage build, Alpine-based (`mcr.microsoft.com/dotnet/sdk:10.0-alpine` → `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`), final image ~216MB. Runtime stage installs `icu-libs` and sets `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` — required because `Microsoft.Data.SqlClient` throws `System.NotSupportedException: Globalization Invariant Mode is not supported` on a bare Alpine base (see Troubleshooting).
+- Added `.dockerignore` to keep the build context small.
+- Rewrote `deploy.yml`'s `deploy-api` job: instead of `dotnet publish` → zip → `az webapp deploy`, it now builds the Docker image, pushes it to **GitHub Container Registry**, then runs `az containerapp update --image ...:${{ github.sha }}` — tagged per-commit (immutable, traceable) rather than `:latest`, so the deployed image is never ambiguous and rollback is a one-line `az containerapp update --image ...:<previous-sha>`.
+- Container App (`harvest-erp-api`, Consumption plan, 0.25 vCPU/0.5Gi, `minReplicas: 0`/`maxReplicas: 10`, ingress target port `8080`) was created manually in the Azure Portal, then configured via `az`: environment variables/secrets (`ASPNETCORE_ENVIRONMENT`, `ConnectionStrings__DefaultConnection`, `Jwt__*`, `Cors__AllowedOrigins__0`) reused from the old App Service's settings, and a GHCR registry credential (`az containerapp registry set`, using a classic GitHub PAT scoped to `read:packages`, since the GHCR package is private and owned by a different GitHub account than the one running `az`/`gh` here).
+- Updated `FruitWholesale.Client/src/environments/environment.prod.ts` to point at the new Container Apps URL instead of the old App Service URL.
+- The old App Service (`harvest-erp-api` under plan `harvest-erp-plan`, F1 Free) and its plan are **still provisioned** but no longer receive deployments — left in place rather than deleted mid-migration; safe to delete once you're confident the Container App is stable.
+
+**Where things are now**
+
+| Resource | Location |
+|---|---|
+| Live API | `https://harvest-erp-api.whitepond-a6b90641.westus2.azurecontainerapps.io` |
+| Live web app | `https://icy-bay-03b2ce010.7.azurestaticapps.net` |
+| Container image | `ghcr.io/vivek05kv/harvest-erp-api` (private; view at `github.com/ViveK05KV/Harvest` → **Packages** in the sidebar) |
+| Container App resource | `harvest-erp-api` (Microsoft.App/containerApps) in `harvest-erp-rg`, `westus2` |
+| Old App Service (orphaned) | `harvest-erp-api` (Microsoft.Web/sites) + `harvest-erp-plan` in `harvest-erp-rg`, `centralindia` — no longer deployed to |
+
+**Why**
+Portability and cost-shape, not urgency — nothing was broken on App Service. A Docker image runs identically on Container Apps, AKS, another cloud, or a plain VM, whereas the App Service zip-deploy path is Azure-specific. Container Apps' consumption billing is also usage-based (per-second) rather than App Service's flat monthly tier, which matters more if this app ever outgrows the free allowances.
+
+**Gains**
+- Portable, standard container image instead of an Azure-specific deployment artifact.
+- Faster cold start expected from scale-to-zero on a lighter container runtime vs. App Service F1's ~20min-idle sleep cycle (not yet formally benchmarked against each other).
+- Immutable, traceable per-commit image tags (`:${{ github.sha }}`) — trivial rollback via `az containerapp update --image ...:<previous-sha>`.
+
+**Cost**
+No change at current usage — both the old App Service F1 and the new Container Apps Consumption plan cost **$0/month** within their respective free tiers/grants (see the table above). If usage ever grows past the free grants, Container Apps' usage-based pricing is likely cheaper than upgrading App Service to a paid Basic tier (~$13/month flat), but that's a future consideration, not a realized saving today.
+
+**Access — try it yourself**
+- Web app: **https://icy-bay-03b2ce010.7.azurestaticapps.net**
+- API directly: **https://harvest-erp-api.whitepond-a6b90641.westus2.azurecontainerapps.io/api**
+- Login: `admin` / `Admin@123` (the seeded default — use whatever the current password actually is if it's been changed since)
+- First request after idle may take 10-30s while the Container App and/or database wake up from scale-to-zero/auto-pause — that's expected, not a bug.
 
 ### Troubleshooting
 
-**API deploys fail with "site failed to start within 10 mins" (2026-07-25)**
+**Container App deploy fails: `GET https:?scope=...: UNAUTHORIZED: authentication required` (2026-07-25)**
+
+`az containerapp update --image ghcr.io/...` failed with:
+
+```
+ERROR: Failed to provision revision for container app 'harvest-erp-api'. Error details: The following
+field(s) are either invalid or missing. Field 'template.containers....image' is invalid with details:
+'Invalid value: "ghcr.io/vivek05kv/harvest-erp-api:<sha>": GET https:?scope=repository%3Avivek05kv%2Fharvest-erp-api%3Apull&service=ghcr.io: UNAUTHORIZED: authentication required';.
+```
+
+**Root cause:** a new GHCR package defaults to **private**, so the Container App's anonymous pull was rejected. Making the package public wasn't an option here — the GHCR package is owned by the repo (`ViveK05KV/Harvest`), and only its owner can flip package visibility; the account running CI/CLI here (`VivekNS07`) only has collaborator access.
+
+**Fix:** kept the package private and gave the Container App its own pull credential instead — a classic GitHub PAT (`read:packages` scope only; fine-grained PATs can't be scoped to a repo you don't own, only to your own repos/orgs) wired in once via:
+
+```bash
+az containerapp registry set \
+  --name harvest-erp-api --resource-group harvest-erp-rg \
+  --server ghcr.io --username VivekNS07 --password <PAT>
+```
+
+This persists on the Container App resource itself, so `deploy.yml` didn't need any changes — it survives every future `az containerapp update`.
+
+**Alpine image crashes on any DB call: `System.NotSupportedException: Globalization Invariant Mode is not supported` (2026-07-25)**
+
+After the deploy above succeeded, every endpoint that touched the database (e.g. `POST /api/auth/login`) returned `500`, with this in the Container App logs (`az containerapp logs show`):
+
+```
+System.NotSupportedException: Globalization Invariant Mode is not supported.
+   at Microsoft.Data.SqlClient.SqlConnection.TryOpen(...)
+```
+
+**Root cause:** `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` doesn't ship ICU (globalization) data by default. `Microsoft.Data.SqlClient` requires it to open a connection. A local smoke test had only checked that Swagger loaded (a static page, no DB call), so this didn't surface until the real database was hit in production.
+
+**Fix:** in the runtime stage of the Dockerfile:
+
+```dockerfile
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+```
+
+Verified by running the rebuilt container locally against the real production Azure SQL DB and confirming `POST /api/auth/login` returns a real `200`/JWT instead of a `500`, before redeploying.
+
+**API deploys fail with "site failed to start within 10 mins" (App Service era, 2026-07-25)**
+
+*Historical — this applied to the old App Service deploy path, since replaced by Container Apps above. Kept for context in case anything ever reverts to a zip-deploy model.*
 
 Every push to `main` triggered `Deploy to Azure`, `az webapp deploy` uploaded the zip and reported "Build successful," then polled for ~10 minutes and failed with:
 
