@@ -1,0 +1,73 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish API
+        run: dotnet publish src/FruitWholesale.Api/FruitWholesale.Api.csproj -c Release -o ${{ github.workspace }}/publish
+
+      - name: Zip publish output
+        run: |
+          cd ${{ github.workspace }}/publish
+          zip -r ${{ github.workspace }}/api-publish.zip . -x "*.pdb"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to App Service
+        run: |
+          az webapp deploy \
+            --resource-group harvest-erp-rg \
+            --name harvest-erp-api \
+            --src-path ${{ github.workspace }}/api-publish.zip \
+            --type zip \
+            --clean true
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FruitWholesale.Client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: FruitWholesale.Client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build -- --configuration production
+
+      - name: Deploy to Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: FruitWholesale.Client/dist/FruitWholesale.Client/browser
+          skip_app_build: true
+          skip_api_build: true
