@@ -178,6 +178,49 @@ None of these are billed by "number of API calls" or "GB of data stored" the way
 - **Data storage** — ERP rows (invoices, ledger entries, master data) run a few hundred bytes to a couple of KB each. 32 GB comfortably holds tens of millions of transaction rows — realistically more than a small wholesale business will generate in decades, not months.
 - **API calls** — there's no published hard cap on request *count*; the real constraint is the 60 CPU-minutes/day on the API. A typical simple CRUD JSON endpoint burns single-digit-to-tens of milliseconds of actual CPU time, so the daily quota translates to roughly tens of thousands of lightweight requests/day before throttling — heavier endpoints (reports doing aggregation across many rows) cost more per call than a simple lookup, so this is a rough estimate, not a guarantee. For a handful of friends doing manual data entry, this ceiling is very unlikely to be reached.
 
+### Troubleshooting
+
+**API deploys fail with "site failed to start within 10 mins" (2026-07-25)**
+
+Every push to `main` triggered `Deploy to Azure`, `az webapp deploy` uploaded the zip and reported "Build successful," then polled for ~10 minutes and failed with:
+
+```
+Raw Error   : Deployment failed because the site failed to start within 10 mins.
+Error: ... failed because the worker proccess failed to start within the allotted time.
+```
+
+That message is generic — it just means the container never came up in time. The real cause only shows up in the App Service container logs, not the GitHub Actions log:
+
+```
+$ az webapp log download -n harvest-erp-api -g harvest-erp-rg --log-file logs.zip
+# unzip and check LogFiles/StartupLogs/<instance>_failure.log
+```
+
+which showed:
+
+```
+Unhandled exception. System.IO.FileNotFoundException: Could not load file or assembly
+'Serilog.Sinks.MSSqlServer, Version=10.0.0.0, ...'. The system cannot find the file specified.
+   at Serilog.Settings.Configuration.ConfigurationReader.LoadConfigurationAssemblies(...)
+   at Program.<Main>$(String[] args)
+/opt/startup/startup.sh: line 20: Aborted (core dumped) dotnet "FruitWholesale.Api.dll"
+```
+
+**Root cause:** the `Serilog.Sinks.MSSqlServer` package reference had been removed from `FruitWholesale.Api.csproj` (in a revert of an earlier merge), so the published app no longer shipped that assembly — but a stale config file from an earlier, non-clean deploy was still sitting in `/home/site/wwwroot` on the App Service asking Serilog to load it. `az webapp deploy --type zip` only overwrites files present in the new zip; it doesn't clear files left over from previous deployments. Every subsequent deploy inherited the same orphaned file and crashed on startup (exit code 134 / SIGABRT) before ASP.NET Core could bind to a port, regardless of what was actually in the current commit.
+
+**Fix:** added `--clean true` to the `az webapp deploy` step in `deploy.yml` so the target directory is wiped before every deploy:
+
+```yaml
+az webapp deploy \
+  --resource-group harvest-erp-rg \
+  --name harvest-erp-api \
+  --src-path ${{ github.workspace }}/api-publish.zip \
+  --type zip \
+  --clean true
+```
+
+If the API fails to start again, `az webapp log download` (as above) is the fastest way to get the actual exception instead of guessing from the Actions log.
+
 ## Modules
 
 Dashboard · Users (Admin) · Shop Management · Supplier Management · Fruit Master · Routes · Employees · Employee Salary · Stock · Supply · Purchase · Collections · Supplier Payments · Expense Category · Daily Expenses · Shop Ledger · Supplier Ledger · Cash Ledger · Reports (Daily Sales, Daily Collection, Daily Expense, Purchase, Fruit Sales, Outstanding, Profit Summary) · Settings (Company Profile, Change Password, Cash Adjustment) · Authentication
