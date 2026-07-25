@@ -1,7 +1,34 @@
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
-import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
+import {
+  ArcElement,
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
+  ChartType,
+  DoughnutController,
+  Filler,
+  Legend,
+  LineController,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip
+} from 'chart.js';
 
-Chart.register(...registerables);
+// Only registering what dashboard.component.html actually renders (line + doughnut)
+// instead of Chart.register(...registerables), which pulls in every controller/plugin.
+Chart.register(
+  LineController,
+  DoughnutController,
+  LineElement,
+  PointElement,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  Legend,
+  Tooltip,
+  Filler
+);
 
 @Component({
   selector: 'app-chart',

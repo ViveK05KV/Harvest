@@ -80,13 +80,13 @@ public class RouteMasterService(IRouteRepository repository, IMapper mapper) : I
 
     private async Task<List<RouteMasterDto>> EnrichWithShopCountAsync(IEnumerable<RouteMaster> routes)
     {
-        var dtos = new List<RouteMasterDto>();
-        foreach (var route in routes)
+        var routeList = routes.ToList();
+        var shopCounts = await repository.GetShopCountBatchAsync(routeList.Select(r => r.RouteID));
+        return routeList.Select(route =>
         {
             var dto = mapper.Map<RouteMasterDto>(route);
-            dto.ShopCount = await repository.GetShopCountAsync(route.RouteID);
-            dtos.Add(dto);
-        }
-        return dtos;
+            dto.ShopCount = shopCounts.GetValueOrDefault(route.RouteID);
+            return dto;
+        }).ToList();
     }
 }

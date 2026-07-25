@@ -1,4 +1,5 @@
 using FruitWholesale.Application.DTOs.Dashboard;
+using FruitWholesale.Application.DTOs.Profit;
 using FruitWholesale.Application.DTOs.Reports;
 
 namespace FruitWholesale.Application.Common.Interfaces;
@@ -22,4 +23,13 @@ public interface IReportRepository
     Task<List<FruitSalesReportRow>> GetFruitSalesReportAsync(DateTime fromDate, DateTime toDate);
     Task<List<OutstandingReportRow>> GetOutstandingReportAsync();
     Task<List<ProfitSummaryReportRow>> GetProfitSummaryAsync(DateTime fromDate, DateTime toDate);
+}
+
+public interface IProfitRepository
+{
+    Task<List<ShopDailyProfitRow>> GetShopDailyProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate);
+    Task<List<ShopProfitSummaryRow>> GetShopProfitSummaryAsync(DateTime? fromDate, DateTime? toDate);
+    Task<List<FruitProfitSummaryRow>> GetFruitProfitSummaryAsync(DateTime? fromDate, DateTime? toDate);
+    Task<List<ShopFruitProfitRow>> GetShopFruitProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate);
+    Task<BusinessProfitTotal> GetBusinessTotalProfitAsync();
 }

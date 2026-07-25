@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start", "--prefix", "FruitWholesale.Client"],
       "port": 4200
+    },
+    {
+      "name": "api-dev",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/FruitWholesale.Api/FruitWholesale.Api.csproj", "--urls", "http://localhost:5080"],
+      "port": 5080
     }
   ]
 }
