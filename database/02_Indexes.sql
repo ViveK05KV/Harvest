@@ -13,9 +13,9 @@ CREATE NONCLUSTERED INDEX IX_Supply_ShopID_SupplyDate ON dbo.Supply (ShopID, Sup
 DROP INDEX IF EXISTS IX_Supply_SupplyDate ON dbo.Supply;
 CREATE NONCLUSTERED INDEX IX_Supply_SupplyDate ON dbo.Supply (SupplyDate DESC);
 DROP INDEX IF EXISTS IX_SupplyItems_SupplyID ON dbo.SupplyItems;
-CREATE NONCLUSTERED INDEX IX_SupplyItems_SupplyID ON dbo.SupplyItems (SupplyID);
+CREATE NONCLUSTERED INDEX IX_SupplyItems_SupplyID ON dbo.SupplyItems (SupplyID) INCLUDE (FruitID, Quantity, TotalAmount, CostBasis);
 DROP INDEX IF EXISTS IX_SupplyItems_FruitID ON dbo.SupplyItems;
-CREATE NONCLUSTERED INDEX IX_SupplyItems_FruitID ON dbo.SupplyItems (FruitID);
+CREATE NONCLUSTERED INDEX IX_SupplyItems_FruitID ON dbo.SupplyItems (FruitID) INCLUDE (Quantity, SupplyID);
 
 -- Purchase
 DROP INDEX IF EXISTS IX_Purchase_SupplierID_PurchaseDate ON dbo.Purchase;
@@ -25,7 +25,7 @@ CREATE NONCLUSTERED INDEX IX_Purchase_PurchaseDate ON dbo.Purchase (PurchaseDate
 DROP INDEX IF EXISTS IX_PurchaseItems_PurchaseID ON dbo.PurchaseItems;
 CREATE NONCLUSTERED INDEX IX_PurchaseItems_PurchaseID ON dbo.PurchaseItems (PurchaseID);
 DROP INDEX IF EXISTS IX_PurchaseItems_FruitID ON dbo.PurchaseItems;
-CREATE NONCLUSTERED INDEX IX_PurchaseItems_FruitID ON dbo.PurchaseItems (FruitID);
+CREATE NONCLUSTERED INDEX IX_PurchaseItems_FruitID ON dbo.PurchaseItems (FruitID) INCLUDE (Quantity, PurchasePrice, PurchaseID);
 
 -- Collections
 DROP INDEX IF EXISTS IX_Collections_ShopID_CollectionDate ON dbo.Collections;
@@ -62,14 +62,17 @@ DROP INDEX IF EXISTS IX_ShopMaster_RouteID ON dbo.ShopMaster;
 CREATE NONCLUSTERED INDEX IX_ShopMaster_RouteID ON dbo.ShopMaster (RouteID);
 DROP INDEX IF EXISTS IX_SupplierMaster_SupplierName ON dbo.SupplierMaster;
 CREATE NONCLUSTERED INDEX IX_SupplierMaster_SupplierName ON dbo.SupplierMaster (SupplierName) INCLUDE (IsActive);
+-- IX_FruitMaster_FruitName removed: redundant with UQ_FruitMaster_FruitName, which already
+-- indexes FruitName (see 01_CreateDatabase_Tables.sql). Keeping both duplicated write cost
+-- for no read benefit on a small master table.
 DROP INDEX IF EXISTS IX_FruitMaster_FruitName ON dbo.FruitMaster;
-CREATE NONCLUSTERED INDEX IX_FruitMaster_FruitName ON dbo.FruitMaster (FruitName) INCLUDE (IsActive);
 
 -- Employees & Routes
 DROP INDEX IF EXISTS IX_EmployeeMaster_FullName ON dbo.EmployeeMaster;
 CREATE NONCLUSTERED INDEX IX_EmployeeMaster_FullName ON dbo.EmployeeMaster (FullName) INCLUDE (IsActive);
+-- IX_RouteMaster_RouteName removed: redundant with UQ_RouteMaster_RouteName (same reasoning
+-- as IX_FruitMaster_FruitName above).
 DROP INDEX IF EXISTS IX_RouteMaster_RouteName ON dbo.RouteMaster;
-CREATE NONCLUSTERED INDEX IX_RouteMaster_RouteName ON dbo.RouteMaster (RouteName) INCLUDE (IsActive);
 
 -- EmployeeWorkLog
 DROP INDEX IF EXISTS IX_EmployeeWorkLog_EmployeeID_WorkDate ON dbo.EmployeeWorkLog;

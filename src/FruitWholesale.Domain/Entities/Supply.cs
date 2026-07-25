@@ -24,6 +24,7 @@ public class SupplyItem
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal CostBasis { get; set; }
 
     public string? FruitName { get; set; }
     public string? Unit { get; set; }

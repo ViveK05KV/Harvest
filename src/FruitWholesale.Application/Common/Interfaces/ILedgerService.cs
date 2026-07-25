@@ -35,9 +35,11 @@ public interface ILedgerService
 
     Task<decimal> GetShopOutstandingAsync(int shopId);
 
+    Task<Dictionary<int, decimal>> GetShopOutstandingBatchAsync(IEnumerable<int> shopIds);
+
     Task<decimal> GetSupplierOutstandingAsync(int supplierId);
 
-    Task<decimal> GetCurrentCashBalanceAsync();
+    Task<Dictionary<int, decimal>> GetSupplierOutstandingBatchAsync(IEnumerable<int> supplierIds);
 
     Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
 
@@ -52,6 +54,13 @@ public interface ILedgerService
     Task RemoveStockLedgerEntriesForReferenceAsync(IDbConnection connection, IDbTransaction transaction, string referenceTable, int referenceId);
 
     Task RecalculateStockLedgerAsync(IDbConnection connection, IDbTransaction transaction, int fruitId);
+
+    /// <summary>
+    /// Walks a fruit's Purchase/Supply history in date order to recompute its
+    /// weighted-average cost, snapshotting the cost onto every SupplyItems row
+    /// it passes (see database/08_AddProfitTracking.sql for the rationale).
+    /// </summary>
+    Task RecalculateFruitCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId);
 
     Task<decimal> GetCurrentStockAsync(int fruitId);
 

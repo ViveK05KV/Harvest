@@ -33,7 +33,7 @@ export class DashboardComponent implements OnInit {
   readonly cards = computed<SummaryCard[]>(() => {
     const s = this.summary();
     if (!s) return [];
-    return [
+    const cards: SummaryCard[] = [
       { label: 'Current Cash Balance', value: s.currentCashBalance, icon: 'account_balance_wallet' },
       { label: "Today's Collection", value: s.todayCollection, icon: 'payments' },
       { label: "Today's Sales", value: s.todaySales, icon: 'point_of_sale' },
@@ -43,6 +43,12 @@ export class DashboardComponent implements OnInit {
       { label: 'Supplier Outstanding', value: s.supplierOutstanding, icon: 'local_shipping' },
       { label: 'Net Business Worth', value: s.netBusinessWorth, icon: 'trending_up', emphasis: true }
     ];
+    // totalProfit/todayProfit are only populated by the API for Admin users
+    if (s.totalProfit !== null) {
+      cards.push({ label: "Today's Profit", value: s.todayProfit ?? 0, icon: 'trending_up' });
+      cards.push({ label: 'Total Profit', value: s.totalProfit, icon: 'savings', emphasis: true });
+    }
+    return cards;
   });
 
   readonly salesChartData = computed<ChartConfiguration['data']>(() => this.toLineChart(this.charts()?.salesByMonth, 'Sales'));

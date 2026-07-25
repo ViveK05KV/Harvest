@@ -10,7 +10,8 @@ namespace FruitWholesale.Api.Controllers;
 public class DashboardController(IDashboardService service) : ApiControllerBase
 {
     [HttpGet("summary")]
-    public async Task<ActionResult<DashboardSummaryDto>> GetSummary() => Ok(await service.GetSummaryAsync());
+    public async Task<ActionResult<DashboardSummaryDto>> GetSummary() =>
+        Ok(await service.GetSummaryAsync(User.IsInRole(UserRoles.Admin)));
 
     [HttpGet("charts")]
     public async Task<ActionResult<DashboardChartsDto>> GetCharts() => Ok(await service.GetChartsAsync());
