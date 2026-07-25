@@ -78,13 +78,13 @@ public class SupplierMasterService(ISupplierMasterRepository repository, ILedger
 
     private async Task<List<SupplierMasterDto>> EnrichWithOutstandingAsync(IEnumerable<SupplierMaster> suppliers)
     {
-        var supplierList = suppliers.ToList();
-        var outstanding = await ledgerService.GetSupplierOutstandingBatchAsync(supplierList.Select(s => s.SupplierID));
-        return supplierList.Select(supplier =>
+        var dtos = new List<SupplierMasterDto>();
+        foreach (var supplier in suppliers)
         {
             var dto = mapper.Map<SupplierMasterDto>(supplier);
-            dto.CurrentOutstanding = outstanding.GetValueOrDefault(supplier.SupplierID);
-            return dto;
-        }).ToList();
+            dto.CurrentOutstanding = await ledgerService.GetSupplierOutstandingAsync(supplier.SupplierID);
+            dtos.Add(dto);
+        }
+        return dtos;
     }
 }

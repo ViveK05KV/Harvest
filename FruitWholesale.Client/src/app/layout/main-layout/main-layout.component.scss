@@ -2,28 +2,11 @@
   height: 100vh;
 }
 
-// TailAdmin signature: fixed dark sidebar (brand dark #1a2231), independent
-// of the app's own light/dark toggle (which only affects the content area).
 .app-sidenav {
   width: 264px;
   border-right: none;
-  background: #1a2231;
+  background: var(--mat-sys-surface);
   padding-bottom: 16px;
-
-  // MDC list pulls text/icon color per state (default/hover/focus) from
-  // these tokens, not the .mdc-list-item__* classes below - without this
-  // hover/focus fall back to the app's light-theme on-surface (near-black),
-  // which is invisible against the dark navy sidebar.
-  --mdc-list-list-item-label-text-color: #b2bcd4;
-  --mdc-list-list-item-hover-label-text-color: #fff;
-  --mdc-list-list-item-focus-label-text-color: #fff;
-  --mdc-list-list-item-leading-icon-color: #7a83a0;
-  --mdc-list-list-item-hover-leading-icon-color: #fff;
-  --mdc-list-list-item-focus-leading-icon-color: #fff;
-  --mdc-list-list-item-hover-state-layer-color: #fff;
-  --mdc-list-list-item-hover-state-layer-opacity: 0.04;
-  --mdc-list-list-item-focus-state-layer-color: #fff;
-  --mdc-list-list-item-focus-state-layer-opacity: 0.06;
 }
 
 .sidenav-brand {
@@ -33,11 +16,7 @@
   padding: 20px 16px 12px;
   font: var(--mat-sys-title-medium);
   font-weight: 600;
-  color: #fff;
-
-  mat-icon {
-    color: #465fff;
-  }
+  color: var(--mat-sys-primary);
 
   span {
     overflow: hidden;
@@ -54,51 +33,22 @@
   flex-shrink: 0;
 }
 
-.nav-section-label {
-  color: #5b6482 !important;
-}
-
 .nav-section-list {
   padding-top: 0;
 
   ::ng-deep .mdc-list-item {
-    border-radius: 10px;
+    border-radius: 20px;
     margin: 2px 12px;
     height: 44px;
-  }
-
-  ::ng-deep .mdc-list-item__primary-text {
-    color: #b2bcd4 !important;
-  }
-
-  ::ng-deep .mdc-list-item__start {
-    color: #7a83a0 !important;
-  }
-
-  ::ng-deep .mdc-list-item:hover,
-  ::ng-deep .mdc-list-item:focus {
-    background: rgba(255, 255, 255, 0.04);
-
-    .mdc-list-item__primary-text {
-      color: #fff !important;
-    }
-
-    .mdc-list-item__start {
-      color: #fff !important;
-    }
   }
 }
 
 .active-link {
-  background: rgba(70, 95, 255, 0.16) !important;
-
-  ::ng-deep .mdc-list-item__primary-text {
-    color: #fff !important;
-    font-weight: 600;
-  }
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
 
   ::ng-deep .mdc-list-item__start {
-    color: #8098ff !important;
+    color: var(--mat-sys-on-secondary-container);
   }
 }
 
@@ -107,7 +57,7 @@
   top: 0;
   z-index: 10;
   background: var(--mat-sys-surface);
-  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
 .toolbar-spacer {
@@ -145,7 +95,6 @@
   margin: 0 auto;
   min-height: calc(100vh - 64px);
   box-sizing: border-box;
-  background: var(--app-page-bg);
 }
 
 @media (max-width: 599px) {

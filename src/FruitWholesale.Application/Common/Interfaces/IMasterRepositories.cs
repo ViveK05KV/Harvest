@@ -74,7 +74,6 @@ public interface IRouteRepository
     Task SetActiveAsync(int routeId, bool isActive);
     Task<bool> NameExistsAsync(string routeName, int? excludeRouteId = null);
     Task<int> GetShopCountAsync(int routeId);
-    Task<Dictionary<int, int>> GetShopCountBatchAsync(IEnumerable<int> routeIds);
 }
 
 public interface IEmployeeRepository

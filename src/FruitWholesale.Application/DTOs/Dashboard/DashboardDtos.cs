@@ -10,12 +10,6 @@ public class DashboardSummaryDto
     public decimal CustomerOutstanding { get; set; }
     public decimal SupplierOutstanding { get; set; }
     public decimal NetBusinessWorth { get; set; }
-
-    /// <summary>Admin-only; left null for other roles so profit figures never reach non-admin clients.</summary>
-    public decimal? TotalProfit { get; set; }
-
-    /// <summary>Admin-only; left null for other roles so profit figures never reach non-admin clients.</summary>
-    public decimal? TodayProfit { get; set; }
 }
 
 public class MonthlyAmountDto

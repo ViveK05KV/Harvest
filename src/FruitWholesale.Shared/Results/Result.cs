@@ -15,9 +15,11 @@ public class Result
 
     public static Result Success() => new(true, null);
     public static Result Failure(string error) => new(false, error);
+    public static Result Failure(string[] errors) => new(false, errors.FirstOrDefault(), errors);
 
     public static Result<T> Success<T>(T value) => Result<T>.Success(value);
     public static Result<T> Failure<T>(string error) => Result<T>.Failure(error);
+    public static Result<T> Failure<T>(string[] errors) => Result<T>.Failure(errors);
 }
 
 public class Result<T> : Result
@@ -32,4 +34,5 @@ public class Result<T> : Result
 
     public static Result<T> Success(T value) => new(true, value, null);
     public new static Result<T> Failure(string error) => new(false, default, error);
+    public new static Result<T> Failure(string[] errors) => new(false, default, errors.FirstOrDefault(), errors);
 }

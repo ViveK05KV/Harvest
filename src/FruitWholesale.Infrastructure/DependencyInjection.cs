@@ -32,7 +32,6 @@ public static class DependencyInjection
 
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
-        services.AddScoped<IProfitRepository, ProfitRepository>();
 
         return services;
     }

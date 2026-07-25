@@ -54,16 +54,11 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 :root {
   --app-color-positive: #2e7d32;
   --app-color-negative: #c62828;
-  --app-shadow-rgb: 16, 24, 40;
-  // TailAdmin gray-50 - light page background behind white cards.
-  --app-page-bg: #f9fafb;
 }
 
 html.dark-theme {
   --app-color-positive: #81c995;
   --app-color-negative: #f28b82;
-  --app-shadow-rgb: 0, 0, 0;
-  --app-page-bg: var(--mat-sys-surface-container-lowest, var(--mat-sys-surface));
 }
 
 .amount-in {
@@ -186,17 +181,9 @@ mat-form-field.full-width {
 
 .table-container {
   overflow-x: auto;
-  border-radius: 16px;
-  border: none;
+  border-radius: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface);
-  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1);
-}
-
-// TailAdmin-inspired soft-elevation cards: white cards, generous 16px
-// radius, on a light gray page background.
-.mat-mdc-card:not(.mdc-card--outlined) {
-  border-radius: 16px !important;
-  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1) !important;
 }
 
 table.mat-mdc-table {

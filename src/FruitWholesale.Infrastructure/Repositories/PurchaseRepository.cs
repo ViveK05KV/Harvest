@@ -100,7 +100,6 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             foreach (var fruitId in purchase.Items.Select(i => i.FruitID).Distinct())
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
-                await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -167,7 +166,6 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             foreach (var fruitId in oldFruitIds.Union(newFruitIds))
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
-                await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -198,7 +196,6 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             foreach (var fruitId in fruitIds)
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
-                await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();

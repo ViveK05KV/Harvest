@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,10 +9,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MasterListBase } from '../../core/base/master-list-base';
+import { MatDialog } from '@angular/material/dialog';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { EmployeeService } from './employee.service';
 import { EmployeeFormComponent } from './employee-form.component';
-import { Employee, SaveEmployee } from '../../core/models/master-data.model';
+import { Employee } from '../../core/models/master-data.model';
+import { PaginationRequest } from '../../core/models/common.model';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'app-employee-list',
@@ -31,25 +35,109 @@ import { Employee, SaveEmployee } from '../../core/models/master-data.model';
   ],
   templateUrl: './employee-list.component.html'
 })
-export class EmployeeListComponent extends MasterListBase<Employee, SaveEmployee> {
+export class EmployeeListComponent implements OnInit {
+  private readonly service = inject(EmployeeService);
+  private readonly dialog = inject(MatDialog);
+  private readonly notification = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+
   readonly displayedColumns = ['fullName', 'phone', 'address', 'isActive', 'actions'];
+  readonly items = signal<Employee[]>([]);
+  readonly totalCount = signal(0);
+  readonly loading = signal(false);
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10, searchTerm: '' };
+  private readonly searchSubject = new Subject<string>();
 
   constructor() {
-    super(inject(EmployeeService), {
-      idOf: (e) => e.employeeID,
-      nameOf: (e) => e.fullName,
-      isActiveOf: (e) => e.isActive,
-      entityLabel: 'Employee',
-      createdMessage: 'Employee added successfully.',
-      updatedMessage: 'Employee updated successfully.'
+    this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe((term) => {
+      this.request.searchTerm = term;
+      this.request.pageNumber = 1;
+      this.paginator.firstPage();
+      this.load();
+    });
+  }
+
+  ngOnInit(): void {
+    this.load();
+  }
+
+  onSearch(term: string): void {
+    this.searchSubject.next(term);
+  }
+
+  onPage(event: PageEvent): void {
+    this.request.pageNumber = event.pageIndex + 1;
+    this.request.pageSize = event.pageSize;
+    this.load();
+  }
+
+  onSort(sort: Sort): void {
+    this.request.sortBy = sort.direction ? sort.active : null;
+    this.request.sortDescending = sort.direction === 'desc';
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.service.getPaged(this.request).subscribe({
+      next: (result) => {
+        this.items.set(result.items);
+        this.totalCount.set(result.totalCount);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
     });
   }
 
   openCreate(): void {
-    this.openFormDialog(EmployeeFormComponent, '480px', null);
+    this.dialog
+      .open(EmployeeFormComponent, { width: '480px', data: null })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.service.create(result).subscribe({
+          next: () => {
+            this.notification.success('Employee added successfully.');
+            this.load();
+          }
+        });
+      });
   }
 
   openEdit(employee: Employee): void {
-    this.openFormDialog(EmployeeFormComponent, '480px', employee);
+    this.dialog
+      .open(EmployeeFormComponent, { width: '480px', data: employee })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.service.update(employee.employeeID, result).subscribe({
+          next: () => {
+            this.notification.success('Employee updated successfully.');
+            this.load();
+          }
+        });
+      });
+  }
+
+  toggleActive(employee: Employee): void {
+    const action$ = employee.isActive ? this.service.deactivate(employee.employeeID) : this.service.activate(employee.employeeID);
+    this.confirmDialog
+      .confirm({
+        title: employee.isActive ? 'Deactivate Employee' : 'Activate Employee',
+        message: `Are you sure you want to ${employee.isActive ? 'deactivate' : 'activate'} "${employee.fullName}"?`,
+        destructive: employee.isActive
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        action$.subscribe({
+          next: () => {
+            this.notification.success('Status updated.');
+            this.load();
+          }
+        });
+      });
   }
 }

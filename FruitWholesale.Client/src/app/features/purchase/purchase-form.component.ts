@@ -38,7 +38,7 @@ import { NotificationService } from '../../core/services/notification.service';
     MatProgressSpinnerModule
   ],
   templateUrl: './purchase-form.component.html',
-  styleUrl: './purchase-form.component.scss'
+  styleUrl: '../supply/supply-form.component.scss'
 })
 export class PurchaseFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
