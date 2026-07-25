@@ -7,6 +7,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 jobs:
   deploy-api:
@@ -14,17 +15,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - name: Set image name (lowercase for GHCR)
+        run: echo "IMAGE=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/harvest-erp-api" >> "$GITHUB_ENV"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          dotnet-version: "10.0.x"
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish API
-        run: dotnet publish src/FruitWholesale.Api/FruitWholesale.Api.csproj -c Release -o ${{ github.workspace }}/publish
-
-      - name: Zip publish output
-        run: |
-          cd ${{ github.workspace }}/publish
-          zip -r ${{ github.workspace }}/api-publish.zip . -x "*.pdb"
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/FruitWholesale.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -33,13 +42,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to App Service
+      - name: Deploy to Container Apps
         run: |
-          az webapp deploy \
+          az containerapp update \
             --resource-group harvest-erp-rg \
             --name harvest-erp-api \
-            --src-path ${{ github.workspace }}/api-publish.zip \
-            --type zip
+            --image ${{ env.IMAGE }}:${{ github.sha }}
 
   deploy-web:
     runs-on: ubuntu-latest

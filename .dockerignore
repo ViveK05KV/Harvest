@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+
+FruitWholesale.Client/
+FruitWholesale.Mobile/
+database/
+.github/
+.git/
+.claude/
+
+src/FruitWholesale.Api/Logs/
+src/FruitWholesale.Api/wwwroot/uploads/*
+!src/FruitWholesale.Api/wwwroot/uploads/.gitkeep
+
+*.md
