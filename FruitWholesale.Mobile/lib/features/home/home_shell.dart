@@ -38,6 +38,12 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   static const List<UserRole> _backOffice = [UserRole.admin, UserRole.manager, UserRole.accountant];
 
+  // TailAdmin brand tokens (see FruitWholesale.Client/src/styles.scss).
+  static const _sidebarBg = Color(0xFF1A2231);
+  static const _sidebarAccent = Color(0xFF465FFF);
+  static const _sidebarText = Color(0xFFB2BCD4);
+  static const _sidebarMuted = Color(0xFF5B6482);
+
   late final List<NavGroup> _groups = [
     NavGroup(items: [
       NavItem(label: 'Dashboard', icon: Icons.dashboard_outlined, builder: (_) => const DashboardScreen(), roles: _backOffice),
@@ -152,24 +158,24 @@ class _HomeShellState extends State<HomeShell> {
           const SizedBox(width: 8),
         ],
       ),
+      // TailAdmin signature: fixed dark sidebar (#1a2231), independent of the
+      // app's own light/dark theme toggle - matches the web sidenav.
       drawer: Drawer(
+        backgroundColor: _sidebarBg,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Row(
-                  children: [
-                    Icon(Icons.eco, color: Theme.of(context).colorScheme.onPrimary, size: 32),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Fruit Wholesale',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.eco, color: _sidebarAccent, size: 32),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Fruit Wholesale',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
             ),
             for (final group in visibleGroups) ...[
@@ -177,15 +183,23 @@ class _HomeShellState extends State<HomeShell> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                 child: Text(
                   group.label.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 0.8),
+                  style: const TextStyle(color: _sidebarMuted, fontSize: 11, letterSpacing: 0.8, fontWeight: FontWeight.w500),
                 ),
               ),
               for (final item in group.items)
-                ListTile(
-                  leading: Icon(item.icon),
-                  title: Text(item.label),
-                  selected: item.label == _selected.label,
-                  onTap: () => _select(item),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    leading: Icon(item.icon),
+                    title: Text(item.label),
+                    selected: item.label == _selected.label,
+                    selectedTileColor: _sidebarAccent.withValues(alpha: 0.16),
+                    selectedColor: Colors.white,
+                    iconColor: _sidebarText,
+                    textColor: _sidebarText,
+                    onTap: () => _select(item),
+                  ),
                 ),
             ],
           ],
