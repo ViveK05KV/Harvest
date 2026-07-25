@@ -12,9 +12,11 @@ COPY src/ src/
 RUN dotnet publish src/FruitWholesale.Api/FruitWholesale.Api.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+RUN apk add --no-cache icu-libs
 WORKDIR /app
 COPY --from=build /app .
 
 ENV ASPNETCORE_HTTP_PORTS=8080
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "FruitWholesale.Api.dll"]
