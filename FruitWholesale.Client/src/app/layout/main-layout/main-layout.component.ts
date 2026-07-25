@@ -99,7 +99,7 @@ export class MainLayoutComponent {
       items: [
         { label: 'Shops', icon: 'store', route: '/shops', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Suppliers', icon: 'groups', route: '/suppliers', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Fruits', icon: 'nutrition', route: '/fruits', roles: MainLayoutComponent.BACK_OFFICE },
+        { label: 'Fruits', icon: 'spa', route: '/fruits', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Routes', icon: 'alt_route', route: '/routes', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Employees', icon: 'badge', route: '/employees', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Expense Categories', icon: 'category', route: '/expense-categories', roles: MainLayoutComponent.BACK_OFFICE }
