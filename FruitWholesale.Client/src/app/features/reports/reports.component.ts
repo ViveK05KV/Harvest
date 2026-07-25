@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ReportService } from './report.service';
 import { ExportService } from '../../core/services/export.service';
+import { firstOfMonth, toIso } from '../../core/utils/date.util';
 import {
   DailyCollectionReportRow,
   DailyExpenseReportRow,
@@ -21,15 +22,6 @@ import {
   ProfitSummaryReportRow,
   PurchaseReportRow
 } from '../../core/models/report.model';
-
-function firstOfMonth(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-}
-
-function toIso(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 @Component({
   selector: 'app-reports',

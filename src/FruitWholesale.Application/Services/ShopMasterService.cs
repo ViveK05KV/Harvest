@@ -84,13 +84,13 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
 
     private async Task<List<ShopMasterDto>> EnrichWithOutstandingAsync(IEnumerable<ShopMaster> shops)
     {
-        var dtos = new List<ShopMasterDto>();
-        foreach (var shop in shops)
+        var shopList = shops.ToList();
+        var outstanding = await ledgerService.GetShopOutstandingBatchAsync(shopList.Select(s => s.ShopID));
+        return shopList.Select(shop =>
         {
             var dto = mapper.Map<ShopMasterDto>(shop);
-            dto.CurrentOutstanding = await ledgerService.GetShopOutstandingAsync(shop.ShopID);
-            dtos.Add(dto);
-        }
-        return dtos;
+            dto.CurrentOutstanding = outstanding.GetValueOrDefault(shop.ShopID);
+            return dto;
+        }).ToList();
     }
 }

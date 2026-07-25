@@ -7,6 +7,8 @@ export interface DashboardSummary {
   customerOutstanding: number;
   supplierOutstanding: number;
   netBusinessWorth: number;
+  totalProfit: number | null;
+  todayProfit: number | null;
 }
 
 export interface MonthlyAmount {
