@@ -3,13 +3,13 @@
   display: flex;
 }
 
-// Mazer-style split auth screen: colored brand panel + white form panel.
+// TailAdmin-style split auth screen: colored brand panel + white form panel.
 .login-hero {
   flex: 1 1 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0e1726 0%, #3d3d99 55%, #6d78ff 100%);
+  background: linear-gradient(135deg, #1a2231 0%, #2a3654 55%, #465fff 100%);
   padding: 32px;
 }
 

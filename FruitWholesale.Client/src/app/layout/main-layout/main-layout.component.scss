@@ -2,12 +2,12 @@
   height: 100vh;
 }
 
-// Mazer signature: fixed dark navy sidebar, independent of the app's own
-// light/dark toggle (which only affects the content area).
+// TailAdmin signature: fixed dark sidebar (brand dark #1a2231), independent
+// of the app's own light/dark toggle (which only affects the content area).
 .app-sidenav {
   width: 264px;
   border-right: none;
-  background: #0e1726;
+  background: #1a2231;
   padding-bottom: 16px;
 
   // MDC list pulls text/icon color per state (default/hover/focus) from
@@ -36,7 +36,7 @@
   color: #fff;
 
   mat-icon {
-    color: #6d78ff;
+    color: #465fff;
   }
 
   span {
@@ -62,10 +62,9 @@
   padding-top: 0;
 
   ::ng-deep .mdc-list-item {
-    border-radius: 8px;
-    margin: 2px 12px 2px 9px;
+    border-radius: 10px;
+    margin: 2px 12px;
     height: 44px;
-    border-left: 3px solid transparent;
   }
 
   ::ng-deep .mdc-list-item__primary-text {
@@ -91,8 +90,7 @@
 }
 
 .active-link {
-  background: rgba(109, 120, 255, 0.14) !important;
-  border-left: 3px solid #6d78ff !important;
+  background: rgba(70, 95, 255, 0.16) !important;
 
   ::ng-deep .mdc-list-item__primary-text {
     color: #fff !important;
@@ -100,7 +98,7 @@
   }
 
   ::ng-deep .mdc-list-item__start {
-    color: #6d78ff !important;
+    color: #8098ff !important;
   }
 }
 
@@ -109,7 +107,7 @@
   top: 0;
   z-index: 10;
   background: var(--mat-sys-surface);
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1);
 }
 
 .toolbar-spacer {
@@ -147,7 +145,7 @@
   margin: 0 auto;
   min-height: calc(100vh - 64px);
   box-sizing: border-box;
-  background: var(--mat-sys-surface-container-lowest, var(--mat-sys-surface));
+  background: var(--app-page-bg);
 }
 
 @media (max-width: 599px) {

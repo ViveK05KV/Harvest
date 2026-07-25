@@ -10,7 +10,7 @@ html {
   @include mat.theme((
     color: (
       theme-type: light,
-      primary: mat.$azure-palette,
+      primary: mat.$blue-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Roboto,
@@ -22,7 +22,7 @@ html.dark-theme {
   @include mat.theme((
     color: (
       theme-type: dark,
-      primary: mat.$azure-palette,
+      primary: mat.$blue-palette,
       tertiary: mat.$orange-palette,
     ),
     typography: Roboto,
@@ -54,13 +54,16 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 :root {
   --app-color-positive: #2e7d32;
   --app-color-negative: #c62828;
-  --app-shadow-rgb: 47, 43, 61;
+  --app-shadow-rgb: 16, 24, 40;
+  // TailAdmin gray-50 - light page background behind white cards.
+  --app-page-bg: #f9fafb;
 }
 
 html.dark-theme {
   --app-color-positive: #81c995;
   --app-color-negative: #f28b82;
-  --app-shadow-rgb: 19, 17, 32;
+  --app-shadow-rgb: 0, 0, 0;
+  --app-page-bg: var(--mat-sys-surface-container-lowest, var(--mat-sys-surface));
 }
 
 .amount-in {
@@ -183,17 +186,17 @@ mat-form-field.full-width {
 
 .table-container {
   overflow-x: auto;
-  border-radius: 8px;
+  border-radius: 16px;
   border: none;
   background: var(--mat-sys-surface);
-  box-shadow: 0 2px 10px 0 rgba(var(--app-shadow-rgb), 0.08);
+  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1);
 }
 
-// Mazer-inspired soft-elevation cards: shadow instead of a flat outline,
-// crisp 8px radius.
+// TailAdmin-inspired soft-elevation cards: white cards, generous 16px
+// radius, on a light gray page background.
 .mat-mdc-card:not(.mdc-card--outlined) {
-  border-radius: 8px !important;
-  box-shadow: 0 2px 10px 0 rgba(var(--app-shadow-rgb), 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1) !important;
 }
 
 table.mat-mdc-table {
