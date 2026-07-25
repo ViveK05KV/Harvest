@@ -39,7 +39,8 @@ jobs:
             --resource-group harvest-erp-rg \
             --name harvest-erp-api \
             --src-path ${{ github.workspace }}/api-publish.zip \
-            --type zip
+            --type zip \
+            --clean true
 
   deploy-web:
     runs-on: ubuntu-latest
