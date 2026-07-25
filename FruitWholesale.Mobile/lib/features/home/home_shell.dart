@@ -14,6 +14,7 @@ import '../fruit_master/fruit_master_list_screen.dart';
 import '../ledgers/cash_ledger_screen.dart';
 import '../ledgers/shop_ledger_screen.dart';
 import '../ledgers/supplier_ledger_screen.dart';
+import '../profit/profit_screen.dart';
 import '../purchase/purchase_list_screen.dart';
 import '../reports/reports_screen.dart';
 import '../route_master/route_master_list_screen.dart';
@@ -84,6 +85,7 @@ class _HomeShellState extends State<HomeShell> {
     ]),
     NavGroup(label: 'Reports', items: [
       NavItem(label: 'Reports', icon: Icons.assessment_outlined, builder: (_) => const ReportsScreen(), roles: _backOffice),
+      NavItem(label: 'Profit Calculator', icon: Icons.trending_up, builder: (_) => const ProfitScreen(), roles: [UserRole.admin]),
     ]),
     NavGroup(label: 'Masters', items: [
       NavItem(label: 'Shops', icon: Icons.store_outlined, builder: (_) => const ShopMasterListScreen(), roles: _backOffice),
