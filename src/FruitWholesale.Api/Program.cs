@@ -115,6 +115,8 @@ app.UseCors("Default");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/", () => Results.Ok(new { status = "ok", service = "FruitWholesale.Api" }));
+
 app.MapControllers();
 
 app.Run();
