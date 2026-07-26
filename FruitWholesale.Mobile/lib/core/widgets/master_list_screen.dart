@@ -84,8 +84,8 @@ class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
         itemBuilder: (context, item) {
           final active = widget.isActiveOf(item);
           return ListTile(
-            title: Text(widget.titleOf(item)),
-            subtitle: Text(widget.subtitleOf(item)),
+            title: Text(widget.titleOf(item), style: const TextStyle(color: Color(0xFF1D3125), fontWeight: FontWeight.w600)),
+            subtitle: Text(widget.subtitleOf(item), style: const TextStyle(color: Color(0xFF4F6255))),
             trailing: Switch(value: active, onChanged: (_) => _toggleActive(item)),
             onTap: () => _openForm(id: widget.idOf(item)),
           );

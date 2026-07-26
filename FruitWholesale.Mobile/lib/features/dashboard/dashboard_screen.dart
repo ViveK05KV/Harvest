@@ -49,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(title: const Text('Operations overview')),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }
@@ -90,6 +90,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        const Text('LIVE BUSINESS SNAPSHOT', style: TextStyle(color: Color(0xFF4F745F), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+        const SizedBox(height: 5),
+        Text('Today at a glance', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF193126))),
+        const SizedBox(height: 4),
+        const Text('A clear view of your cash, sales, and collections.', style: TextStyle(color: Color(0xFF42594B), fontWeight: FontWeight.w500)),
+        const SizedBox(height: 20),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -105,10 +111,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(icon, color: Theme.of(context).colorScheme.primary),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(color: _toneFor(icon).$1, shape: BoxShape.circle),
+                        child: Icon(icon, color: _toneFor(icon).$2, size: 20),
+                      ),
                       const Spacer(),
-                      Text(currencyFormat.format(amount), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      Text(label, style: Theme.of(context).textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(currencyFormat.format(amount), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1D3125))),
+                      Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF42594B), fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
@@ -116,7 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        Text('Top Selling Fruits', style: Theme.of(context).textTheme.titleMedium),
+        const _SectionHeader(kicker: 'DEMAND', title: 'Top selling fruits'),
         const SizedBox(height: 8),
         if (charts.topSellingFruits.isEmpty)
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No sales recorded yet.'))
@@ -134,7 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         const SizedBox(height: 24),
-        Text('Top Customers', style: Theme.of(context).textTheme.titleMedium),
+        const _SectionHeader(kicker: 'RELATIONSHIPS', title: 'Top customers'),
         const SizedBox(height: 8),
         if (charts.topCustomers.isEmpty)
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No sales recorded yet.'))
@@ -154,4 +165,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     );
   }
+
+  (Color, Color) _toneFor(IconData icon) {
+    if (icon == Icons.shopping_cart || icon == Icons.storefront) return (const Color(0xFFFFF1D8), const Color(0xFFC57C11));
+    if (icon == Icons.receipt_long || icon == Icons.local_shipping) return (const Color(0xFFEDF0ED), const Color(0xFF52675A));
+    return (const Color(0xFFE9F3EB), const Color(0xFF2E8A53));
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.kicker, required this.title});
+  final String kicker;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(kicker, style: const TextStyle(color: Color(0xFF4F745F), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.05)),
+    const SizedBox(height: 3),
+    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF213428))),
+  ]);
 }

@@ -9,7 +9,7 @@ export class BrandingService {
   private readonly baseUrl = `${environment.apiUrl}/companysettings`;
 
   readonly companySettings = signal<CompanySettings | null>(null);
-  readonly companyName = computed(() => this.companySettings()?.companyName ?? 'Fruit Wholesale');
+  readonly companyName = computed(() => this.companySettings()?.companyName ?? 'Harvest');
   readonly logoUrl = computed(() => {
     const logoUrl = this.companySettings()?.logoUrl;
     return logoUrl ? `${environment.serverUrl}${logoUrl}` : null;

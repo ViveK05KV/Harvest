@@ -1,0 +1,15 @@
+.git
+.github
+.vs
+.claude
+FruitWholesale.Client
+FruitWholesale.Mobile
+database
+*.md
+*.pdf
+
+**/bin
+**/obj
+**/node_modules
+**/.dart_tool
+**/build

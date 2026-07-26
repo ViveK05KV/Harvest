@@ -14,6 +14,7 @@ interface SummaryCard {
   value: number;
   icon: string;
   emphasis?: boolean;
+  tone: 'green' | 'amber' | 'sage' | 'slate';
 }
 
 @Component({
@@ -34,19 +35,19 @@ export class DashboardComponent implements OnInit {
     const s = this.summary();
     if (!s) return [];
     const cards: SummaryCard[] = [
-      { label: 'Current Cash Balance', value: s.currentCashBalance, icon: 'account_balance_wallet' },
-      { label: "Today's Collection", value: s.todayCollection, icon: 'payments' },
-      { label: "Today's Sales", value: s.todaySales, icon: 'point_of_sale' },
-      { label: "Today's Purchases", value: s.todayPurchases, icon: 'shopping_cart' },
-      { label: "Today's Expenses", value: s.todayExpenses, icon: 'receipt_long' },
-      { label: 'Customer Outstanding', value: s.customerOutstanding, icon: 'storefront' },
-      { label: 'Supplier Outstanding', value: s.supplierOutstanding, icon: 'local_shipping' },
-      { label: 'Net Business Worth', value: s.netBusinessWorth, icon: 'trending_up', emphasis: true }
+      { label: 'Current Cash Balance', value: s.currentCashBalance, icon: 'account_balance_wallet', tone: 'green' },
+      { label: "Today's Collection", value: s.todayCollection, icon: 'payments', tone: 'sage' },
+      { label: "Today's Sales", value: s.todaySales, icon: 'point_of_sale', tone: 'green' },
+      { label: "Today's Purchases", value: s.todayPurchases, icon: 'shopping_cart', tone: 'amber' },
+      { label: "Today's Expenses", value: s.todayExpenses, icon: 'receipt_long', tone: 'slate' },
+      { label: 'Customer Outstanding', value: s.customerOutstanding, icon: 'storefront', tone: 'amber' },
+      { label: 'Supplier Outstanding', value: s.supplierOutstanding, icon: 'local_shipping', tone: 'slate' },
+      { label: 'Net Business Worth', value: s.netBusinessWorth, icon: 'trending_up', emphasis: true, tone: 'green' }
     ];
     // totalProfit/todayProfit are only populated by the API for Admin users
     if (s.totalProfit !== null) {
-      cards.push({ label: "Today's Profit", value: s.todayProfit ?? 0, icon: 'trending_up' });
-      cards.push({ label: 'Total Profit', value: s.totalProfit, icon: 'savings', emphasis: true });
+      cards.push({ label: "Today's Profit", value: s.todayProfit ?? 0, icon: 'trending_up', tone: 'sage' });
+      cards.push({ label: 'Total Profit', value: s.totalProfit, icon: 'savings', emphasis: true, tone: 'green' });
     }
     return cards;
   });
@@ -63,7 +64,7 @@ export class DashboardComponent implements OnInit {
       datasets: [
         {
           data: items.map((i) => i.amount),
-          backgroundColor: ['#1565c0', '#3b7dc4', '#5c94d1', '#8bb4de', '#ef6c00', '#f7913f', '#fab066', '#fdd0a2']
+          backgroundColor: ['#1f6f43', '#91b982', '#d89a27', '#d8dfd7', '#64766b', '#efbd67', '#b8ccb5', '#355847']
         }
       ]
     };
@@ -94,10 +95,15 @@ export class DashboardComponent implements OnInit {
         {
           label,
           data: data.map((i) => i.amount),
-          borderColor: '#1565c0',
-          backgroundColor: 'rgba(21, 101, 192, 0.15)',
+          borderColor: '#1f7a48',
+          backgroundColor: 'rgba(31, 122, 72, 0.12)',
           fill: true,
-          tension: 0.3
+          tension: 0.35,
+          pointBackgroundColor: '#1f7a48',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5
         }
       ]
     };

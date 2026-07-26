@@ -39,11 +39,10 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   static const List<UserRole> _backOffice = [UserRole.admin, UserRole.manager, UserRole.accountant];
 
-  // TailAdmin brand tokens (see FruitWholesale.Client/src/styles.scss).
-  static const _sidebarBg = Color(0xFF1A2231);
-  static const _sidebarAccent = Color(0xFF465FFF);
-  static const _sidebarText = Color(0xFFB2BCD4);
-  static const _sidebarMuted = Color(0xFF5B6482);
+  static const _sidebarBg = Color(0xFF103B29);
+  static const _sidebarAccent = Color(0xFF277A4B);
+  static const _sidebarText = Color(0xFFE5F1E7);
+  static const _sidebarMuted = Color(0xFF96B99E);
 
   late final List<NavGroup> _groups = [
     NavGroup(items: [
@@ -160,8 +159,6 @@ class _HomeShellState extends State<HomeShell> {
           const SizedBox(width: 8),
         ],
       ),
-      // TailAdmin signature: fixed dark sidebar (#1a2231), independent of the
-      // app's own light/dark theme toggle - matches the web sidenav.
       drawer: Drawer(
         backgroundColor: _sidebarBg,
         child: ListView(
@@ -171,10 +168,16 @@ class _HomeShellState extends State<HomeShell> {
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
               child: Row(
                 children: [
-                  const Icon(Icons.eco, color: _sidebarAccent, size: 32),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                    child: Image.asset('assets/branding/harvest-logo.png', fit: BoxFit.contain),
+                  ),
                   const SizedBox(width: 10),
                   const Text(
-                    'Fruit Wholesale',
+                    'Harvest Wholesale',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -196,7 +199,7 @@ class _HomeShellState extends State<HomeShell> {
                     leading: Icon(item.icon),
                     title: Text(item.label),
                     selected: item.label == _selected.label,
-                    selectedTileColor: _sidebarAccent.withValues(alpha: 0.16),
+                    selectedTileColor: _sidebarAccent,
                     selectedColor: Colors.white,
                     iconColor: _sidebarText,
                     textColor: _sidebarText,

@@ -10,6 +10,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { BrandingService } from '../../core/services/branding.service';
+import { BrandMarkComponent } from '../../shared/brand-mark/brand-mark.component';
 
 @Component({
   selector: 'app-login',
@@ -21,7 +23,8 @@ import { NotificationService } from '../../core/services/notification.service';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    BrandMarkComponent
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
@@ -31,6 +34,7 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly notification = inject(NotificationService);
   private readonly router = inject(Router);
+  readonly branding = inject(BrandingService);
 
   readonly loading = signal(false);
   readonly hidePassword = signal(true);

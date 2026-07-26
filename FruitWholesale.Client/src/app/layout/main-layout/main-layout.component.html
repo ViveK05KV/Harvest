@@ -10,7 +10,7 @@
       @if (branding.logoUrl(); as logo) {
         <img [src]="logo" alt="Company logo" class="sidenav-logo" />
       } @else {
-        <mat-icon>eco</mat-icon>
+        <app-brand-mark [size]="28" />
       }
       <span>{{ branding.companyName() }}</span>
     </div>
@@ -37,6 +37,7 @@
       <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle menu">
         <mat-icon>menu</mat-icon>
       </button>
+      <span class="toolbar-greeting">{{ greeting() }}</span>
       <span class="toolbar-spacer"></span>
 
       <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Light mode' : 'Dark mode'">
