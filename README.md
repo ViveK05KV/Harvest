@@ -247,6 +247,41 @@ az containerapp registry set \
 
 This persists on the Container App resource itself, so `deploy.yml` didn't need any changes — it survives every future `az containerapp update`.
 
+**Total outage — fine-grained PAT swap breaks every image pull, login stops working entirely (2026-07-27)**
+
+The classic PAT above worked, but as a security improvement it was swapped for a **fine-grained** GitHub PAT (scoped to just this repo, `Packages: Read-only`) once the repo owner was available to create one on their own repo. The very next deploy — a routine CORS-allowlist fix pushed by the repo owner — left the app completely down: both the new revision and the previously-working one showed `Unhealthy`/`Failed`, and the API stopped responding to anything.
+
+`az containerapp logs show --type system` showed the real reason:
+
+```
+Msg: "Container pull image failed with unauthorized error.", Reason: "ImagePullUnauthorized"
+```
+
+**Root cause:** the fine-grained PAT could `docker login` successfully (basic credential check passes) but returned `403 Forbidden` on an actual `docker pull` of the private package — reproduced locally to confirm it wasn't an Azure-side glitch:
+
+```
+$ docker pull ghcr.io/vivek05kv/harvest-erp-api:<tag>
+... 403 Forbidden
+```
+
+This is a known gap in GitHub's fine-grained PATs: the `Packages` permission doesn't reliably authorize container registry pulls the way a classic token's `read:packages` scope does, even when scoped correctly. Because the registry credential lives on the Container App resource itself (not in `deploy.yml`), this broke pulls for *every* revision going forward, including re-pulls of the image that was working fine minutes earlier whenever it next cold-started from scale-to-zero — which is exactly why something that "was working yesterday" went down with no code change on the API side.
+
+**Fix:**
+1. Repo owner made the GHCR package **public** instead (see the security tradeoff discussion this prompted — no live secrets are ever baked into the image, only the compiled app binary becomes pullable, which is an acceptable tradeoff here) — verified with an anonymous `docker pull`, which succeeded.
+2. Removed the now-unnecessary (and broken) registry credential entirely:
+   ```bash
+   az containerapp registry remove --resource-group harvest-erp-rg --name harvest-erp-api --server ghcr.io
+   ```
+   (this auto-removes the associated secret too — a separate `secret remove` call errors with "not found," which is expected, not a failure).
+3. **Gotcha:** the revision that failed to activate during the outage (the CORS-fix deploy) stayed stuck in `ActivationFailed` even after the registry was fixed — `az containerapp update` with the *same* image tag is a no-op ("No new revision was provisioned"), and `az containerapp revision restart` didn't revive it either. Had to force a genuinely new revision with an explicit suffix to actually get the fixed code live:
+   ```bash
+   az containerapp update --resource-group harvest-erp-rg --name harvest-erp-api \
+     --image ghcr.io/vivek05kv/harvest-erp-api:<tag> --revision-suffix retry001
+   ```
+4. Verified end-to-end: `POST /api/auth/login` returns `200`, and an OPTIONS preflight with `Origin: <static web app URL>` returns the correct `Access-Control-Allow-Origin` header — confirming the actual new (CORS-fix) code was live, not just a fallback to the old working revision.
+
+**Takeaway:** treat any registry-credential change on the Container App as a deploy-risk event, not a side detail — test with a real `docker pull` (not just `docker login`) before considering it done, since login-success and pull-authorization are different guarantees on GHCR.
+
 **Alpine image crashes on any DB call: `System.NotSupportedException: Globalization Invariant Mode is not supported` (2026-07-25)**
 
 After the deploy above succeeded, every endpoint that touched the database (e.g. `POST /api/auth/login`) returned `500`, with this in the Container App logs (`az containerapp logs show`):
