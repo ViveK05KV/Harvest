@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -12,6 +12,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { BrandingService } from '../../core/services/branding.service';
+import { BrandMarkComponent } from '../../shared/brand-mark/brand-mark.component';
 import { UserRole } from '../../core/models/common.model';
 
 interface NavItem {
@@ -40,7 +41,8 @@ interface NavGroup {
     MatButtonModule,
     MatMenuModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    BrandMarkComponent
   ],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
@@ -53,6 +55,13 @@ export class MainLayoutComponent {
 
   readonly isHandset = signal(false);
   readonly sidenavOpened = signal(true);
+
+  readonly greeting = computed(() => {
+    const hour = new Date().getHours();
+    const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const firstName = this.authService.currentUser()?.fullName?.split(' ')[0];
+    return firstName ? `${part}, ${firstName}` : part;
+  });
 
   // Staff can access only Supply and Collections; every other item/group requires Admin/Manager/Accountant.
   private static readonly BACK_OFFICE: UserRole[] = ['Admin', 'Manager', 'Accountant'];

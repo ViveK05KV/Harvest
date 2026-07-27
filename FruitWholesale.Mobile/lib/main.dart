@@ -45,6 +45,10 @@ class _FruitWholesaleAppState extends State<FruitWholesaleApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      // The operational UI uses a light workspace. Following a device's dark
+      // setting while keeping that light canvas produced light text on light
+      // pages, so keep the application contrast stable and accessible.
+      themeMode: ThemeMode.light,
       home: Consumer<AuthService>(
         builder: (context, auth, _) {
           if (auth.isRestoring) {

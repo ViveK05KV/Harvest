@@ -50,28 +50,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Form(
+        child: Container(
+          decoration: const BoxDecoration(color: Color(0xFFF7F9F6)),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.eco, size: 56, color: scheme.primary),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Fruit Wholesale',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+                    Container(
+                      width: 82,
+                      height: 82,
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x14204A32), blurRadius: 18, offset: Offset(0, 7))]),
+                      child: Image.asset('assets/branding/harvest-logo.png', fit: BoxFit.contain),
                     ),
+                    const SizedBox(height: 20),
+                    const Text('HARVEST WHOLESALE', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF4F745F), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.4)),
+                    const SizedBox(height: 7),
                     Text(
-                      'Management System',
+                      'Welcome back',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF193126)),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Sign in to access your operations workspace.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6D7E72)),
                     ),
                     const SizedBox(height: 32),
                     if (_error != null) ...[
@@ -116,16 +127,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     FilledButton(
                       onPressed: _submitting ? null : _submit,
-                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                       child: _submitting
                           ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
-                          : const Text('Sign In'),
+                          : const Text('Sign in to dashboard'),
+                    ),
+                    const SizedBox(height: 24),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [Icon(Icons.lock_outline, size: 14, color: Color(0xFF5C8766)), SizedBox(width: 5), Text('Your business data is securely protected.', style: TextStyle(fontSize: 11, color: Color(0xFF7A897E)))],
                     ),
                   ],
+                ),
                 ),
               ),
             ),

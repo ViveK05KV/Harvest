@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Material 3 theme matching the web app's TailAdmin-inspired pass in
-/// styles.scss: brand-500 #465fff as the seed color, generous 16px card
-/// radius, soft shadow instead of an outlined border.
+/// Material 3 theme matching the Harvest green dashboard redesign.
 class AppTheme {
   AppTheme._();
 
-  static const _seedColor = Color(0xFF465FFF);
+  static const _seedColor = Color(0xFF277A4B);
 
   static ThemeData light() {
     final scheme = ColorScheme.fromSeed(
@@ -25,34 +23,60 @@ class AppTheme {
   }
 
   static ThemeData _themeFrom(ColorScheme scheme) {
+    const ink = Color(0xFF1D3125);
+    const mutedInk = Color(0xFF4F6255);
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.surface,
+      scaffoldBackgroundColor: const Color(0xFFF7F9F6),
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
+        backgroundColor: const Color(0xFFF7F9F6),
+        foregroundColor: ink,
+        titleTextStyle: const TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w700),
+        iconTheme: const IconThemeData(color: Color(0xFF315C40)),
         elevation: 0,
         scrolledUnderElevation: 2,
       ),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
-        filled: false,
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDCE6DD))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF277A4B), width: 1.5)),
+        filled: true,
+        fillColor: Colors.white,
       ),
       cardTheme: CardThemeData(
-        elevation: 1,
+        color: Colors.white,
+        elevation: 0,
         shadowColor: scheme.shadow.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFFE7ECE6)),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: Colors.white,
         indicatorColor: scheme.secondaryContainer,
       ),
+      textTheme: ThemeData.light().textTheme.apply(
+        bodyColor: ink,
+        displayColor: ink,
+      ).copyWith(
+        bodySmall: const TextStyle(color: mutedInk, fontSize: 12),
+        bodyMedium: const TextStyle(color: ink, fontSize: 14),
+        titleSmall: const TextStyle(color: ink, fontWeight: FontWeight.w600),
+        titleMedium: const TextStyle(color: ink, fontWeight: FontWeight.w700),
+      ),
+      listTileTheme: const ListTileThemeData(
+        textColor: ink,
+        iconColor: Color(0xFF39744F),
+        subtitleTextStyle: TextStyle(color: mutedInk),
+      ),
+      dividerTheme: const DividerThemeData(color: Color(0xFFE1E9E2)),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: const Color(0xFF277A4B),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
     );

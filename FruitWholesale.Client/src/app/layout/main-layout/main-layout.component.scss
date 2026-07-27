@@ -2,42 +2,34 @@
   height: 100vh;
 }
 
-// TailAdmin signature: fixed dark sidebar (brand dark #1a2231), independent
-// of the app's own light/dark toggle (which only affects the content area).
 .app-sidenav {
   width: 264px;
-  border-right: none;
-  background: #1a2231;
+  background: #103b29;
   padding-bottom: 16px;
 
-  // MDC list pulls text/icon color per state (default/hover/focus) from
-  // these tokens, not the .mdc-list-item__* classes below - without this
-  // hover/focus fall back to the app's light-theme on-surface (near-black),
-  // which is invisible against the dark navy sidebar.
-  --mdc-list-list-item-label-text-color: #b2bcd4;
-  --mdc-list-list-item-hover-label-text-color: #fff;
-  --mdc-list-list-item-focus-label-text-color: #fff;
-  --mdc-list-list-item-leading-icon-color: #7a83a0;
-  --mdc-list-list-item-hover-leading-icon-color: #fff;
-  --mdc-list-list-item-focus-leading-icon-color: #fff;
-  --mdc-list-list-item-hover-state-layer-color: #fff;
-  --mdc-list-list-item-hover-state-layer-opacity: 0.04;
-  --mdc-list-list-item-focus-state-layer-color: #fff;
-  --mdc-list-list-item-focus-state-layer-opacity: 0.06;
+  // MDC's own hover/focus rules read these custom properties directly, not
+  // plain class overrides, and default to the app's light on-surface (near
+  // black) which is invisible on this forced-dark background.
+  --mdc-list-list-item-label-text-color: #dcebdd;
+  --mdc-list-list-item-leading-icon-color: #b7d4bd;
+  --mdc-list-list-item-hover-label-text-color: #ffffff;
+  --mdc-list-list-item-hover-leading-icon-color: #ffffff;
+  --mdc-list-list-item-hover-state-layer-color: #ffffff;
+  --mdc-list-list-item-hover-state-layer-opacity: 0.08;
+  --mdc-list-list-item-focus-label-text-color: #ffffff;
+  --mdc-list-list-item-focus-leading-icon-color: #ffffff;
+  --mdc-list-list-item-focus-state-layer-color: #ffffff;
 }
 
 .sidenav-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 16px 12px;
+  padding: 20px 16px 16px;
   font: var(--mat-sys-title-medium);
   font-weight: 600;
-  color: #fff;
-
-  mat-icon {
-    color: #465fff;
-  }
+  color: #f6fcf6;
+  letter-spacing: 0.02em;
 
   span {
     overflow: hidden;
@@ -55,7 +47,7 @@
 }
 
 .nav-section-label {
-  color: #5b6482 !important;
+  color: #96b99e !important;
 }
 
 .nav-section-list {
@@ -67,30 +59,23 @@
     height: 44px;
   }
 
-  ::ng-deep .mdc-list-item__primary-text {
-    color: #b2bcd4 !important;
-  }
-
+  // Explicit selectors are needed in addition to MDC tokens: the list item
+  // content is projected by Angular Material and otherwise keeps the light
+  // theme's near-black text colour inside this forced-dark sidebar.
+  ::ng-deep .mdc-list-item__primary-text,
+  ::ng-deep .mat-mdc-list-item-unscoped-content,
   ::ng-deep .mdc-list-item__start {
-    color: #7a83a0 !important;
+    color: #e5f1e7 !important;
   }
 
-  ::ng-deep .mdc-list-item:hover,
-  ::ng-deep .mdc-list-item:focus {
-    background: rgba(255, 255, 255, 0.04);
-
-    .mdc-list-item__primary-text {
-      color: #fff !important;
-    }
-
-    .mdc-list-item__start {
-      color: #fff !important;
-    }
+  ::ng-deep .mdc-list-item:hover .mdc-list-item__primary-text,
+  ::ng-deep .mdc-list-item:hover .mdc-list-item__start {
+    color: #ffffff !important;
   }
 }
 
 .active-link {
-  background: rgba(70, 95, 255, 0.16) !important;
+  background: #277a4b !important;
 
   ::ng-deep .mdc-list-item__primary-text {
     color: #fff !important;
@@ -98,7 +83,7 @@
   }
 
   ::ng-deep .mdc-list-item__start {
-    color: #8098ff !important;
+    color: #fff !important;
   }
 }
 
@@ -106,8 +91,16 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--mat-sys-surface);
-  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1);
+  background: var(--app-page-bg);
+  box-shadow: none;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.toolbar-greeting {
+  margin-left: 8px;
+  font: var(--mat-sys-title-medium);
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
 }
 
 .toolbar-spacer {

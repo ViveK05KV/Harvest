@@ -1,24 +1,32 @@
 <div class="login-page">
   <div class="login-hero">
+    <div class="hero-orb hero-orb--one"></div>
+    <div class="hero-orb hero-orb--two"></div>
     <div class="hero-content">
-      <mat-icon class="hero-icon">eco</mat-icon>
-      <h1>Fruit Wholesale</h1>
-      <p>Management System</p>
+      <div class="hero-mark"><app-brand-mark [size]="58" /></div>
+      <span class="hero-eyebrow">WHOLESALE OPERATIONS</span>
+      <h1>Run your fresh produce business with clarity.</h1>
+      <p>Sales, collections, stock, and suppliers — all in one dependable workspace.</p>
+      <div class="hero-highlights">
+        <span><mat-icon>check_circle</mat-icon> Live business snapshot</span>
+        <span><mat-icon>check_circle</mat-icon> Simple daily workflows</span>
+      </div>
     </div>
   </div>
 
   <div class="login-form-panel">
     <mat-card class="login-card">
       <div class="brand-mobile">
-        <mat-icon class="brand-icon">eco</mat-icon>
+        <app-brand-mark [size]="40" />
         <div>
-          <h1>Fruit Wholesale</h1>
-          <p>Management System</p>
+          <h1>{{ branding.companyName() }}</h1>
+          <p>Wholesale Management System</p>
         </div>
       </div>
 
+      <span class="form-eyebrow">{{ branding.companyName() }}</span>
       <h2 class="welcome-title">Welcome back</h2>
-      <p class="welcome-subtitle">Sign in to continue</p>
+      <p class="welcome-subtitle">Enter your details to access your workspace.</p>
 
       <form [formGroup]="form" (ngSubmit)="submit()">
         <mat-form-field class="full-width">
@@ -45,10 +53,11 @@
           @if (loading()) {
             <mat-spinner diameter="20" />
           } @else {
-            Sign In
+            Sign in to dashboard
           }
         </button>
       </form>
+      <p class="form-footnote"><mat-icon>lock</mat-icon> Your business data is securely protected.</p>
     </mat-card>
   </div>
 </div>

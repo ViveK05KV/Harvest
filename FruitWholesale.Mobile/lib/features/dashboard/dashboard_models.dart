@@ -8,6 +8,11 @@ class DashboardSummary {
   final double supplierOutstanding;
   final double netBusinessWorth;
 
+  /// Admin-only; null for other roles (the API never populates these fields
+  /// for a non-admin caller - see DashboardController).
+  final double? totalProfit;
+  final double? todayProfit;
+
   const DashboardSummary({
     required this.currentCashBalance,
     required this.todayCollection,
@@ -17,10 +22,13 @@ class DashboardSummary {
     required this.customerOutstanding,
     required this.supplierOutstanding,
     required this.netBusinessWorth,
+    this.totalProfit,
+    this.todayProfit,
   });
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) {
     double d(String key) => (json[key] as num).toDouble();
+    double? dOrNull(String key) => (json[key] as num?)?.toDouble();
     return DashboardSummary(
       currentCashBalance: d('currentCashBalance'),
       todayCollection: d('todayCollection'),
@@ -30,6 +38,8 @@ class DashboardSummary {
       customerOutstanding: d('customerOutstanding'),
       supplierOutstanding: d('supplierOutstanding'),
       netBusinessWorth: d('netBusinessWorth'),
+      totalProfit: dOrNull('totalProfit'),
+      todayProfit: dOrNull('todayProfit'),
     );
   }
 }

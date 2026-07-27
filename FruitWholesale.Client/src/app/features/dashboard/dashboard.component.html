@@ -1,5 +1,10 @@
-<div class="page-toolbar">
-  <h1>Dashboard</h1>
+<div class="dashboard-header">
+  <div>
+    <span class="eyebrow">Live business snapshot</span>
+    <h1>Operations overview</h1>
+    <p class="dashboard-subtitle">A clear view of your cash, sales, and collections for today.</p>
+  </div>
+  <div class="header-status"><span></span> All systems operational</div>
 </div>
 
 @if (loading()) {
@@ -9,64 +14,76 @@
 } @else {
   <div class="cards-grid">
     @for (card of cards(); track card.label) {
-      <mat-card class="summary-card" [class.summary-card--emphasis]="card.emphasis">
-        <mat-icon class="card-icon">{{ card.icon }}</mat-icon>
+      <mat-card class="summary-card" [class.summary-card--emphasis]="card.emphasis" [class]="'summary-card summary-card--' + card.tone">
+        <div class="card-icon"><mat-icon>{{ card.icon }}</mat-icon></div>
         <div class="card-body">
-          <span class="card-value">{{ card.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
           <span class="card-label">{{ card.label }}</span>
+          <span class="card-value">{{ card.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
         </div>
       </mat-card>
     }
   </div>
 
-  <div class="charts-grid">
-    <mat-card class="chart-card">
-      <h3>Sales by Month</h3>
-      <div class="chart-holder">
-        <app-chart type="line" [data]="salesChartData()" />
-      </div>
-    </mat-card>
+  <div class="dashboard-main-grid">
+    <div class="main-col">
+      <mat-card class="chart-card chart-card--large">
+        <div class="card-heading">
+          <div><span class="card-kicker">Revenue</span><h3>Sales by month</h3></div>
+          <span class="period-chip">Last 12 months</span>
+        </div>
+        <div class="chart-holder">
+          <app-chart type="line" [data]="salesChartData()" />
+        </div>
+      </mat-card>
 
-    <mat-card class="chart-card">
-      <h3>Collections by Month</h3>
-      <div class="chart-holder">
-        <app-chart type="line" [data]="collectionsChartData()" />
-      </div>
-    </mat-card>
+      <mat-card class="chart-card chart-card--large">
+        <div class="card-heading">
+          <div><span class="card-kicker">Cash flow</span><h3>Collections by month</h3></div>
+          <mat-icon class="heading-icon">account_balance</mat-icon>
+        </div>
+        <div class="chart-holder">
+          <app-chart type="line" [data]="collectionsChartData()" />
+        </div>
+      </mat-card>
+    </div>
 
-    <mat-card class="chart-card">
-      <h3>Expenses by Category</h3>
-      <div class="chart-holder">
-        <app-chart type="doughnut" [data]="expensesChartData()" />
-      </div>
-    </mat-card>
+    <div class="side-col">
+      <mat-card class="chart-card">
+        <div class="card-heading"><div><span class="card-kicker">Spending</span><h3>Expenses by category</h3></div></div>
+        <div class="chart-holder chart-holder--small">
+          <app-chart type="doughnut" [data]="expensesChartData()" />
+        </div>
+      </mat-card>
 
-    <mat-card class="chart-card">
-      <h3>Top Selling Fruits</h3>
-      <div class="list-holder">
-        @for (fruit of topFruits(); track fruit.fruitName) {
-          <div class="ranked-row">
-            <span>{{ fruit.fruitName }}</span>
-            <strong>{{ fruit.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
-          </div>
-        } @empty {
-          <p class="muted">No sales recorded yet.</p>
-        }
-      </div>
-    </mat-card>
+      <mat-card class="chart-card list-card">
+        <div class="card-heading"><div><span class="card-kicker">Demand</span><h3>Top selling fruits</h3></div><mat-icon class="heading-icon">arrow_outward</mat-icon></div>
+        <div class="list-holder">
+          @for (fruit of topFruits(); track fruit.fruitName) {
+            <div class="ranked-row">
+              <span class="ranked-row-avatar">{{ fruit.fruitName.charAt(0) }}</span>
+              <span class="ranked-row-label">{{ fruit.fruitName }}</span>
+              <strong>{{ fruit.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+            </div>
+          } @empty {
+            <p class="muted">No sales recorded yet.</p>
+          }
+        </div>
+      </mat-card>
 
-    <mat-card class="chart-card">
-      <h3>Top Customers</h3>
-      <div class="list-holder">
-        @for (customer of topCustomers(); track customer.shopName) {
-          <div class="ranked-row">
-            <span>{{ customer.shopName }}</span>
-            <strong>{{ customer.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
-          </div>
-        } @empty {
-          <p class="muted">No sales recorded yet.</p>
-        }
-      </div>
-    </mat-card>
+      <mat-card class="chart-card list-card">
+        <div class="card-heading"><div><span class="card-kicker">Relationships</span><h3>Top customers</h3></div><mat-icon class="heading-icon">arrow_outward</mat-icon></div>
+        <div class="list-holder">
+          @for (customer of topCustomers(); track customer.shopName) {
+            <div class="ranked-row">
+              <span class="ranked-row-avatar">{{ customer.shopName.charAt(0) }}</span>
+              <span class="ranked-row-label">{{ customer.shopName }}</span>
+              <strong>{{ customer.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+            </div>
+          } @empty {
+            <p class="muted">No sales recorded yet.</p>
+          }
+        </div>
+      </mat-card>
+    </div>
   </div>
 }
