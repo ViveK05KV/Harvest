@@ -1,3 +1,15 @@
+/// Transaction types that actually post to CashLedger (see
+/// `Domain.Enums.LedgerTransactionTypes` on the backend), with distinct
+/// display labels for the Cash Ledger type filter — Collection and
+/// SupplierPayment must stay distinguishable since both appear in one list.
+const cashLedgerTypeLabels = <String, String>{
+  'OpeningBalance': 'Opening Balance',
+  'Collection': 'Collection (from shop)',
+  'SupplierPayment': 'Supplier Payment',
+  'DailyExpense': 'Daily Expense',
+  'EmployeeWorkLog': 'Employee Wages',
+};
+
 /// Shared shape for Shop and Supplier ledgers (debit/credit style).
 class LedgerEntry {
   final int ledgerId;

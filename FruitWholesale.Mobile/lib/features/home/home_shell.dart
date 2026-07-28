@@ -20,15 +20,20 @@ import '../reports/reports_screen.dart';
 import '../route_master/route_master_list_screen.dart';
 import '../settings/settings_screen.dart';
 import '../shop_master/shop_master_list_screen.dart';
+import '../shop_return/shop_return_list_screen.dart';
 import '../stock/stock_screen.dart';
 import '../supplier_master/supplier_master_list_screen.dart';
 import '../supplier_payment/supplier_payment_list_screen.dart';
+import '../supplier_return/supplier_return_list_screen.dart';
 import '../supply/supply_list_screen.dart';
 import '../users/user_list_screen.dart';
 
 /// Post-login shell: drawer navigation grouped and role-filtered exactly like
 /// the Angular sidenav (`main-layout.component.ts`). "Back office" = Admin,
-/// Manager, Accountant — Staff only ever sees Supply and Collections.
+/// Manager, Accountant. Staff only ever sees Supply, Shop Returns,
+/// Collections, and Stock. Admin/Accountant have full access (including
+/// Administration and Profit Calculator); Manager has everything except
+/// those two.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -50,7 +55,14 @@ class _HomeShellState extends State<HomeShell> {
     ], label: 'Overview'),
     NavGroup(label: 'Transactions', items: [
       NavItem(label: 'Supply', icon: Icons.local_shipping_outlined, builder: (_) => const SupplyListScreen()),
+      NavItem(label: 'Shop Returns', icon: Icons.assignment_return_outlined, builder: (_) => const ShopReturnListScreen()),
       NavItem(label: 'Purchase', icon: Icons.shopping_cart_outlined, builder: (_) => const PurchaseListScreen(), roles: _backOffice),
+      NavItem(
+        label: 'Supplier Returns',
+        icon: Icons.keyboard_return_outlined,
+        builder: (_) => const SupplierReturnListScreen(),
+        roles: _backOffice,
+      ),
       NavItem(label: 'Collections', icon: Icons.payments_outlined, builder: (_) => const CollectionsListScreen()),
       NavItem(
         label: 'Supplier Payments',
@@ -80,11 +92,17 @@ class _HomeShellState extends State<HomeShell> {
         roles: _backOffice,
       ),
       NavItem(label: 'Cash Ledger', icon: Icons.account_balance_outlined, builder: (_) => const CashLedgerScreen(), roles: _backOffice),
-      NavItem(label: 'Stock', icon: Icons.inventory_outlined, builder: (_) => const StockScreen(), roles: _backOffice),
+      // Stock is open to Staff too, unlike the rest of this group.
+      NavItem(label: 'Stock', icon: Icons.inventory_outlined, builder: (_) => const StockScreen()),
     ]),
     NavGroup(label: 'Reports', items: [
       NavItem(label: 'Reports', icon: Icons.assessment_outlined, builder: (_) => const ReportsScreen(), roles: _backOffice),
-      NavItem(label: 'Profit Calculator', icon: Icons.trending_up, builder: (_) => const ProfitScreen(), roles: [UserRole.admin]),
+      NavItem(
+        label: 'Profit Calculator',
+        icon: Icons.trending_up,
+        builder: (_) => const ProfitScreen(),
+        roles: [UserRole.admin, UserRole.accountant],
+      ),
     ]),
     NavGroup(label: 'Masters', items: [
       NavItem(label: 'Shops', icon: Icons.store_outlined, builder: (_) => const ShopMasterListScreen(), roles: _backOffice),
@@ -100,7 +118,12 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ]),
     NavGroup(label: 'Administration', items: [
-      NavItem(label: 'Users', icon: Icons.manage_accounts_outlined, builder: (_) => const UserListScreen(), roles: [UserRole.admin]),
+      NavItem(
+        label: 'Users',
+        icon: Icons.manage_accounts_outlined,
+        builder: (_) => const UserListScreen(),
+        roles: [UserRole.admin, UserRole.accountant],
+      ),
       NavItem(
         label: 'Settings',
         icon: Icons.settings_outlined,
