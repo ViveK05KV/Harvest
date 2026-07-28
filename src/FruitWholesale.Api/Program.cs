@@ -96,6 +96,13 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+using (var migrationScope = app.Services.CreateScope())
+{
+    var migrationRunner = migrationScope.ServiceProvider.GetRequiredService<FruitWholesale.Infrastructure.Persistence.MigrationRunner>();
+    var migrationsDirectory = Path.Combine(AppContext.BaseDirectory, "database");
+    await migrationRunner.RunAsync(migrationsDirectory);
+}
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())

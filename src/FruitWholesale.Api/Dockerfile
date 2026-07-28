@@ -15,6 +15,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 RUN apk add --no-cache icu-libs
 WORKDIR /app
 COPY --from=build /app .
+COPY database/*.sql database/*.txt database/
 
 ENV ASPNETCORE_HTTP_PORTS=8080
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false

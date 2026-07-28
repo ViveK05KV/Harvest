@@ -89,6 +89,8 @@ sqlcmd -S localhost -E -i 04_SeedData.sql
 
 All scripts are idempotent — re-running them drops and recreates cleanly. `04_SeedData.sql` seeds **only the admin login** — no demo company profile, fruits, or expense categories; add those yourself once you're logged in. `05_ClearData.sql` is a standalone reset: run it any time to wipe every table back to empty except the admin user, without dropping/recreating the schema.
 
+Everything after this initial bootstrap (`06_*.sql` onward) is handled differently — see [Database Migrations](#database-migrations) under Deployment.
+
 Update `src/FruitWholesale.Api/appsettings.json` → `ConnectionStrings:DefaultConnection` if your SQL Server isn't `localhost` with Windows auth.
 
 ### 2. Backend API
@@ -152,9 +154,24 @@ flowchart TB
 ```
 
 - **Frontend** — Angular production build, deployed to Azure Static Web Apps. `staticwebapp.config.json` adds a navigation fallback so deep-links/refreshes on client-side routes (e.g. `/dashboard`) don't 404.
-- **Backend** — ASP.NET Core API, containerized (multi-stage `src/FruitWholesale.Api/Dockerfile`, Alpine-based runtime, ~216MB image) and deployed to **Azure Container Apps** (Consumption plan, scale-to-zero). CI builds the image and pushes it to **GitHub Container Registry** (kept private, since the repo is owned by a different GitHub account than the one CI/CLI operations run as), then `az containerapp update` swaps in the new image on every push to `main`. The Container App authenticates its image pulls with a registry credential (a classic GitHub PAT, `read:packages` scope, configured once via `az containerapp registry set`). Production `Jwt:Secret` and the SQL connection string are stored as Container Apps **secrets** (not committed to the repo, referenced by env vars via `secretref:`, never in plaintext); `appsettings.Development.json` stays secret-free. Migrated off Azure App Service in July 2026 — see [Migration Log](#migration-log-app-service--container-apps) for the full why/what/cost breakdown.
+- **Backend** — ASP.NET Core API, containerized (multi-stage `src/FruitWholesale.Api/Dockerfile`, Alpine-based runtime, ~216MB image) and deployed to **Azure Container Apps** (Consumption plan, scale-to-zero). CI builds the image and pushes it to **GitHub Container Registry** (`ghcr.io/vivek05kv/harvest-erp-api`, public — after a fine-grained PAT proved unreliable for authenticating GHCR pulls, see Troubleshooting, the package was made public instead so the Container App pulls anonymously with no registry credential at all), then `az containerapp update` swaps in the new image on every push to `main`. Production `Jwt:Secret` and the SQL connection string are stored as Container Apps **secrets** (not committed to the repo, referenced by env vars via `secretref:`, never in plaintext); `appsettings.Development.json` stays secret-free. Migrated off Azure App Service in July 2026 — see [Migration Log](#migration-log-app-service--container-apps) for the full why/what/cost breakdown.
 - **Database** — Azure SQL Database on the serverless **free-limit** tier (one free DB per subscription; 100,000 vCore-seconds + 32GB storage/month free). Configured with `freeLimitExhaustionBehavior=AutoPause`, so exceeding the free monthly compute pauses the DB rather than billing overage. The connection string includes `ConnectRetryCount=5;ConnectRetryInterval=10` so the driver silently retries through the ~10-30s wake-up window after the DB auto-pauses from inactivity (60 min idle timeout) — without this, the first request after a pause can surface as a transient 500.
 - **CI/CD** — GitHub Actions, authenticating to Azure via **OIDC federated credentials** (no long-lived secrets stored in GitHub). `pr-checks.yml` runs a compile-only build check (`dotnet build`, `ng build`) on PRs targeting `main` — no test suite exists yet, so a green check means "compiles," not "verified correct." `deploy.yml` deploys both the API (build image → push to GHCR → `az containerapp update`) and frontend automatically on every push to `main`.
+
+### Database Migrations
+
+Schema changes after the initial `01`-`04` bootstrap (see [Getting Started](#1-database)) are applied **automatically by the API itself on startup** — not via a CI step. GitHub Actions runners don't have a static IP and Azure SQL's firewall is IP-based, so a CI step running `sqlcmd` against production is a dead end here (confirmed by testing — see Troubleshooting); the API already has a trusted network path to the database since that's how the app works at all, so migrations run from inside the already-authorized app process instead.
+
+**How it works:** `MigrationRunner` (`src/FruitWholesale.Infrastructure/Persistence/MigrationRunner.cs`) runs before the app starts serving requests (`Program.cs`, right after `builder.Build()`). It reads `database/auto-migrations.txt` — an **explicit, ordered allowlist** — and for each script listed, checks a `dbo.SchemaMigrations` journal table in the database: anything not yet recorded gets applied and recorded; anything already there is skipped. A `sp_getapplock` guards against two replicas starting concurrently and racing on the same migration. The initial connection retries a few times with backoff, since the free-tier database can take well over a plain connection timeout to wake from auto-pause — and since this now runs before the app can serve *anything*, a paused database on the first request after a deploy must not crash startup.
+
+**Why an explicit allowlist, not "every script numbered ≥6":** this folder also holds one-time bootstrap scripts (`01`-`05`; `01_CreateDatabase_Tables.sql` drops and recreates every table) and manual reset/catch-up tools (`05_ClearData.sql`; `11_ClearTransactionalData.sql`, which deletes all real transactional/ledger data with **no idempotency guard**; `13_RunPendingMigrations.sql`, a one-time manual bundle of `06`-`12` predating this automated system) that must never run automatically. A script only runs if its filename is explicitly listed in `auto-migrations.txt` — full stop, regardless of what number it has. This is a deliberate design choice, not an oversight: an earlier "any file numbered ≥6" design was caught and rejected specifically because `11_ClearTransactionalData.sql` would have been silently wiped production the moment it merged.
+
+**To add a new migration:**
+1. Write `database/NN_Description.sql` (next number after the highest existing one) — guard every change with `IF NOT EXISTS`/`IF EXISTS`, same as the existing scripts, so it's safe to re-run.
+2. Add `NN_Description.sql` on its own line in `database/auto-migrations.txt`.
+3. Commit both, merge to `main`. The Dockerfile copies `database/*.sql` and `database/*.txt` into the image, so it ships with the next deploy — the API applies it (and records it in `dbo.SchemaMigrations`) automatically the next time it starts.
+
+**Never add to the manifest:** anything that deletes data unconditionally, or a one-time bootstrap/catch-up script — those are meant to be run deliberately, manually, exactly once, by a human who knows what they're about to do.
 
 ### Cost
 
@@ -224,6 +241,19 @@ No change at current usage — both the old App Service F1 and the new Container
 - First request after idle may take 10-30s while the Container App and/or database wake up from scale-to-zero/auto-pause — that's expected, not a bug.
 
 ### Troubleshooting
+
+**Running DB migrations from GitHub Actions is a dead end (2026-07-28)**
+
+First approach to automating schema migrations: a CI step running `sqlcmd` directly against production. Testing this locally first (before wiring it into `deploy.yml`) surfaced the reason it can't work at all:
+
+```
+$ sqlcmd -S harvest-erp-sqlsrv.database.windows.net ...
+Login error: Client with IP address '<my IP>' is not allowed to access the server.
+```
+
+**Root cause:** Azure SQL's firewall is IP-based, and GitHub Actions' hosted runners don't have a static IP — a different one every run, so there's no fixed address to allow-list. Azure SQL's "Allow Azure services" toggle doesn't help either: it only covers Azure-hosted compute (which is *why* the Container App itself can already reach the database), not GitHub-hosted runners. Broadly allow-listing GitHub's published Actions IP ranges isn't practical either — thousands of CIDR blocks that change over time, and Azure SQL firewall rules aren't meant to be maintained at that scale.
+
+**Fix:** moved the whole approach from "CI runs the migration" to "the API runs its own migrations on startup" (see [Database Migrations](#database-migrations) above) — the app already has a trusted network path to the database, so there's no firewall problem to solve at all.
 
 **Container App deploy fails: `GET https:?scope=...: UNAUTHORIZED: authentication required` (2026-07-25)**
 
