@@ -1,0 +1,129 @@
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40" />
+  </div>
+} @else {
+  <div class="page-toolbar">
+    <h1>{{ isEdit() ? 'Edit Shop Return' : 'New Shop Return' }}</h1>
+    <span class="spacer"></span>
+    <button mat-stroked-button (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
+      <mat-icon>save</mat-icon>
+      Save
+    </button>
+  </div>
+
+  <mat-card class="form-card">
+    <form [formGroup]="form">
+      <div class="header-grid">
+        <mat-form-field>
+          <mat-label>Reference Number</mat-label>
+          <input matInput formControlName="referenceNo" />
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="returnDate" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Shop</mat-label>
+          <mat-select formControlName="shopID" (selectionChange)="onShopChange()">
+            @for (shop of shops(); track shop.shopID) {
+              <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="invoice-field-row">
+          <mat-form-field class="full-width">
+            <mat-label>Against Supply Invoice (optional)</mat-label>
+            <mat-select formControlName="supplyID" [disabled]="!form.controls.shopID.value">
+              <mat-option [value]="null">Not linked to an invoice</mat-option>
+              @for (supply of shopSupplies(); track supply.supplyID) {
+                <mat-option [value]="supply.supplyID">{{ supply.invoiceNo }} ({{ supply.supplyDate | date: 'dd-MMM-yyyy' }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          @if (form.controls.supplyID.value) {
+            <button
+              mat-icon-button
+              type="button"
+              class="load-items-btn"
+              matTooltip="Load items from this invoice"
+              [disabled]="loadingInvoiceItems()"
+              (click)="loadItemsFromInvoice()"
+            >
+              <mat-icon>download</mat-icon>
+            </button>
+          }
+        </div>
+
+        <mat-form-field class="remarks-field">
+          <mat-label>Remarks</mat-label>
+          <input matInput formControlName="remarks" />
+        </mat-form-field>
+      </div>
+
+      <div class="items-header">
+        <h3>Items Returned</h3>
+        <button mat-stroked-button type="button" (click)="addRow()">
+          <mat-icon>add</mat-icon>
+          Add Row
+        </button>
+      </div>
+
+      <div class="table-container" formArrayName="items">
+        <table>
+          <thead>
+            <tr>
+              <th>Fruit</th>
+              <th>Quantity</th>
+              <th>Rate</th>
+              <th>Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itemsArray.controls; track item; let i = $index) {
+              <tr [formGroupName]="i">
+                <td>
+                  <mat-form-field subscriptSizing="dynamic" class="full-width">
+                    <mat-select formControlName="fruitID" placeholder="Select fruit">
+                      @for (fruit of fruits(); track fruit.fruitID) {
+                        <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </td>
+                <td>
+                  <mat-form-field subscriptSizing="dynamic" class="qty-field">
+                    <input matInput type="number" formControlName="quantity" min="0" step="0.01" />
+                  </mat-form-field>
+                </td>
+                <td>
+                  <mat-form-field subscriptSizing="dynamic" class="qty-field">
+                    <input matInput type="number" formControlName="unitPrice" min="0" step="0.01" />
+                  </mat-form-field>
+                </td>
+                <td class="amount-cell">{{ rowAmount(i) | number: '1.2-2' }}</td>
+                <td>
+                  <button mat-icon-button type="button" (click)="removeRow(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grand-total">
+        <span>Total Credited to Shop:</span>
+        <strong>{{ total() | number: '1.2-2' }}</strong>
+      </div>
+    </form>
+  </mat-card>
+}

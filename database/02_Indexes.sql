@@ -88,5 +88,15 @@ CREATE NONCLUSTERED INDEX IX_StockLedger_FruitID_TransactionDate ON dbo.StockLed
 DROP INDEX IF EXISTS IX_StockLedger_ReferenceTable_ReferenceID ON dbo.StockLedger;
 CREATE NONCLUSTERED INDEX IX_StockLedger_ReferenceTable_ReferenceID ON dbo.StockLedger (ReferenceTable, ReferenceID);
 
+-- ShopReturns / SupplierReturns
+DROP INDEX IF EXISTS IX_ShopReturns_ShopID_ReturnDate ON dbo.ShopReturns;
+CREATE NONCLUSTERED INDEX IX_ShopReturns_ShopID_ReturnDate ON dbo.ShopReturns (ShopID, ReturnDate DESC) INCLUDE (TotalAmount);
+DROP INDEX IF EXISTS IX_ShopReturnItems_FruitID ON dbo.ShopReturnItems;
+CREATE NONCLUSTERED INDEX IX_ShopReturnItems_FruitID ON dbo.ShopReturnItems (FruitID) INCLUDE (Quantity, CostBasis, ShopReturnID);
+DROP INDEX IF EXISTS IX_SupplierReturns_SupplierID_ReturnDate ON dbo.SupplierReturns;
+CREATE NONCLUSTERED INDEX IX_SupplierReturns_SupplierID_ReturnDate ON dbo.SupplierReturns (SupplierID, ReturnDate DESC) INCLUDE (TotalAmount);
+DROP INDEX IF EXISTS IX_SupplierReturnItems_FruitID ON dbo.SupplierReturnItems;
+CREATE NONCLUSTERED INDEX IX_SupplierReturnItems_FruitID ON dbo.SupplierReturnItems (FruitID) INCLUDE (Quantity, SupplierReturnID);
+
 PRINT 'Indexes created successfully.';
 GO

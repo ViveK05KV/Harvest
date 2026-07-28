@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager},{UserRoles.Accountant}")]
+[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager},{UserRoles.Accountant},{UserRoles.Staff}")]
 public class StockController(IStockService service) : ApiControllerBase
 {
     [HttpGet("current")]

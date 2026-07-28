@@ -1,6 +1,8 @@
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
 import {
   ArcElement,
+  BarController,
+  BarElement,
   CategoryScale,
   Chart,
   ChartConfiguration,
@@ -15,12 +17,15 @@ import {
   Tooltip
 } from 'chart.js';
 
-// Only registering what dashboard.component.html actually renders (line + doughnut)
-// instead of Chart.register(...registerables), which pulls in every controller/plugin.
+// Only registering what dashboard.component.html actually renders (line, bar,
+// doughnut) instead of Chart.register(...registerables), which pulls in
+// every controller/plugin.
 Chart.register(
   LineController,
+  BarController,
   DoughnutController,
   LineElement,
+  BarElement,
   PointElement,
   ArcElement,
   CategoryScale,

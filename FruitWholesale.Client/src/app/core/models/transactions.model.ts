@@ -88,6 +88,102 @@ export interface SavePurchase {
   items: SavePurchaseItem[];
 }
 
+export interface ShopReturnItem {
+  shopReturnItemID: number;
+  fruitID: number;
+  fruitName?: string;
+  unit?: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+export interface ShopReturn {
+  shopReturnID: number;
+  returnDate: string;
+  shopID: number;
+  shopName?: string;
+  supplyID?: number | null;
+  supplyInvoiceNo?: string;
+  referenceNo: string;
+  remarks?: string;
+  totalAmount: number;
+  items: ShopReturnItem[];
+}
+
+export interface ShopReturnListItem {
+  shopReturnID: number;
+  returnDate: string;
+  shopName: string;
+  supplyInvoiceNo?: string;
+  referenceNo: string;
+  totalAmount: number;
+}
+
+export interface SaveShopReturnItem {
+  fruitID: number | null;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface SaveShopReturn {
+  shopReturnID?: number;
+  returnDate: string;
+  shopID: number | null;
+  supplyID?: number | null;
+  referenceNo: string;
+  remarks?: string;
+  items: SaveShopReturnItem[];
+}
+
+export interface SupplierReturnItem {
+  supplierReturnItemID: number;
+  fruitID: number;
+  fruitName?: string;
+  unit?: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+export interface SupplierReturn {
+  supplierReturnID: number;
+  returnDate: string;
+  supplierID: number;
+  supplierName?: string;
+  purchaseID?: number | null;
+  purchaseInvoiceNo?: string;
+  referenceNo: string;
+  remarks?: string;
+  totalAmount: number;
+  items: SupplierReturnItem[];
+}
+
+export interface SupplierReturnListItem {
+  supplierReturnID: number;
+  returnDate: string;
+  supplierName: string;
+  purchaseInvoiceNo?: string;
+  referenceNo: string;
+  totalAmount: number;
+}
+
+export interface SaveSupplierReturnItem {
+  fruitID: number | null;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface SaveSupplierReturn {
+  supplierReturnID?: number;
+  returnDate: string;
+  supplierID: number | null;
+  purchaseID?: number | null;
+  referenceNo: string;
+  remarks?: string;
+  items: SaveSupplierReturnItem[];
+}
+
 export interface Collection {
   collectionID: number;
   collectionDate: string;

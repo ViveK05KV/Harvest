@@ -26,23 +26,85 @@
 
   <div class="dashboard-main-grid">
     <div class="main-col">
-      <mat-card class="chart-card chart-card--large">
-        <div class="card-heading">
-          <div><span class="card-kicker">Revenue</span><h3>Sales by month</h3></div>
-          <span class="period-chip">Last 12 months</span>
-        </div>
-        <div class="chart-holder">
-          <app-chart type="line" [data]="salesChartData()" />
-        </div>
-      </mat-card>
+      <div class="trend-row">
+        <mat-card class="chart-card chart-card--large">
+          <div class="card-heading">
+            <div><span class="card-kicker">Revenue</span><h3>Sales Overview</h3></div>
+            <select
+              class="period-select"
+              [ngModel]="salesPeriod()"
+              (ngModelChange)="salesPeriod.set($event); onSalesPeriodChange()"
+              aria-label="Sales Overview period"
+            >
+              @for (period of periodOptions; track period) {
+                <option [value]="period">{{ periodLabel(period) }}</option>
+              }
+            </select>
+          </div>
+          <div class="chart-holder">
+            @if (salesTrendLoading()) {
+              <div class="chart-loading"><mat-spinner diameter="28" /></div>
+            } @else {
+              <app-chart type="line" [data]="salesChartData()" />
+            }
+          </div>
+        </mat-card>
 
-      <mat-card class="chart-card chart-card--large">
+        <mat-card class="chart-card chart-card--large">
+          <div class="card-heading">
+            <div><span class="card-kicker">Cash flow</span><h3>Sales vs Purchases</h3></div>
+            <select
+              class="period-select"
+              [ngModel]="svpPeriod()"
+              (ngModelChange)="svpPeriod.set($event); onSvpPeriodChange()"
+              aria-label="Sales vs Purchases period"
+            >
+              @for (period of periodOptions; track period) {
+                <option [value]="period">{{ periodLabel(period) }}</option>
+              }
+            </select>
+          </div>
+          <div class="chart-holder">
+            @if (svpLoading()) {
+              <div class="chart-loading"><mat-spinner diameter="28" /></div>
+            } @else {
+              <app-chart type="bar" [data]="salesVsPurchasesChartData()" />
+            }
+          </div>
+        </mat-card>
+      </div>
+
+      <mat-card class="chart-card list-card">
         <div class="card-heading">
-          <div><span class="card-kicker">Cash flow</span><h3>Collections by month</h3></div>
-          <mat-icon class="heading-icon">account_balance</mat-icon>
+          <div><span class="card-kicker">Inventory</span><h3>Stock products</h3></div>
+          <a routerLink="/stock" class="view-all-link">View all</a>
         </div>
-        <div class="chart-holder">
-          <app-chart type="line" [data]="collectionsChartData()" />
+        <div class="stock-table">
+          @if (stockLoading()) {
+            <div class="chart-loading"><mat-spinner diameter="28" /></div>
+          } @else {
+            <div class="stock-table-header">
+              <span>Product</span>
+              <span>Stock Level</span>
+              <span>In Stock</span>
+            </div>
+            @for (item of lowStockItems(); track item.fruitID) {
+              <div class="stock-row">
+                <span class="stock-row-name">{{ item.fruitName }}</span>
+                <span class="stock-bar-track">
+                  <span
+                    class="stock-bar-fill"
+                    [class.stock-bar-fill--low]="stockLevelPercent(item) < 25"
+                    [class.stock-bar-fill--mid]="stockLevelPercent(item) >= 25 && stockLevelPercent(item) < 60"
+                    [style.width.%]="stockLevelPercent(item)"
+                  ></span>
+                </span>
+                <span class="stock-row-qty">{{ item.currentStock }} {{ item.unit }}</span>
+              </div>
+            } @empty {
+              <p class="muted">No stock recorded yet.</p>
+            }
+          }
         </div>
       </mat-card>
     </div>

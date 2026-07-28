@@ -15,6 +15,16 @@
     <mat-datepicker #toPicker></mat-datepicker>
   </mat-form-field>
 
+  <mat-form-field subscriptSizing="dynamic" style="width: 170px">
+    <mat-label>Type</mat-label>
+    <mat-select [(ngModel)]="transactionType" (selectionChange)="onFilterChange()">
+      <mat-option [value]="null">All types</mat-option>
+      @for (type of transactionTypeOptions; track type) {
+        <mat-option [value]="type">{{ typeLabel(type) }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
   <span class="spacer"></span>
 
   <button mat-icon-button matTooltip="Export to Excel" (click)="exportExcel()">

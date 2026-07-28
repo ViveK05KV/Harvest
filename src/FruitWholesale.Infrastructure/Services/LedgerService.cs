@@ -239,17 +239,19 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         return new PaginatedLedger<SupplierLedger> { Items = items, TotalCount = total };
     }
 
-    public async Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize)
+    public async Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, int pageNumber, int pageSize)
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
             SELECT COUNT(*) FROM dbo.CashLedger
             WHERE (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate));
+              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
+              AND (@TransactionType IS NULL OR TransactionType = @TransactionType);
 
             SELECT * FROM dbo.CashLedger
             WHERE (@FromDate IS NULL OR TransactionDate >= @FromDate)
               AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
+              AND (@TransactionType IS NULL OR TransactionType = @TransactionType)
             ORDER BY TransactionDate ASC, CashLedgerID ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -257,6 +259,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         {
             FromDate = fromDate,
             ToDate = toDate,
+            TransactionType = transactionType,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         });
@@ -308,6 +311,12 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
     public async Task RecalculateFruitCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId)
     {
+        // Inflow events (Purchase, ShopReturn) blend into the weighted average using their
+        // own UnitCost. Outflow events (Supply, SupplierReturn) consume stock at whatever the
+        // average is at that moment and snapshot it onto their own row — never the other
+        // way round — so a later purchase/return never retroactively changes profit already
+        // booked on a past sale/return. See database/08_AddProfitTracking.sql and
+        // database/09_AddReturns.sql for the full rationale.
         const string eventsSql = """
             SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
                    p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.PurchasePrice AS UnitCost
@@ -317,11 +326,27 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
             UNION ALL
 
+            SELECT 'SHOP_RETURN' AS EventType, sri.ShopReturnItemID AS ItemID, sr.ReturnDate AS TransactionDate,
+                   sr.CreatedAt AS ParentCreatedAt, sri.Quantity, sri.CostBasis AS UnitCost
+            FROM dbo.ShopReturnItems sri
+            INNER JOIN dbo.ShopReturns sr ON sr.ShopReturnID = sri.ShopReturnID
+            WHERE sri.FruitID = @FruitID
+
+            UNION ALL
+
             SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
                    s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS UnitCost
             FROM dbo.SupplyItems si
             INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
             WHERE si.FruitID = @FruitID
+
+            UNION ALL
+
+            SELECT 'SUPPLIER_RETURN' AS EventType, sri2.SupplierReturnItemID AS ItemID, sr2.ReturnDate AS TransactionDate,
+                   sr2.CreatedAt AS ParentCreatedAt, sri2.Quantity, NULL AS UnitCost
+            FROM dbo.SupplierReturnItems sri2
+            INNER JOIN dbo.SupplierReturns sr2 ON sr2.SupplierReturnID = sri2.SupplierReturnID
+            WHERE sri2.FruitID = @FruitID
 
             ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
             """;
@@ -330,10 +355,11 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         var quantityOnHand = 0m;
         var averageCost = 0m;
         var supplyCostBasis = new Dictionary<int, decimal>();
+        var supplierReturnCostBasis = new Dictionary<int, decimal>();
 
         foreach (var evt in events)
         {
-            if (evt.EventType == "PURCHASE")
+            if (evt.EventType is "PURCHASE" or "SHOP_RETURN")
             {
                 var newQuantity = quantityOnHand + evt.Quantity;
                 averageCost = newQuantity > 0
@@ -341,9 +367,14 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
                     : 0m;
                 quantityOnHand = newQuantity;
             }
-            else
+            else if (evt.EventType == "SUPPLY")
             {
                 supplyCostBasis[evt.ItemID] = averageCost;
+                quantityOnHand -= evt.Quantity;
+            }
+            else // SUPPLIER_RETURN
+            {
+                supplierReturnCostBasis[evt.ItemID] = averageCost;
                 quantityOnHand -= evt.Quantity;
             }
         }
@@ -353,6 +384,13 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             await connection.ExecuteAsync(
                 "UPDATE dbo.SupplyItems SET CostBasis = @CostBasis WHERE SupplyItemID = @SupplyItemID",
                 new { CostBasis = costBasis, SupplyItemID = supplyItemId }, transaction);
+        }
+
+        foreach (var (supplierReturnItemId, costBasis) in supplierReturnCostBasis)
+        {
+            await connection.ExecuteAsync(
+                "UPDATE dbo.SupplierReturnItems SET CostBasis = @CostBasis WHERE SupplierReturnItemID = @SupplierReturnItemID",
+                new { CostBasis = costBasis, SupplierReturnItemID = supplierReturnItemId }, transaction);
         }
 
         const string upsertSql = """

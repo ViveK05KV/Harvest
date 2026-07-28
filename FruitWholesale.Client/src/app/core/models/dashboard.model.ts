@@ -39,3 +39,23 @@ export interface DashboardCharts {
   topSellingFruits: TopFruit[];
   topCustomers: TopCustomer[];
 }
+
+export const DASHBOARD_PERIODS = ['ThisWeek', 'ThisMonth', 'Last6Months', 'Last12Months'] as const;
+export type DashboardPeriod = (typeof DASHBOARD_PERIODS)[number];
+
+export const DASHBOARD_PERIOD_LABELS: Record<DashboardPeriod, string> = {
+  ThisWeek: 'This Week',
+  ThisMonth: 'This Month',
+  Last6Months: 'Last 6 Months',
+  Last12Months: 'Last 12 Months'
+};
+
+export interface TrendPoint {
+  label: string;
+  amount: number;
+}
+
+export interface SalesVsPurchases {
+  sales: TrendPoint[];
+  purchases: TrendPoint[];
+}

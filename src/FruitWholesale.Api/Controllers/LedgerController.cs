@@ -23,6 +23,6 @@ public class LedgerController(ILedgerAppService service) : ApiControllerBase
 
     [HttpGet("cash")]
     public async Task<ActionResult<PaginatedList<CashLedgerDto>>> GetCashLedger(
-        [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] PaginationRequest request) =>
-        Ok(await service.GetCashLedgerAsync(fromDate, toDate, request));
+        [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] string? transactionType, [FromQuery] PaginationRequest request) =>
+        Ok(await service.GetCashLedgerAsync(fromDate, toDate, transactionType, request));
 }

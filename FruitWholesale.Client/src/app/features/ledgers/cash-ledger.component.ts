@@ -5,6 +5,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -13,7 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LedgerService } from './ledger.service';
-import { CashLedgerEntry } from '../../core/models/ledger.model';
+import { CASH_LEDGER_TRANSACTION_TYPES, CashLedgerEntry, cashLedgerTypeLabel } from '../../core/models/ledger.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
 
@@ -28,6 +29,7 @@ import { ExportService } from '../../core/services/export.service';
     MatPaginatorModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatProgressBarModule,
@@ -49,8 +51,12 @@ export class CashLedgerComponent implements OnInit {
   readonly totalCount = signal(0);
   readonly loading = signal(false);
 
+  readonly transactionTypeOptions = CASH_LEDGER_TRANSACTION_TYPES;
+  readonly typeLabel = cashLedgerTypeLabel;
+
   fromDate: Date | null = null;
   toDate: Date | null = null;
+  transactionType: string | null = null;
 
   private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 20 };
 
@@ -73,7 +79,7 @@ export class CashLedgerComponent implements OnInit {
     this.loading.set(true);
     const from = this.fromDate ? this.fromDate.toISOString().slice(0, 10) : null;
     const to = this.toDate ? this.toDate.toISOString().slice(0, 10) : null;
-    this.ledgerService.getCashLedger(this.request, from, to).subscribe({
+    this.ledgerService.getCashLedger(this.request, from, to, this.transactionType).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

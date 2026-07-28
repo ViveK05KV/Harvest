@@ -6,9 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-public class CompanySettingsController(ICompanySettingsService service, IWebHostEnvironment environment) : ApiControllerBase
+public class CompanySettingsController(ICompanySettingsService service) : ApiControllerBase
 {
-    private static readonly string[] AllowedLogoExtensions = [".png", ".jpg", ".jpeg", ".svg", ".webp"];
+    private static readonly Dictionary<string, string> AllowedLogoContentTypes = new()
+    {
+        [".png"] = "image/png",
+        [".jpg"] = "image/jpeg",
+        [".jpeg"] = "image/jpeg",
+        [".svg"] = "image/svg+xml",
+        [".webp"] = "image/webp"
+    };
     private const long MaxLogoSizeBytes = 2 * 1024 * 1024;
 
     [HttpGet]
@@ -42,31 +49,15 @@ public class CompanySettingsController(ICompanySettingsService service, IWebHost
         }
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedLogoExtensions.Contains(extension))
+        if (!AllowedLogoContentTypes.TryGetValue(extension, out var contentType))
         {
             return BadRequest(new { detail = "Logo must be a PNG, JPG, SVG, or WEBP image." });
         }
 
-        var webRootPath = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
-        var uploadsDir = Path.Combine(webRootPath, "uploads");
-        Directory.CreateDirectory(uploadsDir);
+        using var memoryStream = new MemoryStream();
+        await file.CopyToAsync(memoryStream);
+        var dataUri = $"data:{contentType};base64,{Convert.ToBase64String(memoryStream.ToArray())}";
 
-        foreach (var existingExtension in AllowedLogoExtensions)
-        {
-            var stalePath = Path.Combine(uploadsDir, $"company-logo{existingExtension}");
-            if (System.IO.File.Exists(stalePath))
-            {
-                System.IO.File.Delete(stalePath);
-            }
-        }
-
-        var fileName = $"company-logo{extension}";
-        var filePath = Path.Combine(uploadsDir, fileName);
-        await using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        return FromResult(await service.UpdateLogoAsync($"/uploads/{fileName}"));
+        return FromResult(await service.UpdateLogoAsync(dataUri));
     }
 }

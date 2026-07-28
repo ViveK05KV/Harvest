@@ -127,6 +127,112 @@
 .period-chip { border: 1px solid #dce6dd; border-radius: 7px; color: #597162; font-size: 11px; padding: 5px 8px; }
 .heading-icon { color: #538467; font-size: 19px; }
 
+.period-select {
+  border: 1px solid #dce6dd;
+  border-radius: 7px;
+  color: #354139;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #b7c9bd;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #277a4b;
+    outline-offset: 1px;
+  }
+}
+
+// Sales Overview + Sales vs Purchases side by side, matching the mockup;
+// stacks on narrow screens same as the other chart grids on this page.
+.trend-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .trend-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-all-link {
+  color: #277a4b;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+.stock-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-table-header {
+  display: grid;
+  grid-template-columns: 1.4fr 2fr 0.9fr;
+  gap: 12px;
+  padding: 0 10px 8px;
+  color: #718177;
+  font: var(--mat-sys-label-medium);
+}
+
+.stock-row {
+  display: grid;
+  grid-template-columns: 1.4fr 2fr 0.9fr;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font: var(--mat-sys-body-medium);
+
+  &:nth-child(even) { background: #f7faf7; }
+}
+
+.stock-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #1d3125;
+}
+
+.stock-bar-track {
+  height: 7px;
+  border-radius: 4px;
+  background: #edf1ed;
+  overflow: hidden;
+}
+
+.stock-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #277a4b;
+
+  &--mid { background: #c57c11; }
+  &--low { background: #c0392b; }
+}
+
+.stock-row-qty {
+  text-align: right;
+  white-space: nowrap;
+  color: #354139;
+}
+
 .chart-card--large .chart-holder {
   height: 240px;
 }

@@ -14,7 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LedgerService } from './ledger.service';
 import { SupplierMasterService } from '../supplier-master/supplier-master.service';
-import { SupplierLedgerEntry } from '../../core/models/ledger.model';
+import { SupplierLedgerEntry, ledgerParticulars } from '../../core/models/ledger.model';
 import { SupplierMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
@@ -47,7 +47,8 @@ export class SupplierLedgerComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['transactionDate', 'transactionType', 'narration', 'debit', 'credit', 'runningBalance'];
+  readonly displayedColumns = ['transactionDate', 'particulars', 'purchase', 'payment', 'runningBalance'];
+  readonly particulars = ledgerParticulars;
   readonly suppliers = signal<SupplierMaster[]>([]);
   readonly items = signal<SupplierLedgerEntry[]>([]);
   readonly totalCount = signal(0);
@@ -101,10 +102,10 @@ export class SupplierLedgerComponent implements OnInit {
       this.items(),
       [
         { header: 'Date', field: 'transactionDate' },
-        { header: 'Type', field: 'transactionType' },
+        { header: 'Particulars', field: 'transactionType' },
         { header: 'Narration', field: 'narration' },
-        { header: 'Debit', field: 'debit' },
-        { header: 'Credit', field: 'credit' },
+        { header: 'Purchase', field: 'debit' },
+        { header: 'Payment', field: 'credit' },
         { header: 'Balance', field: 'runningBalance' }
       ],
       'supplier-ledger'

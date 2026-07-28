@@ -12,6 +12,8 @@ public interface IDashboardRepository
     Task<List<CategoryAmountDto>> GetExpensesByCategoryAsync(DateTime fromDate, DateTime toDate);
     Task<List<TopFruitDto>> GetTopSellingFruitsAsync(int top, DateTime fromDate, DateTime toDate);
     Task<List<TopCustomerDto>> GetTopCustomersAsync(int top, DateTime fromDate, DateTime toDate);
+    Task<List<TrendPointDto>> GetSalesTrendAsync(string period);
+    Task<List<TrendPointDto>> GetPurchasesTrendAsync(string period);
 }
 
 public interface IReportRepository

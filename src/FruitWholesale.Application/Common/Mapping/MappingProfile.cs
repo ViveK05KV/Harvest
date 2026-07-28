@@ -9,10 +9,12 @@ using FruitWholesale.Application.DTOs.Ledger;
 using FruitWholesale.Application.DTOs.Purchase;
 using FruitWholesale.Application.DTOs.RouteMaster;
 using FruitWholesale.Application.DTOs.ShopMaster;
+using FruitWholesale.Application.DTOs.ShopReturn;
 using FruitWholesale.Application.DTOs.Stock;
 using FruitWholesale.Application.DTOs.Supply;
 using FruitWholesale.Application.DTOs.SupplierMaster;
 using FruitWholesale.Application.DTOs.SupplierPayment;
+using FruitWholesale.Application.DTOs.SupplierReturn;
 using FruitWholesale.Application.DTOs.Users;
 using FruitWholesale.Domain.Entities;
 
@@ -42,6 +44,16 @@ public class MappingProfile : Profile
         CreateMap<Purchase, PurchaseListItemDto>();
         CreateMap<PurchaseItem, PurchaseItemDto>();
         CreateMap<SavePurchaseItemDto, PurchaseItem>();
+
+        CreateMap<Domain.Entities.ShopReturn, ShopReturnDto>();
+        CreateMap<Domain.Entities.ShopReturn, ShopReturnListItemDto>();
+        CreateMap<ShopReturnItem, ShopReturnItemDto>();
+        CreateMap<SaveShopReturnItemDto, ShopReturnItem>();
+
+        CreateMap<Domain.Entities.SupplierReturn, SupplierReturnDto>();
+        CreateMap<Domain.Entities.SupplierReturn, SupplierReturnListItemDto>();
+        CreateMap<SupplierReturnItem, SupplierReturnItemDto>();
+        CreateMap<SaveSupplierReturnItemDto, SupplierReturnItem>();
 
         CreateMap<Collection, CollectionDto>();
         CreateMap<SupplierPayment, SupplierPaymentDto>();

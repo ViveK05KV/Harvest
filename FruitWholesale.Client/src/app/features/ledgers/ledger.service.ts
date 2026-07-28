@@ -23,9 +23,9 @@ export class LedgerService {
     });
   }
 
-  getCashLedger(request: PaginationRequest, fromDate?: string | null, toDate?: string | null) {
+  getCashLedger(request: PaginationRequest, fromDate?: string | null, toDate?: string | null, transactionType?: string | null) {
     return this.http.get<PaginatedList<CashLedgerEntry>>(`${this.baseUrl}/cash`, {
-      params: toHttpParams({ ...request, fromDate, toDate })
+      params: toHttpParams({ ...request, fromDate, toDate, transactionType })
     });
   }
 }

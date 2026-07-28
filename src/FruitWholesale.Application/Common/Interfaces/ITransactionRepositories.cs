@@ -25,6 +25,28 @@ public interface IPurchaseRepository
     Task<string> GenerateNextInvoiceNoAsync();
 }
 
+public interface IShopReturnRepository
+{
+    Task<ShopReturn?> GetByIdAsync(int shopReturnId);
+    Task<PaginatedList<ShopReturn>> GetPagedAsync(PaginationRequest request, int? shopId, DateTime? fromDate, DateTime? toDate);
+    Task<int> CreateAsync(ShopReturn shopReturn);
+    Task UpdateAsync(ShopReturn shopReturn);
+    Task DeleteAsync(int shopReturnId);
+    Task<bool> ReferenceNoExistsAsync(string referenceNo, int? excludeShopReturnId = null);
+    Task<string> GenerateNextReferenceNoAsync();
+}
+
+public interface ISupplierReturnRepository
+{
+    Task<SupplierReturn?> GetByIdAsync(int supplierReturnId);
+    Task<PaginatedList<SupplierReturn>> GetPagedAsync(PaginationRequest request, int? supplierId, DateTime? fromDate, DateTime? toDate);
+    Task<int> CreateAsync(SupplierReturn supplierReturn);
+    Task UpdateAsync(SupplierReturn supplierReturn);
+    Task DeleteAsync(int supplierReturnId);
+    Task<bool> ReferenceNoExistsAsync(string referenceNo, int? excludeSupplierReturnId = null);
+    Task<string> GenerateNextReferenceNoAsync();
+}
+
 public interface ICollectionRepository
 {
     Task<Collection?> GetByIdAsync(int collectionId);

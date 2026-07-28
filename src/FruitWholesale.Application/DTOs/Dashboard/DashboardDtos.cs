@@ -51,3 +51,18 @@ public class DashboardChartsDto
     public List<TopFruitDto> TopSellingFruits { get; set; } = [];
     public List<TopCustomerDto> TopCustomers { get; set; } = [];
 }
+
+/// <summary>One point on a trend chart. "Label" is already formatted for display
+/// (e.g. "Mon", "14", "Jul") so the client doesn't need to know the period's
+/// granularity to render an axis tick.</summary>
+public class TrendPointDto
+{
+    public string Label { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
+
+public class SalesVsPurchasesDto
+{
+    public List<TrendPointDto> Sales { get; set; } = [];
+    public List<TrendPointDto> Purchases { get; set; } = [];
+}

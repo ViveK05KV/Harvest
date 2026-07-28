@@ -57,7 +57,7 @@ CREATE TABLE dbo.CompanySettings
     Address              NVARCHAR(500)       NULL,
     Phone               NVARCHAR(20)        NULL,
     GSTNo               NVARCHAR(50)        NULL,
-    LogoUrl             NVARCHAR(500)       NULL,
+    LogoUrl             NVARCHAR(MAX)       NULL,
     OpeningCashBalance  DECIMAL(18,2)       NOT NULL CONSTRAINT DF_CompanySettings_OpeningCashBalance DEFAULT (0),
     CreatedAt           DATETIME2           NOT NULL CONSTRAINT DF_CompanySettings_CreatedAt DEFAULT (SYSUTCDATETIME()),
     UpdatedAt           DATETIME2           NULL,

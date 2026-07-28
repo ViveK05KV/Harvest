@@ -2,7 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard, homeGuard } from './core/guards/role.guard';
 
-// Staff can access only Supply and Collections; everything else below requires Admin/Manager/Accountant.
+// Staff can access only Supply, Shop Returns, Collections, and Stock (all unguarded below);
+// everything else requires Admin/Manager/Accountant.
 const backOfficeGuard = [roleGuard('Admin', 'Manager', 'Accountant')];
 
 export const routes: Routes = [
@@ -55,8 +56,7 @@ export const routes: Routes = [
       },
       {
         path: 'stock',
-        loadComponent: () => import('./features/stock/stock.component').then((m) => m.StockComponent),
-        canActivate: backOfficeGuard
+        loadComponent: () => import('./features/stock/stock.component').then((m) => m.StockComponent)
       },
       {
         path: 'supply',
@@ -69,6 +69,18 @@ export const routes: Routes = [
       {
         path: 'supply/:id/edit',
         loadComponent: () => import('./features/supply/supply-form.component').then((m) => m.SupplyFormComponent)
+      },
+      {
+        path: 'shop-returns',
+        loadComponent: () => import('./features/shop-return/shop-return-list.component').then((m) => m.ShopReturnListComponent)
+      },
+      {
+        path: 'shop-returns/new',
+        loadComponent: () => import('./features/shop-return/shop-return-form.component').then((m) => m.ShopReturnFormComponent)
+      },
+      {
+        path: 'shop-returns/:id/edit',
+        loadComponent: () => import('./features/shop-return/shop-return-form.component').then((m) => m.ShopReturnFormComponent)
       },
       {
         path: 'purchase',
@@ -88,6 +100,24 @@ export const routes: Routes = [
       {
         path: 'collections',
         loadComponent: () => import('./features/collection/collection-list.component').then((m) => m.CollectionListComponent)
+      },
+      {
+        path: 'supplier-returns',
+        loadComponent: () =>
+          import('./features/supplier-return/supplier-return-list.component').then((m) => m.SupplierReturnListComponent),
+        canActivate: backOfficeGuard
+      },
+      {
+        path: 'supplier-returns/new',
+        loadComponent: () =>
+          import('./features/supplier-return/supplier-return-form.component').then((m) => m.SupplierReturnFormComponent),
+        canActivate: backOfficeGuard
+      },
+      {
+        path: 'supplier-returns/:id/edit',
+        loadComponent: () =>
+          import('./features/supplier-return/supplier-return-form.component').then((m) => m.SupplierReturnFormComponent),
+        canActivate: backOfficeGuard
       },
       {
         path: 'supplier-payments',
@@ -130,12 +160,12 @@ export const routes: Routes = [
       {
         path: 'profit',
         loadComponent: () => import('./features/profit/profit.component').then((m) => m.ProfitComponent),
-        canActivate: [roleGuard('Admin')]
+        canActivate: [roleGuard('Admin', 'Accountant')]
       },
       {
         path: 'users',
         loadComponent: () => import('./features/users/user-list.component').then((m) => m.UserListComponent),
-        canActivate: [roleGuard('Admin')]
+        canActivate: [roleGuard('Admin', 'Accountant')]
       },
       {
         path: 'settings',

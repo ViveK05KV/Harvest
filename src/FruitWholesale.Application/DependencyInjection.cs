@@ -24,6 +24,8 @@ public static class DependencyInjection
 
         services.AddScoped<ISupplyService, SupplyService>();
         services.AddScoped<IPurchaseService, PurchaseService>();
+        services.AddScoped<IShopReturnService, ShopReturnService>();
+        services.AddScoped<ISupplierReturnService, SupplierReturnService>();
         services.AddScoped<ICollectionService, CollectionService>();
         services.AddScoped<ISupplierPaymentService, SupplierPaymentService>();
         services.AddScoped<IDailyExpenseService, DailyExpenseService>();

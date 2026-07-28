@@ -63,7 +63,8 @@ export class MainLayoutComponent {
     return firstName ? `${part}, ${firstName}` : part;
   });
 
-  // Staff can access only Supply and Collections; every other item/group requires Admin/Manager/Accountant.
+  // Staff can access only Supply, Shop Returns, Collections, and Stock (all unroled below);
+  // every other item/group requires Admin/Manager/Accountant.
   private static readonly BACK_OFFICE: UserRole[] = ['Admin', 'Manager', 'Accountant'];
 
   readonly navGroups: NavGroup[] = [
@@ -75,7 +76,14 @@ export class MainLayoutComponent {
       label: 'Transactions',
       items: [
         { label: 'Supply', icon: 'local_shipping', route: '/supply' },
+        { label: 'Shop Returns', icon: 'assignment_return', route: '/shop-returns' },
         { label: 'Purchase', icon: 'shopping_cart', route: '/purchase', roles: MainLayoutComponent.BACK_OFFICE },
+        {
+          label: 'Supplier Returns',
+          icon: 'keyboard_return',
+          route: '/supplier-returns',
+          roles: MainLayoutComponent.BACK_OFFICE
+        },
         { label: 'Collections', icon: 'payments', route: '/collections' },
         {
           label: 'Supplier Payments',
@@ -93,14 +101,14 @@ export class MainLayoutComponent {
         { label: 'Shop Ledger', icon: 'storefront', route: '/ledgers/shop', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Supplier Ledger', icon: 'inventory_2', route: '/ledgers/supplier', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Cash Ledger', icon: 'account_balance', route: '/ledgers/cash', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Stock', icon: 'inventory', route: '/stock', roles: MainLayoutComponent.BACK_OFFICE }
+        { label: 'Stock', icon: 'inventory', route: '/stock' }
       ]
     },
     {
       label: 'Reports',
       items: [
         { label: 'Reports', icon: 'assessment', route: '/reports', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: ['Admin'] }
+        { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: ['Admin', 'Accountant'] }
       ]
     },
     {
@@ -117,7 +125,7 @@ export class MainLayoutComponent {
     {
       label: 'Administration',
       items: [
-        { label: 'Users', icon: 'manage_accounts', route: '/users', roles: ['Admin'] },
+        { label: 'Users', icon: 'manage_accounts', route: '/users', roles: ['Admin', 'Accountant'] },
         { label: 'Settings', icon: 'settings', route: '/settings', roles: ['Admin', 'Accountant'] }
       ]
     }

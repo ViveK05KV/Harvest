@@ -30,6 +30,8 @@ public static class LedgerTransactionTypes
     public const string DailyExpense = "DailyExpense";
     public const string EmployeeWorkLog = "EmployeeWorkLog";
     public const string Adjustment = "Adjustment";
+    public const string ShopReturn = "ShopReturn";
+    public const string SupplierReturn = "SupplierReturn";
 }
 
 public static class ReferenceTables
@@ -42,6 +44,18 @@ public static class ReferenceTables
     public const string DailyExpense = "DailyExpense";
     public const string FruitMaster = "FruitMaster";
     public const string EmployeeWorkLog = "EmployeeWorkLog";
+    public const string ShopReturns = "ShopReturns";
+    public const string SupplierReturns = "SupplierReturns";
+}
+
+public static class DashboardPeriods
+{
+    public const string ThisWeek = "ThisWeek";
+    public const string ThisMonth = "ThisMonth";
+    public const string Last6Months = "Last6Months";
+    public const string Last12Months = "Last12Months";
+
+    public static readonly string[] All = [ThisWeek, ThisMonth, Last6Months, Last12Months];
 }
 
 public static class JobTypes

@@ -15,7 +15,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LedgerService } from './ledger.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
-import { ShopLedgerEntry } from '../../core/models/ledger.model';
+import { ShopLedgerEntry, ledgerParticulars } from '../../core/models/ledger.model';
 import { ShopMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
@@ -49,7 +49,8 @@ export class ShopLedgerComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['transactionDate', 'transactionType', 'narration', 'debit', 'credit', 'runningBalance'];
+  readonly displayedColumns = ['transactionDate', 'particulars', 'sale', 'received', 'runningBalance'];
+  readonly particulars = ledgerParticulars;
   readonly shops = signal<ShopMaster[]>([]);
   readonly items = signal<ShopLedgerEntry[]>([]);
   readonly totalCount = signal(0);
@@ -103,10 +104,10 @@ export class ShopLedgerComponent implements OnInit {
       this.items(),
       [
         { header: 'Date', field: 'transactionDate' },
-        { header: 'Type', field: 'transactionType' },
+        { header: 'Particulars', field: 'transactionType' },
         { header: 'Narration', field: 'narration' },
-        { header: 'Debit', field: 'debit' },
-        { header: 'Credit', field: 'credit' },
+        { header: 'Sale', field: 'debit' },
+        { header: 'Received', field: 'credit' },
         { header: 'Balance', field: 'runningBalance' }
       ],
       'shop-ledger'

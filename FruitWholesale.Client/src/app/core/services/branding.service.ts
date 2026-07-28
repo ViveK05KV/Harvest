@@ -12,7 +12,10 @@ export class BrandingService {
   readonly companyName = computed(() => this.companySettings()?.companyName ?? 'Harvest');
   readonly logoUrl = computed(() => {
     const logoUrl = this.companySettings()?.logoUrl;
-    return logoUrl ? `${environment.serverUrl}${logoUrl}` : null;
+    if (!logoUrl) return null;
+    // Logos are stored as base64 data URIs (see CompanySettingsController.UploadLogo) since the
+    // API's container filesystem is ephemeral. Older records may still have a relative file path.
+    return logoUrl.startsWith('data:') ? logoUrl : `${environment.serverUrl}${logoUrl}`;
   });
 
   constructor(private readonly http: HttpClient) {}

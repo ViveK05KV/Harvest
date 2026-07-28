@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-[Authorize(Roles = UserRoles.Admin)]
+[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
 public class ProfitController(IProfitService service) : ApiControllerBase
 {
     [HttpGet("shop-daily")]

@@ -7,6 +7,8 @@ public interface IDashboardService
 {
     Task<DashboardSummaryDto> GetSummaryAsync(bool includeProfit);
     Task<DashboardChartsDto> GetChartsAsync();
+    Task<List<TrendPointDto>> GetSalesTrendAsync(string period);
+    Task<SalesVsPurchasesDto> GetSalesVsPurchasesAsync(string period);
 }
 
 public class DashboardService(IDashboardRepository repository, IProfitRepository profitRepository) : IDashboardService
@@ -52,5 +54,16 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
             TopSellingFruits = await topSellingFruitsTask,
             TopCustomers = await topCustomersTask
         };
+    }
+
+    public Task<List<TrendPointDto>> GetSalesTrendAsync(string period) => repository.GetSalesTrendAsync(period);
+
+    public async Task<SalesVsPurchasesDto> GetSalesVsPurchasesAsync(string period)
+    {
+        var salesTask = repository.GetSalesTrendAsync(period);
+        var purchasesTask = repository.GetPurchasesTrendAsync(period);
+        await Task.WhenAll(salesTask, purchasesTask);
+
+        return new SalesVsPurchasesDto { Sales = await salesTask, Purchases = await purchasesTask };
     }
 }

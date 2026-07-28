@@ -45,7 +45,7 @@ public interface ILedgerService
 
     Task<PaginatedLedger<SupplierLedger>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
 
-    Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
+    Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, int pageNumber, int pageSize);
 
     Task<decimal> AddStockLedgerEntryAsync(IDbConnection connection, IDbTransaction transaction, int fruitId,
         DateTime transactionDate, string transactionType, string referenceTable, int? referenceId,
