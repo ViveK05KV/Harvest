@@ -74,6 +74,69 @@ class TopCustomer {
   }
 }
 
+/// One of the four dashboard trend periods the backend accepts
+/// (`Domain.Enums.DashboardPeriods`).
+enum DashboardPeriod {
+  thisWeek,
+  thisMonth,
+  last6Months,
+  last12Months;
+
+  String get toApi {
+    switch (this) {
+      case DashboardPeriod.thisWeek:
+        return 'ThisWeek';
+      case DashboardPeriod.thisMonth:
+        return 'ThisMonth';
+      case DashboardPeriod.last6Months:
+        return 'Last6Months';
+      case DashboardPeriod.last12Months:
+        return 'Last12Months';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case DashboardPeriod.thisWeek:
+        return 'This Week';
+      case DashboardPeriod.thisMonth:
+        return 'This Month';
+      case DashboardPeriod.last6Months:
+        return 'Last 6 Months';
+      case DashboardPeriod.last12Months:
+        return 'Last 12 Months';
+    }
+  }
+}
+
+class TrendPoint {
+  final String label;
+  final double amount;
+
+  const TrendPoint({required this.label, required this.amount});
+
+  factory TrendPoint.fromJson(Map<String, dynamic> json) {
+    return TrendPoint(
+      label: json['label'] as String,
+      amount: (json['amount'] as num).toDouble(),
+    );
+  }
+}
+
+class SalesVsPurchases {
+  final List<TrendPoint> sales;
+  final List<TrendPoint> purchases;
+
+  const SalesVsPurchases({required this.sales, required this.purchases});
+
+  factory SalesVsPurchases.fromJson(Map<String, dynamic> json) {
+    return SalesVsPurchases(
+      sales: (json['sales'] as List).map((e) => TrendPoint.fromJson(e as Map<String, dynamic>)).toList(),
+      purchases: (json['purchases'] as List).map((e) => TrendPoint.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+}
+
 class DashboardCharts {
   final List<TopFruit> topSellingFruits;
   final List<TopCustomer> topCustomers;

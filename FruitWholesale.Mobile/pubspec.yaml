@@ -36,6 +36,7 @@ dependencies:
   provider: ^6.1.5+1
   intl: ^0.20.3
   image_picker: ^1.2.3
+  fl_chart: ^0.69.2
 
 dev_dependencies:
   flutter_test:

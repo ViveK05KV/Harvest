@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -172,6 +174,21 @@ class _CompanyProfileTabState extends State<_CompanyProfileTab> {
     }
   }
 
+  /// The logo comes back either as a `data:` URI (base64-encoded, stored
+  /// directly in the DB — see CompanySettingsController.UploadLogo) or, for
+  /// older records, a relative file path served by the API. NetworkImage
+  /// can't render a data: URI at all, so that case needs MemoryImage.
+  ImageProvider? _logoImageProvider() {
+    final logoUrl = _logoUrl;
+    if (logoUrl == null) return null;
+    if (logoUrl.startsWith('data:')) {
+      final commaIndex = logoUrl.indexOf(',');
+      if (commaIndex == -1) return null;
+      return MemoryImage(base64Decode(logoUrl.substring(commaIndex + 1)));
+    }
+    return NetworkImage('${ApiConfig.baseUrl.replaceFirst('/api', '')}$logoUrl');
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -193,7 +210,7 @@ class _CompanyProfileTabState extends State<_CompanyProfileTab> {
               CircleAvatar(
                 radius: 32,
                 backgroundColor: scheme.surfaceContainerHigh,
-                backgroundImage: _logoUrl != null ? NetworkImage('${ApiConfig.baseUrl.replaceFirst('/api', '')}$_logoUrl') : null,
+                backgroundImage: _logoImageProvider(),
                 child: _logoUrl == null ? const Icon(Icons.store) : null,
               ),
               const SizedBox(width: 16),
