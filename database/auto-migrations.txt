@@ -1,0 +1,21 @@
+# Explicit allowlist of migration scripts the API applies automatically on
+# startup, in the order listed here (top to bottom) — NOT inferred from
+# filename numbering. A script only runs automatically if its name is listed
+# below; everything else in this folder (bootstrap scripts 01-05, manual
+# reset tools like 11_ClearTransactionalData.sql, one-off catch-up scripts
+# like 13_RunPendingMigrations.sql) is invisible to the automated runner,
+# full stop, no matter what number it has.
+#
+# To add a new migration: write an idempotent NN_Description.sql script
+# (guard every change with IF NOT EXISTS / IF EXISTS, same as the existing
+# ones), then add its filename on its own line below. It'll be applied
+# automatically (and recorded in dbo.SchemaMigrations) on the next deploy.
+#
+# Lines starting with # and blank lines are ignored.
+
+06_AddDiscountColumns.sql
+07_AddCompanyLogoColumn.sql
+08_AddProfitTracking.sql
+09_AddReturns.sql
+10_FixReturnForeignKeys.sql
+12_WidenCompanyLogoColumn.sql

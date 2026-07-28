@@ -11,6 +11,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
         services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
+        services.AddScoped<MigrationRunner>();
         services.AddScoped<ILedgerService, LedgerService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 
