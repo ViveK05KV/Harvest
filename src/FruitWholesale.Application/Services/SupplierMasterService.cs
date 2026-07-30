@@ -38,6 +38,7 @@ public class SupplierMasterService(ISupplierMasterRepository repository, ILedger
         var supplier = await repository.GetByIdAsync(supplierId) ?? throw new NotFoundException(nameof(SupplierMaster), supplierId);
         var dto = mapper.Map<SupplierMasterDto>(supplier);
         dto.CurrentOutstanding = await ledgerService.GetSupplierOutstandingAsync(supplierId);
+        dto.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - dto.CurrentOutstanding;
         return dto;
     }
 
@@ -67,6 +68,7 @@ public class SupplierMasterService(ISupplierMasterRepository repository, ILedger
 
         var result = mapper.Map<SupplierMasterDto>(supplier);
         result.CurrentOutstanding = await ledgerService.GetSupplierOutstandingAsync(supplier.SupplierID);
+        result.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - result.CurrentOutstanding;
         return Result.Success(result);
     }
 
@@ -76,14 +78,26 @@ public class SupplierMasterService(ISupplierMasterRepository repository, ILedger
         await repository.SetActiveAsync(supplierId, isActive);
     }
 
+    private async Task<decimal> GetLinkedShopOutstandingAsync(int? linkedShopId) =>
+        linkedShopId is null ? 0m : await ledgerService.GetShopOutstandingAsync(linkedShopId.Value);
+
     private async Task<List<SupplierMasterDto>> EnrichWithOutstandingAsync(IEnumerable<SupplierMaster> suppliers)
     {
         var supplierList = suppliers.ToList();
         var outstanding = await ledgerService.GetSupplierOutstandingBatchAsync(supplierList.Select(s => s.SupplierID));
+        var linkedShopIds = supplierList.Where(s => s.LinkedShopID.HasValue).Select(s => s.LinkedShopID!.Value).Distinct().ToList();
+        var linkedShopOutstanding = linkedShopIds.Count == 0
+            ? []
+            : await ledgerService.GetShopOutstandingBatchAsync(linkedShopIds);
+
         return supplierList.Select(supplier =>
         {
             var dto = mapper.Map<SupplierMasterDto>(supplier);
             dto.CurrentOutstanding = outstanding.GetValueOrDefault(supplier.SupplierID);
+            var linkedOutstanding = supplier.LinkedShopID.HasValue
+                ? linkedShopOutstanding.GetValueOrDefault(supplier.LinkedShopID.Value)
+                : 0m;
+            dto.NetBalance = linkedOutstanding - dto.CurrentOutstanding;
             return dto;
         }).ToList();
     }

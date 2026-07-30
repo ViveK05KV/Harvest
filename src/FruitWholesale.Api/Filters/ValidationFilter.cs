@@ -14,24 +14,36 @@ public class ValidationFilter(IServiceProvider serviceProvider) : IAsyncActionFi
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         // PUT actions take the id from the route (e.g. PUT /api/supply/{id}) and the
-        // controller assigns it onto the DTO's own "{Controller}ID" property inside the
+        // controller assigns it onto the DTO's own "{Entity}ID" property inside the
         // action body — but this filter runs before that body executes, so at validation
         // time the property is still whatever the request body had (usually 0/unset,
         // since the client only puts the id in the URL). Mirror that assignment here,
         // before validating, so a well-formed update isn't rejected by its own
         // GreaterThan(0) rule on that property.
+        //
+        // The DTO's id property doesn't always equal "{controller}ID" verbatim — e.g.
+        // ShopMasterController's DTOs use ShopID, not ShopMasterID (the "Master" suffix
+        // on the controller isn't part of the entity's id name), and UsersController's
+        // DTO uses UserID against the plural controller name "Users". So instead of one
+        // exact name, match every int property ending in "ID" whose prefix the controller
+        // name starts with, and take the longest (most specific) match — this also
+        // disambiguates DTOs carrying a foreign id too (e.g. UpdateShopReturnDto has both
+        // ShopReturnID and ShopID; controller "ShopReturn" matches both prefixes "Shop"
+        // and "ShopReturn", and the longer one is the correct primary key).
         if (context.ActionArguments.TryGetValue("id", out var routeIdValue) && routeIdValue is int routeId
             && context.RouteData.Values.TryGetValue("controller", out var controllerNameValue) && controllerNameValue is string controllerName)
         {
-            var idPropertyName = $"{controllerName}ID";
             foreach (var argument in context.ActionArguments.Values)
             {
                 if (argument is null) continue;
-                var property = argument.GetType().GetProperty(idPropertyName);
-                if (property is not null && property.PropertyType == typeof(int) && property.CanWrite)
-                {
-                    property.SetValue(argument, routeId);
-                }
+
+                var property = argument.GetType().GetProperties()
+                    .Where(p => p.PropertyType == typeof(int) && p.CanWrite && p.Name.EndsWith("ID", StringComparison.Ordinal))
+                    .Where(p => controllerName.StartsWith(p.Name[..^2], StringComparison.Ordinal))
+                    .OrderByDescending(p => p.Name.Length)
+                    .FirstOrDefault();
+
+                property?.SetValue(argument, routeId);
             }
         }
 

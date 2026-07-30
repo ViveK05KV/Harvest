@@ -8,31 +8,54 @@ namespace FruitWholesale.Infrastructure.Repositories;
 
 public class SupplierMasterRepository(IDbConnectionFactory connectionFactory, ILedgerService ledgerService) : ISupplierMasterRepository
 {
+    // OUTER APPLY TOP 1 rather than a plain LEFT JOIN so a supplier can never
+    // multiply into extra rows even if more than one shop were ever linked to it.
+    private const string LinkedShopJoin = """
+        OUTER APPLY (
+            SELECT TOP 1 sh.ShopID, sh.ShopName
+            FROM dbo.ShopMaster sh
+            WHERE sh.LinkedSupplierID = s.SupplierID
+        ) linkedShop
+        """;
+
     public async Task<SupplierMaster?> GetByIdAsync(int supplierId)
     {
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<SupplierMaster>(
-            "SELECT * FROM dbo.SupplierMaster WHERE SupplierID = @SupplierID", new { SupplierID = supplierId });
+        var sql = $"""
+            SELECT s.*, linkedShop.ShopID AS LinkedShopID, linkedShop.ShopName AS LinkedShopName
+            FROM dbo.SupplierMaster s
+            {LinkedShopJoin}
+            WHERE s.SupplierID = @SupplierID;
+            """;
+        return await connection.QueryFirstOrDefaultAsync<SupplierMaster>(sql, new { SupplierID = supplierId });
     }
 
     public async Task<IReadOnlyList<SupplierMaster>> GetAllActiveAsync()
     {
         using var connection = connectionFactory.CreateConnection();
-        var result = await connection.QueryAsync<SupplierMaster>(
-            "SELECT * FROM dbo.SupplierMaster WHERE IsActive = 1 ORDER BY SupplierName");
+        var sql = $"""
+            SELECT s.*, linkedShop.ShopID AS LinkedShopID, linkedShop.ShopName AS LinkedShopName
+            FROM dbo.SupplierMaster s
+            {LinkedShopJoin}
+            WHERE s.IsActive = 1
+            ORDER BY s.SupplierName;
+            """;
+        var result = await connection.QueryAsync<SupplierMaster>(sql);
         return result.ToList();
     }
 
     public async Task<PaginatedList<SupplierMaster>> GetPagedAsync(PaginationRequest request)
     {
         using var connection = connectionFactory.CreateConnection();
-        const string sql = """
-            SELECT COUNT(*) FROM dbo.SupplierMaster
-            WHERE (@SearchTerm IS NULL OR SupplierName LIKE @SearchPattern OR Phone LIKE @SearchPattern);
+        var sql = $"""
+            SELECT COUNT(*) FROM dbo.SupplierMaster s
+            WHERE (@SearchTerm IS NULL OR s.SupplierName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern);
 
-            SELECT * FROM dbo.SupplierMaster
-            WHERE (@SearchTerm IS NULL OR SupplierName LIKE @SearchPattern OR Phone LIKE @SearchPattern)
-            ORDER BY SupplierName ASC
+            SELECT s.*, linkedShop.ShopID AS LinkedShopID, linkedShop.ShopName AS LinkedShopName
+            FROM dbo.SupplierMaster s
+            {LinkedShopJoin}
+            WHERE (@SearchTerm IS NULL OR s.SupplierName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
+            ORDER BY s.SupplierName ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new

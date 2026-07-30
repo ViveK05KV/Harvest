@@ -13,6 +13,20 @@ public class ShopMasterDto
     public string? RouteName { get; set; }
     public bool IsActive { get; set; }
     public decimal CurrentOutstanding { get; set; }
+
+    /// <summary>
+    /// Optional link to a SupplierMaster row for a party that is both a shop
+    /// and a supplier. Null unless linked.
+    /// </summary>
+    public int? LinkedSupplierID { get; set; }
+    public string? LinkedSupplierName { get; set; }
+
+    /// <summary>
+    /// CurrentOutstanding minus the linked supplier's outstanding balance —
+    /// what this party owes you (positive) or you owe them (negative) net of
+    /// both roles. Equal to CurrentOutstanding when not linked.
+    /// </summary>
+    public decimal NetBalance { get; set; }
 }
 
 public class CreateShopMasterDto
@@ -24,6 +38,7 @@ public class CreateShopMasterDto
     public decimal OpeningBalance { get; set; }
     public decimal CreditLimit { get; set; }
     public int? RouteID { get; set; }
+    public int? LinkedSupplierID { get; set; }
 }
 
 public class UpdateShopMasterDto
@@ -35,4 +50,5 @@ public class UpdateShopMasterDto
     public string? Address { get; set; }
     public decimal CreditLimit { get; set; }
     public int? RouteID { get; set; }
+    public int? LinkedSupplierID { get; set; }
 }

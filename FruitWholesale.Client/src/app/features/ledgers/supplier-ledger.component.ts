@@ -70,6 +70,22 @@ export class SupplierLedgerComponent implements OnInit {
     });
   }
 
+  readonly abs = Math.abs;
+
+  selectedSupplier(): SupplierMaster | undefined {
+    return this.suppliers().find((s) => s.supplierID === this.supplierId);
+  }
+
+  isReceivable(netBalance: number): boolean {
+    return netBalance >= 0;
+  }
+
+  netBalanceTooltip(supplier: SupplierMaster): string {
+    return supplier.linkedShopID
+      ? `Combined position with linked Shop: ${supplier.linkedShopName}`
+      : `Outstanding balance owed to ${supplier.supplierName}`;
+  }
+
   onFilterChange(): void {
     if (!this.supplierId) return;
     this.request.pageNumber = 1;

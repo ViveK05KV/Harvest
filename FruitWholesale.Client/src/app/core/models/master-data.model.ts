@@ -47,6 +47,11 @@ export interface ShopMaster {
   routeName?: string;
   isActive: boolean;
   currentOutstanding: number;
+  /** Optional link to a SupplierMaster row for a party that is both a shop and a supplier. */
+  linkedSupplierID?: number | null;
+  linkedSupplierName?: string;
+  /** currentOutstanding minus the linked supplier's outstanding; equals currentOutstanding when not linked. */
+  netBalance: number;
 }
 
 export interface SaveShopMaster {
@@ -58,6 +63,7 @@ export interface SaveShopMaster {
   openingBalance?: number;
   creditLimit: number;
   routeID?: number | null;
+  linkedSupplierID?: number | null;
 }
 
 export interface SupplierMaster {
@@ -68,6 +74,11 @@ export interface SupplierMaster {
   openingBalance: number;
   isActive: boolean;
   currentOutstanding: number;
+  /** Reverse of ShopMaster.linkedSupplierID — the shop (if any) linked to this supplier. */
+  linkedShopID?: number | null;
+  linkedShopName?: string;
+  /** Linked shop's outstanding minus this supplier's own outstanding; meaningless when not linked. */
+  netBalance: number;
 }
 
 export interface SaveSupplierMaster {

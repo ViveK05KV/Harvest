@@ -55,6 +55,7 @@ export class MainLayoutComponent {
 
   readonly isHandset = signal(false);
   readonly sidenavOpened = signal(true);
+  readonly collapsedGroups = signal<Set<string>>(new Set());
 
   readonly greeting = computed(() => {
     const hour = new Date().getHours();
@@ -67,11 +68,9 @@ export class MainLayoutComponent {
   // every other item/group requires Admin/Manager/Accountant.
   private static readonly BACK_OFFICE: UserRole[] = ['Admin', 'Manager', 'Accountant'];
 
+  readonly dashboardItem: NavItem = { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: MainLayoutComponent.BACK_OFFICE };
+
   readonly navGroups: NavGroup[] = [
-    {
-      label: 'Overview',
-      items: [{ label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: MainLayoutComponent.BACK_OFFICE }]
-    },
     {
       label: 'Transactions',
       items: [
@@ -101,7 +100,7 @@ export class MainLayoutComponent {
         { label: 'Shop Ledger', icon: 'storefront', route: '/ledgers/shop', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Supplier Ledger', icon: 'inventory_2', route: '/ledgers/supplier', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Cash Ledger', icon: 'account_balance', route: '/ledgers/cash', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Stock', icon: 'inventory', route: '/stock' }
+        { label: 'Inventory', icon: 'inventory', route: '/stock' }
       ]
     },
     {
@@ -139,6 +138,10 @@ export class MainLayoutComponent {
     this.branding.refresh();
   }
 
+  showDashboardLink(): boolean {
+    return !this.dashboardItem.roles || this.authService.hasRole(...this.dashboardItem.roles);
+  }
+
   visibleGroups(): NavGroup[] {
     return this.navGroups
       .map((group) => ({
@@ -150,6 +153,22 @@ export class MainLayoutComponent {
 
   toggleSidenav(): void {
     this.sidenavOpened.update((v) => !v);
+  }
+
+  isGroupCollapsed(label: string): boolean {
+    return this.collapsedGroups().has(label);
+  }
+
+  toggleGroup(label: string): void {
+    this.collapsedGroups.update((current) => {
+      const next = new Set(current);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
   }
 
   logout(): void {

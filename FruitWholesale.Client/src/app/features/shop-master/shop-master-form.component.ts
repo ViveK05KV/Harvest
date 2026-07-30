@@ -6,7 +6,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { RouteMasterService } from '../route-master/route-master.service';
-import { RouteMaster, ShopMaster } from '../../core/models/master-data.model';
+import { SupplierMasterService } from '../supplier-master/supplier-master.service';
+import { RouteMaster, ShopMaster, SupplierMaster } from '../../core/models/master-data.model';
 
 @Component({
   selector: 'app-shop-master-form',
@@ -17,11 +18,13 @@ import { RouteMaster, ShopMaster } from '../../core/models/master-data.model';
 export class ShopMasterFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly routeService = inject(RouteMasterService);
+  private readonly supplierService = inject(SupplierMasterService);
   readonly dialogRef = inject(MatDialogRef<ShopMasterFormComponent>);
   readonly data = inject<ShopMaster | null>(MAT_DIALOG_DATA);
   readonly isEdit = !!this.data;
 
   readonly routes = signal<RouteMaster[]>([]);
+  readonly suppliers = signal<SupplierMaster[]>([]);
 
   readonly form = this.fb.nonNullable.group({
     shopName: [this.data?.shopName ?? '', [Validators.required, Validators.maxLength(200)]],
@@ -30,11 +33,13 @@ export class ShopMasterFormComponent implements OnInit {
     address: [this.data?.address ?? ''],
     openingBalance: [{ value: this.data?.openingBalance ?? 0, disabled: this.isEdit }, [Validators.min(0)]],
     creditLimit: [this.data?.creditLimit ?? 0, [Validators.min(0)]],
-    routeID: this.fb.control<number | null>(this.data?.routeID ?? null)
+    routeID: this.fb.control<number | null>(this.data?.routeID ?? null),
+    linkedSupplierID: this.fb.control<number | null>(this.data?.linkedSupplierID ?? null)
   });
 
   ngOnInit(): void {
     this.routeService.getAllActive().subscribe((routes) => this.routes.set(routes));
+    this.supplierService.getAllActive().subscribe((suppliers) => this.suppliers.set(suppliers));
   }
 
   save(): void {

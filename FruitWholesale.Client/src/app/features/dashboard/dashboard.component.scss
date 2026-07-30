@@ -41,23 +41,30 @@
 
 .summary-card {
   display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 17px !important;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px !important;
   background: #fff;
   border: 1px solid #e7ece6;
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0 3px 12px rgba(23, 55, 39, 0.04) !important;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 8px 20px rgba(23, 55, 39, 0.09) !important;
+    transform: translateY(-1px);
+  }
 }
 
 .card-icon {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 12px;
   background: #e9f3eb;
   color: #237647;
 }
@@ -65,25 +72,20 @@
 .summary-card--sage .card-icon { background: #e7f0df; color: #60854f; }
 .summary-card--slate .card-icon { background: #edf0ed; color: #52675a; }
 
-.card-body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .card-label {
   font: var(--mat-sys-label-medium);
   color: #718177;
 }
 
 .card-value {
-  margin-top: 2px;
-  font: var(--mat-sys-title-large);
+  margin-top: -6px;
+  font: var(--mat-sys-headline-small);
   font-weight: 750;
   color: #1d3125;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 // Two-column layout: large trend charts on the left, a narrower stack of

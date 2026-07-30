@@ -16,10 +16,8 @@
     @for (card of cards(); track card.label) {
       <mat-card class="summary-card" [class.summary-card--emphasis]="card.emphasis" [class]="'summary-card summary-card--' + card.tone">
         <div class="card-icon"><mat-icon>{{ card.icon }}</mat-icon></div>
-        <div class="card-body">
-          <span class="card-label">{{ card.label }}</span>
-          <span class="card-value">{{ card.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
-        </div>
+        <span class="card-label">{{ card.label }}</span>
+        <span class="card-value">{{ card.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
       </mat-card>
     }
   </div>

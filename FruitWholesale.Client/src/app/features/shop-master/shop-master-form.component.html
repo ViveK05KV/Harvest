@@ -34,6 +34,17 @@
       </mat-select>
     </mat-form-field>
 
+    <mat-form-field class="full-width">
+      <mat-label>Linked Supplier</mat-label>
+      <mat-select formControlName="linkedSupplierID">
+        <mat-option [value]="null">Not linked</mat-option>
+        @for (supplier of suppliers(); track supplier.supplierID) {
+          <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>If this shop is also one of your suppliers, link it to see a combined net balance.</mat-hint>
+    </mat-form-field>
+
     <div class="form-row">
       <mat-form-field class="full-width">
         <mat-label>Opening Balance</mat-label>

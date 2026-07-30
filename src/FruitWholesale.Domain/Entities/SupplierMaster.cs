@@ -10,4 +10,12 @@ public class SupplierMaster
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Reverse of ShopMaster.LinkedSupplierID — the shop (if any) that links to
+    /// this supplier as the same real-world party. Not a stored column; joined
+    /// on read.
+    /// </summary>
+    public int? LinkedShopID { get; set; }
+    public string? LinkedShopName { get; set; }
 }

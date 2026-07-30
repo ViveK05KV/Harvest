@@ -26,6 +26,18 @@
 
   <span class="spacer"></span>
 
+  @if (selectedShop(); as shop) {
+    <div
+      [style.background]="isReceivable(shop.netBalance) ? '#E6F4EA' : '#FDECEA'"
+      [style.color]="isReceivable(shop.netBalance) ? '#1E7B34' : '#C0392B'"
+      style="display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-size: 15px; font-weight: 700; white-space: nowrap;"
+      [matTooltip]="netBalanceTooltip(shop)"
+    >
+      {{ isReceivable(shop.netBalance) ? 'Net Receivable' : 'Net Payable' }}:
+      {{ abs(shop.netBalance) | currency: 'INR' : 'symbol' : '1.2-2' }}
+    </div>
+  }
+
   <button mat-icon-button matTooltip="Export to Excel" (click)="exportExcel()">
     <mat-icon>download</mat-icon>
   </button>

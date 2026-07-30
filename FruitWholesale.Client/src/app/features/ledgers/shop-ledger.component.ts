@@ -72,6 +72,22 @@ export class ShopLedgerComponent implements OnInit {
     });
   }
 
+  readonly abs = Math.abs;
+
+  selectedShop(): ShopMaster | undefined {
+    return this.shops().find((s) => s.shopID === this.shopId);
+  }
+
+  isReceivable(netBalance: number): boolean {
+    return netBalance >= 0;
+  }
+
+  netBalanceTooltip(shop: ShopMaster): string {
+    return shop.linkedSupplierID
+      ? `Combined position with linked Supplier: ${shop.linkedSupplierName}`
+      : `${shop.shopName}'s outstanding balance`;
+  }
+
   onFilterChange(): void {
     if (!this.shopId) return;
     this.request.pageNumber = 1;

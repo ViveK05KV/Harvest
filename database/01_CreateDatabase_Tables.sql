@@ -154,11 +154,13 @@ CREATE TABLE dbo.ShopMaster
     OpeningBalance  DECIMAL(18,2)      NOT NULL CONSTRAINT DF_ShopMaster_OpeningBalance DEFAULT (0),
     CreditLimit     DECIMAL(18,2)      NOT NULL CONSTRAINT DF_ShopMaster_CreditLimit DEFAULT (0),
     RouteID         INT                NULL,
+    LinkedSupplierID INT               NULL,
     IsActive        BIT                NOT NULL CONSTRAINT DF_ShopMaster_IsActive DEFAULT (1),
     CreatedAt       DATETIME2          NOT NULL CONSTRAINT DF_ShopMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
     UpdatedAt       DATETIME2          NULL,
     CONSTRAINT PK_ShopMaster PRIMARY KEY CLUSTERED (ShopID),
     CONSTRAINT FK_ShopMaster_RouteMaster FOREIGN KEY (RouteID) REFERENCES dbo.RouteMaster(RouteID)
+    -- FK_ShopMaster_SupplierMaster added below, after dbo.SupplierMaster exists.
 );
 GO
 
@@ -179,6 +181,10 @@ CREATE TABLE dbo.SupplierMaster
     UpdatedAt       DATETIME2          NULL,
     CONSTRAINT PK_SupplierMaster PRIMARY KEY CLUSTERED (SupplierID)
 );
+GO
+
+ALTER TABLE dbo.ShopMaster ADD CONSTRAINT FK_ShopMaster_SupplierMaster
+    FOREIGN KEY (LinkedSupplierID) REFERENCES dbo.SupplierMaster(SupplierID);
 GO
 
 /* =====================================================================

@@ -14,21 +14,42 @@
       }
       <span>{{ branding.companyName() }}</span>
     </div>
-    @for (group of visibleGroups(); track group.label) {
-      <span class="nav-section-label">{{ group.label }}</span>
-      <mat-nav-list class="nav-section-list">
-        @for (item of group.items; track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            (click)="isHandset() && sidenavOpened.set(false)"
-          >
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
-          </a>
-        }
+    @if (showDashboardLink()) {
+      <mat-nav-list class="nav-section-list nav-section-list--top">
+        <a
+          mat-list-item
+          [routerLink]="dashboardItem.route"
+          routerLinkActive="active-link"
+          (click)="isHandset() && sidenavOpened.set(false)"
+        >
+          <mat-icon matListItemIcon>{{ dashboardItem.icon }}</mat-icon>
+          <span matListItemTitle>{{ dashboardItem.label }}</span>
+        </a>
       </mat-nav-list>
+    }
+
+    @for (group of visibleGroups(); track group.label) {
+      <button type="button" class="nav-section-header" (click)="toggleGroup(group.label)">
+        <span class="nav-section-label">{{ group.label }}</span>
+        <mat-icon class="nav-section-chevron" [class.nav-section-chevron--collapsed]="isGroupCollapsed(group.label)">
+          expand_more
+        </mat-icon>
+      </button>
+      @if (!isGroupCollapsed(group.label)) {
+        <mat-nav-list class="nav-section-list">
+          @for (item of group.items; track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              (click)="isHandset() && sidenavOpened.set(false)"
+            >
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
+        </mat-nav-list>
+      }
     }
   </mat-sidenav>
 
@@ -39,6 +60,11 @@
       </button>
       <span class="toolbar-greeting">{{ greeting() }}</span>
       <span class="toolbar-spacer"></span>
+
+      <button mat-flat-button color="primary" routerLink="/supply/new" class="create-sale-btn">
+        <mat-icon>add</mat-icon>
+        Create Sale
+      </button>
 
       <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Light mode' : 'Dark mode'">
         <mat-icon>{{ themeService.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>

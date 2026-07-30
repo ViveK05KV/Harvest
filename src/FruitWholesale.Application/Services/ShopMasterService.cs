@@ -38,6 +38,7 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
         var shop = await repository.GetByIdAsync(shopId) ?? throw new NotFoundException(nameof(ShopMaster), shopId);
         var dto = mapper.Map<ShopMasterDto>(shop);
         dto.CurrentOutstanding = await ledgerService.GetShopOutstandingAsync(shopId);
+        dto.NetBalance = dto.CurrentOutstanding - await GetLinkedSupplierOutstandingAsync(shop.LinkedSupplierID);
         return dto;
     }
 
@@ -52,11 +53,13 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
             OpeningBalance = dto.OpeningBalance,
             CreditLimit = dto.CreditLimit,
             RouteID = dto.RouteID,
+            LinkedSupplierID = dto.LinkedSupplierID,
             IsActive = true
         };
         shop.ShopID = await repository.CreateAsync(shop);
         var result = mapper.Map<ShopMasterDto>(shop);
         result.CurrentOutstanding = shop.OpeningBalance;
+        result.NetBalance = shop.OpeningBalance - await GetLinkedSupplierOutstandingAsync(shop.LinkedSupplierID);
         return Result.Success(result);
     }
 
@@ -69,10 +72,12 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
         shop.Address = dto.Address;
         shop.CreditLimit = dto.CreditLimit;
         shop.RouteID = dto.RouteID;
+        shop.LinkedSupplierID = dto.LinkedSupplierID;
         await repository.UpdateAsync(shop);
 
         var result = mapper.Map<ShopMasterDto>(shop);
         result.CurrentOutstanding = await ledgerService.GetShopOutstandingAsync(shop.ShopID);
+        result.NetBalance = result.CurrentOutstanding - await GetLinkedSupplierOutstandingAsync(shop.LinkedSupplierID);
         return Result.Success(result);
     }
 
@@ -82,14 +87,26 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
         await repository.SetActiveAsync(shopId, isActive);
     }
 
+    private async Task<decimal> GetLinkedSupplierOutstandingAsync(int? linkedSupplierId) =>
+        linkedSupplierId is null ? 0m : await ledgerService.GetSupplierOutstandingAsync(linkedSupplierId.Value);
+
     private async Task<List<ShopMasterDto>> EnrichWithOutstandingAsync(IEnumerable<ShopMaster> shops)
     {
         var shopList = shops.ToList();
         var outstanding = await ledgerService.GetShopOutstandingBatchAsync(shopList.Select(s => s.ShopID));
+        var linkedSupplierIds = shopList.Where(s => s.LinkedSupplierID.HasValue).Select(s => s.LinkedSupplierID!.Value).Distinct().ToList();
+        var linkedSupplierOutstanding = linkedSupplierIds.Count == 0
+            ? []
+            : await ledgerService.GetSupplierOutstandingBatchAsync(linkedSupplierIds);
+
         return shopList.Select(shop =>
         {
             var dto = mapper.Map<ShopMasterDto>(shop);
             dto.CurrentOutstanding = outstanding.GetValueOrDefault(shop.ShopID);
+            var linkedOutstanding = shop.LinkedSupplierID.HasValue
+                ? linkedSupplierOutstanding.GetValueOrDefault(shop.LinkedSupplierID.Value)
+                : 0m;
+            dto.NetBalance = dto.CurrentOutstanding - linkedOutstanding;
             return dto;
         }).ToList();
     }

@@ -12,8 +12,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT s.*, r.RouteName FROM dbo.ShopMaster s
+            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
             LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
+            LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
             WHERE s.ShopID = @ShopID;
             """;
         return await connection.QueryFirstOrDefaultAsync<ShopMaster>(sql, new { ShopID = shopId });
@@ -23,8 +24,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT s.*, r.RouteName FROM dbo.ShopMaster s
+            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
             LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
+            LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
             WHERE s.IsActive = 1
             ORDER BY s.ShopName;
             """;
@@ -39,8 +41,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
             SELECT COUNT(*) FROM dbo.ShopMaster s
             WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern);
 
-            SELECT s.*, r.RouteName FROM dbo.ShopMaster s
+            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
             LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
+            LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
             WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
             ORDER BY s.ShopName ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
@@ -65,9 +68,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
         try
         {
             const string insertSql = """
-                INSERT INTO dbo.ShopMaster (ShopName, OwnerName, Phone, Address, OpeningBalance, CreditLimit, RouteID, IsActive)
+                INSERT INTO dbo.ShopMaster (ShopName, OwnerName, Phone, Address, OpeningBalance, CreditLimit, RouteID, LinkedSupplierID, IsActive)
                 OUTPUT INSERTED.ShopID
-                VALUES (@ShopName, @OwnerName, @Phone, @Address, @OpeningBalance, @CreditLimit, @RouteID, @IsActive);
+                VALUES (@ShopName, @OwnerName, @Phone, @Address, @OpeningBalance, @CreditLimit, @RouteID, @LinkedSupplierID, @IsActive);
                 """;
             var shopId = await connection.QuerySingleAsync<int>(insertSql, shop, transaction);
 
@@ -93,7 +96,7 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
         const string sql = """
             UPDATE dbo.ShopMaster
             SET ShopName = @ShopName, OwnerName = @OwnerName, Phone = @Phone, Address = @Address,
-                CreditLimit = @CreditLimit, RouteID = @RouteID, UpdatedAt = SYSUTCDATETIME()
+                CreditLimit = @CreditLimit, RouteID = @RouteID, LinkedSupplierID = @LinkedSupplierID, UpdatedAt = SYSUTCDATETIME()
             WHERE ShopID = @ShopID;
             """;
         await connection.ExecuteAsync(sql, shop);

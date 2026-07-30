@@ -46,8 +46,40 @@
   flex-shrink: 0;
 }
 
+.nav-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 16px 0 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover .nav-section-label {
+    color: #c3dcc9 !important;
+  }
+}
+
 .nav-section-label {
   color: #96b99e !important;
+}
+
+.nav-section-chevron {
+  color: #96b99e;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.15s ease;
+
+  &--collapsed {
+    transform: rotate(-90deg);
+  }
+}
+
+.nav-section-list--top {
+  margin-top: 8px;
 }
 
 .nav-section-list {
@@ -105,6 +137,15 @@
 
 .toolbar-spacer {
   flex: 1 1 auto;
+}
+
+.create-sale-btn {
+  margin-right: 8px;
+  border-radius: 10px;
+
+  mat-icon {
+    margin-right: 4px;
+  }
 }
 
 .user-menu-btn {

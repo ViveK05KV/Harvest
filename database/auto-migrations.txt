@@ -13,9 +13,12 @@
 #
 # Lines starting with # and blank lines are ignored.
 
-06_AddDiscountColumns.sql
-07_AddCompanyLogoColumn.sql
-08_AddProfitTracking.sql
-09_AddReturns.sql
-10_FixReturnForeignKeys.sql
-12_WidenCompanyLogoColumn.sql
+# Already applied to prod — commented out, left for history.
+# 06_AddDiscountColumns.sql
+# 07_AddCompanyLogoColumn.sql
+# 08_AddProfitTracking.sql
+# 09_AddReturns.sql
+# 10_FixReturnForeignKeys.sql
+# 12_WidenCompanyLogoColumn.sql
+
+14_AddShopSupplierLink.sql
