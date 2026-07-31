@@ -14,6 +14,7 @@ public interface IDashboardRepository
     Task<List<TopCustomerDto>> GetTopCustomersAsync(int top, DateTime fromDate, DateTime toDate);
     Task<List<TrendPointDto>> GetSalesTrendAsync(string period);
     Task<List<TrendPointDto>> GetPurchasesTrendAsync(string period);
+    Task<List<TrendPointDto>> GetCashTrendAsync();
 }
 
 public interface IReportRepository

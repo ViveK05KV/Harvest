@@ -14,12 +14,6 @@
   }
 }
 
-.dashboard-subtitle {
-  margin: 4px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-medium);
-}
-
 .eyebrow, .card-kicker {
   display: block;
   color: #4f745f;
@@ -32,67 +26,214 @@
 .header-status { color: #587164; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .header-status span { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #49a86c; box-shadow: 0 0 0 4px #dff2e5; }
 
-.cards-grid {
+// Hero row: cash balance + outstanding + profit cards -----------------------
+
+.hero-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-.summary-card {
+.hero-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 18px !important;
+  min-width: 0;
+  padding: 20px !important;
+  border-radius: 18px;
   background: #fff;
-  border: 1px solid #e7ece6;
-  border-radius: 16px;
-  box-shadow: 0 3px 12px rgba(23, 55, 39, 0.04) !important;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-
-  &:hover {
-    box-shadow: 0 8px 20px rgba(23, 55, 39, 0.09) !important;
-    transform: translateY(-1px);
-  }
+  border: 1px solid #e4eae3;
+  box-shadow: 0 3px 14px rgba(23, 55, 39, 0.05) !important;
 }
 
-.card-icon {
-  width: 46px;
-  height: 46px;
-  min-width: 46px;
+.hero-card--cash {
+  background: linear-gradient(155deg, #164a32, #0d3122);
+  color: #eaf5ec;
+  border: none;
+}
+
+.hero-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hero-kicker {
+  display: block;
+  font: 700 11px Roboto, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #8fbfa2;
+}
+.hero-card--cash .hero-kicker { color: #8fbfa2; }
+.hero-kicker--amber { color: #a07a2a; }
+.hero-kicker--slate { color: #5f7a6a; }
+.hero-kicker--green { color: #2c7a4e; }
+
+.hero-icon { color: #7d9187; }
+.hero-icon--amber { color: #c99a3d; }
+.hero-icon--slate { color: #7d9187; }
+.hero-icon--green { color: #3f9c69; }
+
+.hero-value {
+  display: block;
+  margin-top: 8px;
+  font: 800 32px/1 Roboto, sans-serif;
+  letter-spacing: -.03em;
+}
+
+.hero-value--dark { color: #1d3125; font-size: 27px; }
+.hero-value--green { color: #1f7a48; font-size: 27px; }
+
+.hero-inout {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font: 400 12px Roboto, sans-serif;
+  color: #b7d4bd;
+
+  .in { color: #7fd6a0; font-weight: 600; }
+  .out { color: #f0a98a; font-weight: 600; }
+}
+
+.hero-sparkline {
+  height: 56px;
+  margin-top: 10px;
+}
+
+.hero-sparkline--tall { height: 70px; }
+
+.hero-sub {
+  display: block;
+  margin-top: 6px;
+  font: 400 12px Roboto, sans-serif;
+  color: #7b8a80;
+}
+
+.hero-spacer { flex: 1; }
+
+.hero-progress {
+  display: block;
+  height: 7px;
+  margin-top: 14px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #f0f3ef;
+}
+
+.hero-progress-fill {
+  display: block;
+  height: 100%;
+  background: #c0392b;
+}
+
+.hero-alert {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 12px;
+  gap: 6px;
+  margin-top: 10px;
+  font: 600 11px Roboto, sans-serif;
+  color: #b03a2e;
+
+  mat-icon { font-size: 15px; height: 15px; width: 15px; }
+}
+
+.hero-payables {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hero-payables-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 12px Roboto, sans-serif;
+  color: #4c6155;
+
+  .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .amount { font-weight: 600; color: #354139; font-family: 'Roboto Mono', monospace; }
+}
+
+.hero-admin-badge {
+  padding: 3px 7px;
+  border-radius: 6px;
   background: #e9f3eb;
   color: #237647;
+  font: 700 10px Roboto, sans-serif;
+  letter-spacing: .06em;
+  white-space: nowrap;
 }
-.summary-card--amber .card-icon { background: #fff1d8; color: #c57c11; }
-.summary-card--sage .card-icon { background: #e7f0df; color: #60854f; }
-.summary-card--slate .card-icon { background: #edf0ed; color: #52675a; }
 
-.card-label {
-  font: var(--mat-sys-label-medium);
+.hero-footnote {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e4eae3;
+  font: 400 12px Roboto, sans-serif;
+  color: #6c7f72;
+
+  strong { color: #1d3125; }
+}
+
+// Today strip -----------------------------------------------------------
+
+.today-strip {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #e4eae3;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 3px 14px rgba(23, 55, 39, 0.05);
+  flex-wrap: wrap;
+}
+
+.today-strip-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16px 20px;
+  background: #f7faf7;
+  border-right: 1px solid #e4eae3;
+  min-width: 104px;
+
+  .kicker { font: 700 11px Roboto, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #4f745f; }
+  .date { font: 400 11px Roboto, sans-serif; color: #7b8a80; margin-top: 3px; }
+}
+
+.today-strip-tile {
+  flex: 1;
+  min-width: 120px;
+  padding: 16px 20px;
+  border-right: 1px solid #eef2ed;
+}
+
+.tile-label {
+  display: block;
+  font: 500 12px Roboto, sans-serif;
   color: #718177;
 }
 
-.card-value {
-  margin-top: -6px;
-  font: var(--mat-sys-headline-small);
-  font-weight: 750;
+.tile-value {
+  display: block;
+  margin-top: 6px;
+  font: 750 20px Roboto, sans-serif;
   color: #1d3125;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  letter-spacing: -.02em;
 }
 
-// Two-column layout: large trend charts on the left, a narrower stack of
-// the donut chart + ranked lists on the right (like a side panel).
+.tile-value--green { color: #1f7a48; }
+
+// Two-column detail layout ------------------------------------------------
+
 .dashboard-main-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1.5fr 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -102,6 +243,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 @media (max-width: 1023px) {
@@ -111,22 +253,21 @@
 }
 
 .chart-card {
-  padding: 18px !important;
-  border-radius: 14px;
+  padding: 20px !important;
+  border-radius: 16px;
   background: #fff;
-  border: 1px solid #e7ece6;
-  box-shadow: 0 3px 12px rgba(23, 55, 39, 0.04) !important;
+  border: 1px solid #e4eae3;
+  box-shadow: 0 3px 14px rgba(23, 55, 39, 0.05) !important;
 
   h3 {
     margin: 2px 0 0;
     font: var(--mat-sys-title-small);
     font-weight: 700;
-    color: #213428;
+    color: #16281e;
   }
 }
 
-.card-heading { display: flex; align-items: flex-start; justify-content: space-between; min-height: 39px; margin-bottom: 10px; }
-.period-chip { border: 1px solid #dce6dd; border-radius: 7px; color: #597162; font-size: 11px; padding: 5px 8px; }
+.card-heading { display: flex; align-items: flex-start; justify-content: space-between; min-height: 39px; margin-bottom: 14px; gap: 8px; }
 .heading-icon { color: #538467; font-size: 19px; }
 
 .period-select {
@@ -139,28 +280,8 @@
   padding: 5px 8px;
   cursor: pointer;
 
-  &:hover {
-    border-color: #b7c9bd;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #277a4b;
-    outline-offset: 1px;
-  }
-}
-
-// Sales Overview + Sales vs Purchases side by side, matching the mockup;
-// stacks on narrow screens same as the other chart grids on this page.
-.trend-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-@media (max-width: 900px) {
-  .trend-row {
-    grid-template-columns: 1fr;
-  }
+  &:hover { border-color: #b7c9bd; }
+  &:focus-visible { outline: 2px solid #277a4b; outline-offset: 1px; }
 }
 
 .chart-loading {
@@ -175,21 +296,28 @@
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
   &:hover { text-decoration: underline; }
 }
+
+.chart-holder { height: 260px; }
+.chart-holder--small { height: 200px; }
+
+.period-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2ed;
+}
+
+// Stock table -------------------------------------------------------------
 
 .stock-table {
   display: flex;
   flex-direction: column;
-}
-
-.stock-table-header {
-  display: grid;
-  grid-template-columns: 1.4fr 2fr 0.9fr;
-  gap: 12px;
-  padding: 0 10px 8px;
-  color: #718177;
-  font: var(--mat-sys-label-medium);
+  gap: 10px;
 }
 
 .stock-row {
@@ -197,11 +325,6 @@
   grid-template-columns: 1.4fr 2fr 0.9fr;
   align-items: center;
   gap: 12px;
-  padding: 9px 10px;
-  border-radius: 8px;
-  font: var(--mat-sys-body-medium);
-
-  &:nth-child(even) { background: #f7faf7; }
 }
 
 .stock-row-name {
@@ -210,12 +333,13 @@
   white-space: nowrap;
   font-weight: 600;
   color: #1d3125;
+  font-size: 13px;
 }
 
 .stock-bar-track {
-  height: 7px;
+  height: 6px;
   border-radius: 4px;
-  background: #edf1ed;
+  background: #eef2ed;
   overflow: hidden;
 }
 
@@ -233,64 +357,73 @@
   text-align: right;
   white-space: nowrap;
   color: #354139;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
 }
 
-.chart-card--large .chart-holder {
-  height: 240px;
+// Profit side card ----------------------------------------------------------
+
+.profit-stat-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
 }
 
-.chart-holder {
-  height: 260px;
+.profit-figure {
+  display: block;
+  margin-top: 2px;
+  font: 800 26px Roboto, sans-serif;
+  color: #1f7a48;
+  letter-spacing: -.02em;
 }
 
-.chart-holder--small {
-  height: 200px;
-}
+.profit-figure--dark { color: #1d3125; }
 
-.list-card .list-holder {
-  max-height: 220px;
-}
+// Today's cash entries tape --------------------------------------------------
 
-.list-holder {
+.cash-tape {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 260px;
+  max-height: 280px;
   overflow-y: auto;
 }
 
-.ranked-row {
-  display: flex;
-  align-items: center;
+.cash-tape-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #f7faf7;
-  border: 1px solid #edf1ed;
-  font: var(--mat-sys-body-medium);
+  align-items: baseline;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f4f7f4;
+
+  &:last-child { border-bottom: none; }
 }
 
-.ranked-row-avatar {
+.cash-tape-row .time {
+  font: 400 11px 'Roboto Mono', monospace;
+  color: #a0aca4;
+}
+
+.cash-tape-row .detail {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  border-radius: 50%;
-  background: #e3efe5;
-  color: #287548;
-  font-weight: 700;
-  font-size: 12px;
-  text-transform: uppercase;
+  flex-direction: column;
+
+  .label { font: 500 12px Roboto, sans-serif; color: #1d3125; }
+  .note { font: 400 11px Roboto, sans-serif; color: #8f9d94; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
-.ranked-row-label {
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cash-tape-row .amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  .amount { font: 600 12px 'Roboto Mono', monospace; }
+  .amount--in { color: #1f7a48; }
+  .amount--out { color: #c0392b; }
+  .balance { font: 400 10px 'Roboto Mono', monospace; color: #a0aca4; }
 }
+
+.muted { color: #7b8a80; font-size: 13px; }
 
 @media (max-width: 599px) {
   .dashboard-header { align-items: flex-start; flex-direction: column; }

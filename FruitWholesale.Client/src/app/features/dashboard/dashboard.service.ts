@@ -25,4 +25,12 @@ export class DashboardService {
   getSalesVsPurchases(period: DashboardPeriod): Observable<SalesVsPurchases> {
     return this.http.get<SalesVsPurchases>(`${this.baseUrl}/sales-vs-purchases`, { params: { period } });
   }
+
+  getCashTrend(): Observable<TrendPoint[]> {
+    return this.http.get<TrendPoint[]>(`${this.baseUrl}/cash-trend`);
+  }
+
+  getProfitTrend(): Observable<TrendPoint[]> {
+    return this.http.get<TrendPoint[]>(`${this.baseUrl}/profit-trend`);
+  }
 }

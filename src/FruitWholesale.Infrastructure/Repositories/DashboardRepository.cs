@@ -96,6 +96,9 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
     public Task<List<TrendPointDto>> GetPurchasesTrendAsync(string period) =>
         GetTrendAsync("Purchase", "PurchaseDate", "TotalAmount", period);
 
+    public Task<List<TrendPointDto>> GetCashTrendAsync() =>
+        GetTrendAsync("CashLedger", "TransactionDate", "(CashIn - CashOut)", DashboardPeriods.ThisWeek);
+
     /// <summary>
     /// Builds a fixed set of buckets ("the spine") for the requested period first,
     /// then fills in real amounts from whichever rows exist — so a day/month with

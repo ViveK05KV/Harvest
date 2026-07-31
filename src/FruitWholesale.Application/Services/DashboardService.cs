@@ -9,6 +9,8 @@ public interface IDashboardService
     Task<DashboardChartsDto> GetChartsAsync();
     Task<List<TrendPointDto>> GetSalesTrendAsync(string period);
     Task<SalesVsPurchasesDto> GetSalesVsPurchasesAsync(string period);
+    Task<List<TrendPointDto>> GetCashTrendAsync();
+    Task<List<TrendPointDto>> GetProfitTrendAsync(bool includeProfit);
 }
 
 public class DashboardService(IDashboardRepository repository, IProfitRepository profitRepository) : IDashboardService
@@ -65,5 +67,27 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
         await Task.WhenAll(salesTask, purchasesTask);
 
         return new SalesVsPurchasesDto { Sales = await salesTask, Purchases = await purchasesTask };
+    }
+
+    public Task<List<TrendPointDto>> GetCashTrendAsync() => repository.GetCashTrendAsync();
+
+    /// <summary>Last 7 calendar days of aggregate profit, zero-filled for days with no activity.
+    /// Returns an empty list for non-admin/accountant callers so profit figures never reach them.</summary>
+    public async Task<List<TrendPointDto>> GetProfitTrendAsync(bool includeProfit)
+    {
+        if (!includeProfit)
+        {
+            return [];
+        }
+
+        var today = DateTime.UtcNow.Date;
+        var fromDate = today.AddDays(-6);
+        var rows = await profitRepository.GetShopDailyProfitAsync(null, fromDate, today);
+        var byDate = rows.ToDictionary(r => r.Date.Date, r => r.Profit);
+
+        return Enumerable.Range(0, 7)
+            .Select(i => fromDate.AddDays(i))
+            .Select(d => new TrendPointDto { Label = d.ToString("ddd"), Amount = byDate.GetValueOrDefault(d) })
+            .ToList();
     }
 }

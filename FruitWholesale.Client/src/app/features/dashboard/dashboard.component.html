@@ -1,8 +1,7 @@
 <div class="dashboard-header">
   <div>
     <span class="eyebrow">Live business snapshot</span>
-    <h1>Operations overview</h1>
-    <p class="dashboard-subtitle">A clear view of your cash, sales, and collections for today.</p>
+    <h1>{{ today | date: 'EEEE, d MMMM y' }}</h1>
   </div>
   <div class="header-status"><span></span> All systems operational</div>
 </div>
@@ -11,81 +10,157 @@
   <div class="loading-state">
     <mat-spinner diameter="40" />
   </div>
-} @else {
-  <div class="cards-grid">
-    @for (card of cards(); track card.label) {
-      <mat-card class="summary-card" [class.summary-card--emphasis]="card.emphasis" [class]="'summary-card summary-card--' + card.tone">
-        <div class="card-icon"><mat-icon>{{ card.icon }}</mat-icon></div>
-        <span class="card-label">{{ card.label }}</span>
-        <span class="card-value">{{ card.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+} @else if (summary(); as s) {
+  <div class="hero-grid">
+    <mat-card class="hero-card hero-card--cash">
+      <div class="hero-card-top">
+        <div>
+          <span class="hero-kicker">Cash balance</span>
+          <span class="hero-value">{{ s.currentCashBalance | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+        </div>
+        <mat-icon>account_balance_wallet</mat-icon>
+      </div>
+      <div class="hero-inout">
+        <span class="in">+{{ s.todayCollection | currency: 'INR' : 'symbol' : '1.0-0' }} in</span>
+        <span class="out">−{{ s.todayPurchases + s.todayExpenses | currency: 'INR' : 'symbol' : '1.0-0' }} out</span>
+      </div>
+      <div class="hero-sparkline">
+        <app-chart type="line" [data]="cashSparklineData()" [options]="sparklineOptions" />
+      </div>
+    </mat-card>
+
+    <mat-card class="hero-card">
+      <div class="hero-card-top">
+        <span class="hero-kicker hero-kicker--amber">Customer outstanding</span>
+        <mat-icon class="hero-icon hero-icon--amber">storefront</mat-icon>
+      </div>
+      <span class="hero-value hero-value--dark">{{ s.customerOutstanding | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+      <span class="hero-sub">{{ shopsWithBalanceCount() }} {{ shopsWithBalanceCount() === 1 ? 'shop' : 'shops' }} with a balance</span>
+      <span class="hero-spacer"></span>
+      <div class="hero-progress">
+        <span class="hero-progress-fill" [style.width.%]="customerAtRiskPercent()"></span>
+      </div>
+      @if (overLimitAmount() > 0) {
+        <div class="hero-alert">
+          <mat-icon>error_outline</mat-icon>
+          {{ overLimitAmount() | currency: 'INR' : 'symbol' : '1.0-0' }} over credit limit · {{ overLimitShopCount() }} shops
+        </div>
+      }
+    </mat-card>
+
+    <mat-card class="hero-card">
+      <div class="hero-card-top">
+        <span class="hero-kicker hero-kicker--slate">Supplier outstanding</span>
+        <mat-icon class="hero-icon hero-icon--slate">local_shipping</mat-icon>
+      </div>
+      <span class="hero-value hero-value--dark">{{ s.supplierOutstanding | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+      <span class="hero-sub">{{ supplierCount() }} {{ supplierCount() === 1 ? 'supplier' : 'suppliers' }}</span>
+      <span class="hero-spacer"></span>
+      <div class="hero-payables">
+        @for (p of payables(); track p.name) {
+          <div class="hero-payables-row">
+            <span class="name">{{ p.name }}</span>
+            <span class="amount">{{ p.amount | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+          </div>
+        } @empty {
+          <span class="muted">No outstanding balances.</span>
+        }
+      </div>
+    </mat-card>
+
+    @if (isBackOffice() && s.totalProfit !== null) {
+      <mat-card class="hero-card">
+        <div class="hero-card-top">
+          <span class="hero-kicker hero-kicker--green">Today's profit</span>
+          <mat-icon class="hero-icon hero-icon--green">trending_up</mat-icon>
+        </div>
+        <span class="hero-value hero-value--green">{{ s.todayProfit ?? 0 | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+        @if (todayMarginPercent(); as margin) {
+          <span class="hero-sub">{{ margin | number: '1.1-1' }}% margin</span>
+        }
+        <span class="hero-spacer"></span>
+        <div class="hero-sparkline">
+          <app-chart type="line" [data]="profitSparklineData()" [options]="sparklineOptions" />
+        </div>
       </mat-card>
+
+      <mat-card class="hero-card">
+        <div class="hero-card-top">
+          <span class="hero-kicker">Total profit</span>
+          <span class="hero-admin-badge">ADMIN</span>
+        </div>
+        <span class="hero-value hero-value--dark">{{ s.totalProfit | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+        <span class="hero-sub">All time</span>
+        <span class="hero-spacer"></span>
+        <div class="hero-footnote">
+          <span>Net business worth</span>
+          <strong>{{ s.netBusinessWorth | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+        </div>
+      </mat-card>
+    } @else {
+      <mat-card class="hero-card">
+        <div class="hero-card-top">
+          <span class="hero-kicker hero-kicker--green">Net business worth</span>
+          <mat-icon class="hero-icon hero-icon--green">trending_up</mat-icon>
+        </div>
+        <span class="hero-value hero-value--green">{{ s.netBusinessWorth | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+        <span class="hero-sub">Cash + receivables − payables</span>
+      </mat-card>
+    }
+  </div>
+
+  <div class="today-strip">
+    <div class="today-strip-label">
+      <span class="kicker">Today</span>
+      <span class="date">{{ today | date: 'd MMM' }}</span>
+    </div>
+    @for (tile of todayStrip(); track tile.label) {
+      <div class="today-strip-tile">
+        <span class="tile-label">{{ tile.label }}</span>
+        <span class="tile-value">{{ tile.value | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+      </div>
     }
   </div>
 
   <div class="dashboard-main-grid">
     <div class="main-col">
-      <div class="trend-row">
-        <mat-card class="chart-card chart-card--large">
-          <div class="card-heading">
-            <div><span class="card-kicker">Revenue</span><h3>Sales Overview</h3></div>
-            <select
-              class="period-select"
-              [ngModel]="salesPeriod()"
-              (ngModelChange)="salesPeriod.set($event); onSalesPeriodChange()"
-              aria-label="Sales Overview period"
-            >
-              @for (period of periodOptions; track period) {
-                <option [value]="period">{{ periodLabel(period) }}</option>
-              }
-            </select>
-          </div>
-          <div class="chart-holder">
-            @if (salesTrendLoading()) {
-              <div class="chart-loading"><mat-spinner diameter="28" /></div>
-            } @else {
-              <app-chart type="line" [data]="salesChartData()" />
+      <mat-card class="chart-card">
+        <div class="card-heading">
+          <div><span class="card-kicker">Cash flow</span><h3>Sales, Purchases &amp; Margin</h3></div>
+          <select
+            class="period-select"
+            [ngModel]="svpPeriod()"
+            (ngModelChange)="svpPeriod.set($event); onSvpPeriodChange()"
+            aria-label="Sales, Purchases and Margin period"
+          >
+            @for (period of periodOptions; track period) {
+              <option [value]="period">{{ periodLabel(period) }}</option>
             }
-          </div>
-        </mat-card>
-
-        <mat-card class="chart-card chart-card--large">
-          <div class="card-heading">
-            <div><span class="card-kicker">Cash flow</span><h3>Sales vs Purchases</h3></div>
-            <select
-              class="period-select"
-              [ngModel]="svpPeriod()"
-              (ngModelChange)="svpPeriod.set($event); onSvpPeriodChange()"
-              aria-label="Sales vs Purchases period"
-            >
-              @for (period of periodOptions; track period) {
-                <option [value]="period">{{ periodLabel(period) }}</option>
-              }
-            </select>
-          </div>
-          <div class="chart-holder">
-            @if (svpLoading()) {
-              <div class="chart-loading"><mat-spinner diameter="28" /></div>
-            } @else {
-              <app-chart type="bar" [data]="salesVsPurchasesChartData()" />
-            }
-          </div>
-        </mat-card>
-      </div>
+          </select>
+        </div>
+        <div class="chart-holder">
+          @if (svpLoading()) {
+            <div class="chart-loading"><mat-spinner diameter="28" /></div>
+          } @else {
+            <app-chart type="bar" [data]="salesVsPurchasesMarginData()" />
+          }
+        </div>
+        <div class="period-totals">
+          <div><span class="tile-label">Sales</span><span class="tile-value">{{ periodTotals().sales | currency: 'INR' : 'symbol' : '1.0-0' }}</span></div>
+          <div><span class="tile-label">Purchases</span><span class="tile-value">{{ periodTotals().purchases | currency: 'INR' : 'symbol' : '1.0-0' }}</span></div>
+          <div><span class="tile-label">Margin</span><span class="tile-value tile-value--green">{{ periodTotals().margin | currency: 'INR' : 'symbol' : '1.0-0' }}</span></div>
+        </div>
+      </mat-card>
 
       <mat-card class="chart-card list-card">
         <div class="card-heading">
-          <div><span class="card-kicker">Inventory</span><h3>Stock products</h3></div>
+          <div><span class="card-kicker">Inventory</span><h3>Stock needing attention</h3></div>
           <a routerLink="/stock" class="view-all-link">View all</a>
         </div>
         <div class="stock-table">
           @if (stockLoading()) {
             <div class="chart-loading"><mat-spinner diameter="28" /></div>
           } @else {
-            <div class="stock-table-header">
-              <span>Product</span>
-              <span>Stock Level</span>
-              <span>In Stock</span>
-            </div>
             @for (item of lowStockItems(); track item.fruitID) {
               <div class="stock-row">
                 <span class="stock-row-name">{{ item.fruitName }}</span>
@@ -108,39 +183,61 @@
     </div>
 
     <div class="side-col">
+      @if (isBackOffice() && s.totalProfit !== null) {
+        <mat-card class="chart-card">
+          <div class="card-heading">
+            <div><span class="card-kicker">Profit</span><h3>Today</h3></div>
+            <span class="hero-admin-badge">ADMIN</span>
+          </div>
+          <div class="profit-stat-row">
+            <div><span class="tile-label">Today</span><span class="profit-figure">{{ s.todayProfit ?? 0 | currency: 'INR' : 'symbol' : '1.0-0' }}</span></div>
+            @if (todayMarginPercent(); as margin) {
+              <div><span class="tile-label">Margin</span><span class="profit-figure profit-figure--dark">{{ margin | number: '1.1-1' }}%</span></div>
+            }
+          </div>
+          <div class="hero-sparkline hero-sparkline--tall">
+            <app-chart type="line" [data]="profitSparklineData()" [options]="sparklineOptions" />
+          </div>
+          <div class="hero-footnote">
+            <span>All-time</span>
+            <strong>{{ s.totalProfit | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+          </div>
+        </mat-card>
+      }
+
       <mat-card class="chart-card">
-        <div class="card-heading"><div><span class="card-kicker">Spending</span><h3>Expenses by category</h3></div></div>
+        <div class="card-heading"><div><span class="card-kicker">Spending</span><h3>Where the money went</h3></div></div>
         <div class="chart-holder chart-holder--small">
           <app-chart type="doughnut" [data]="expensesChartData()" />
         </div>
       </mat-card>
 
       <mat-card class="chart-card list-card">
-        <div class="card-heading"><div><span class="card-kicker">Demand</span><h3>Top selling fruits</h3></div><mat-icon class="heading-icon">arrow_outward</mat-icon></div>
-        <div class="list-holder">
-          @for (fruit of topFruits(); track fruit.fruitName) {
-            <div class="ranked-row">
-              <span class="ranked-row-avatar">{{ fruit.fruitName.charAt(0) }}</span>
-              <span class="ranked-row-label">{{ fruit.fruitName }}</span>
-              <strong>{{ fruit.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
-            </div>
-          } @empty {
-            <p class="muted">No sales recorded yet.</p>
-          }
+        <div class="card-heading">
+          <div><span class="card-kicker">Cash ledger</span><h3>Today's cash entries</h3></div>
+          <a routerLink="/ledgers/cash" class="view-all-link">Cash ledger →</a>
         </div>
-      </mat-card>
-
-      <mat-card class="chart-card list-card">
-        <div class="card-heading"><div><span class="card-kicker">Relationships</span><h3>Top customers</h3></div><mat-icon class="heading-icon">arrow_outward</mat-icon></div>
-        <div class="list-holder">
-          @for (customer of topCustomers(); track customer.shopName) {
-            <div class="ranked-row">
-              <span class="ranked-row-avatar">{{ customer.shopName.charAt(0) }}</span>
-              <span class="ranked-row-label">{{ customer.shopName }}</span>
-              <strong>{{ customer.totalAmount | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
-            </div>
-          } @empty {
-            <p class="muted">No sales recorded yet.</p>
+        <div class="cash-tape">
+          @if (cashTapeLoading()) {
+            <div class="chart-loading"><mat-spinner diameter="28" /></div>
+          } @else {
+            @for (c of cashTape(); track c.time + c.label + c.amount) {
+              <div class="cash-tape-row">
+                <span class="time">{{ c.time }}</span>
+                <span class="detail">
+                  <span class="label">{{ c.label }}</span>
+                  <span class="note">{{ c.note }}</span>
+                </span>
+                <span class="amounts">
+                  <span class="amount" [class.amount--in]="c.isIn" [class.amount--out]="!c.isIn"
+                    >{{ c.isIn ? '+' : '−' }}{{ c.amount | currency: 'INR' : 'symbol' : '1.0-0' }}</span
+                  >
+                  <span class="balance">{{ c.balance | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+                </span>
+              </div>
+            } @empty {
+              <p class="muted">No cash movement recorded today.</p>
+            }
           }
         </div>
       </mat-card>

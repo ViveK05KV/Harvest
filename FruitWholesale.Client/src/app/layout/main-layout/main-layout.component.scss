@@ -89,6 +89,8 @@
     border-radius: 10px;
     margin: 2px 12px;
     height: 44px;
+    width: calc(100% - 24px);
+    box-sizing: border-box;
   }
 
   // Explicit selectors are needed in addition to MDC tokens: the list item

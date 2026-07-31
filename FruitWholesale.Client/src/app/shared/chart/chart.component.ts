@@ -39,7 +39,10 @@ Chart.register(
   selector: 'app-chart',
   standalone: true,
   template: `<canvas #canvas></canvas>`,
-  styles: [`:host { display: block; position: relative; height: 100%; width: 100%; }`]
+  styles: [`
+    :host { display: block; position: relative; height: 100%; width: 100%; min-width: 0; }
+    canvas { max-width: 100%; }
+  `]
 })
 export class ChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) type!: ChartType;

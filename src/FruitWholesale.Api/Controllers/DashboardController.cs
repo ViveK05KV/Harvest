@@ -23,4 +23,11 @@ public class DashboardController(IDashboardService service) : ApiControllerBase
     [HttpGet("sales-vs-purchases")]
     public async Task<ActionResult<SalesVsPurchasesDto>> GetSalesVsPurchases([FromQuery] string period = DashboardPeriods.ThisWeek) =>
         Ok(await service.GetSalesVsPurchasesAsync(period));
+
+    [HttpGet("cash-trend")]
+    public async Task<ActionResult<List<TrendPointDto>>> GetCashTrend() => Ok(await service.GetCashTrendAsync());
+
+    [HttpGet("profit-trend")]
+    public async Task<ActionResult<List<TrendPointDto>>> GetProfitTrend() =>
+        Ok(await service.GetProfitTrendAsync(User.IsInRole(UserRoles.Admin) || User.IsInRole(UserRoles.Accountant)));
 }
