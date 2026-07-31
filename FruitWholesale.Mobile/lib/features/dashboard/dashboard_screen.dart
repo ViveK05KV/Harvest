@@ -138,8 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ('Customer Outstanding', summary.customerOutstanding, Icons.storefront),
       ('Supplier Outstanding', summary.supplierOutstanding, Icons.local_shipping),
       ('Net Business Worth', summary.netBusinessWorth, Icons.trending_up),
-      // Admin/Accountant-only: API leaves these null for other roles.
-      if (summary.totalProfit != null) ("Today's Profit", summary.todayProfit ?? 0, Icons.trending_up),
+      // Admin/Accountant-only: API leaves this null for other roles.
       if (summary.totalProfit != null) ('Total Profit', summary.totalProfit!, Icons.savings),
     ];
 
