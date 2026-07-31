@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
@@ -29,7 +29,8 @@ import { Employee, SaveEmployee } from '../../core/models/master-data.model';
     MatTooltipModule,
     MatProgressBarModule
   ],
-  templateUrl: './employee-list.component.html'
+  templateUrl: './employee-list.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EmployeeListComponent extends MasterListBase<Employee, SaveEmployee> {
   readonly displayedColumns = ['fullName', 'phone', 'address', 'isActive', 'actions'];

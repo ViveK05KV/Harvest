@@ -22,3 +22,4 @@
 # 12_WidenCompanyLogoColumn.sql
 
 14_AddShopSupplierLink.sql
+15_OptimizationIndexes.sql

@@ -81,8 +81,10 @@ class _ShopReturnFormScreenState extends State<ShopReturnFormScreen> {
       _error = null;
     });
     try {
-      final shops = await _lookupService.getActiveShops();
-      final fruits = await _lookupService.getActiveFruits();
+      final shopsFuture = _lookupService.getActiveShops();
+      final fruitsFuture = _lookupService.getActiveFruits();
+      final shops = await shopsFuture;
+      final fruits = await fruitsFuture;
 
       if (widget.isEditing) {
         final detail = await _shopReturnService.getById(widget.shopReturnId!);

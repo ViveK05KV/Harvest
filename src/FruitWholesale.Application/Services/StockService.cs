@@ -22,8 +22,12 @@ public class StockService(
 {
     public async Task<List<CurrentStockDto>> GetCurrentStockAsync()
     {
-        var fruits = await fruitRepository.GetAllActiveAsync();
-        var stockByFruit = await ledgerService.GetCurrentStockForAllFruitsAsync();
+        var fruitsTask = fruitRepository.GetAllActiveAsync();
+        var stockByFruitTask = ledgerService.GetCurrentStockForAllFruitsAsync();
+        await Task.WhenAll(fruitsTask, stockByFruitTask);
+
+        var fruits = await fruitsTask;
+        var stockByFruit = await stockByFruitTask;
 
         return fruits.Select(f => new CurrentStockDto
         {

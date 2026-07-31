@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
@@ -31,7 +31,8 @@ import { RouteMaster, SaveRouteMaster } from '../../core/models/master-data.mode
     MatProgressBarModule,
     MatChipsModule
   ],
-  templateUrl: './route-master-list.component.html'
+  templateUrl: './route-master-list.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteMasterListComponent extends MasterListBase<RouteMaster, SaveRouteMaster> {
   readonly displayedColumns = ['routeName', 'description', 'shopCount', 'isActive', 'actions'];

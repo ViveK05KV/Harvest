@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -34,7 +34,8 @@ import { ExportService } from '../../core/services/export.service';
     MatProgressBarModule,
     MatMenuModule
   ],
-  templateUrl: './supplier-master-list.component.html'
+  templateUrl: './supplier-master-list.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SupplierMasterListComponent extends MasterListBase<SupplierMaster, SaveSupplierMaster> {
   private readonly exportService = inject(ExportService);

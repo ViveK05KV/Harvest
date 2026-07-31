@@ -80,8 +80,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       _error = null;
     });
     try {
-      final suppliers = await _lookupService.getActiveSuppliers();
-      final fruits = await _lookupService.getActiveFruits();
+      final suppliersFuture = _lookupService.getActiveSuppliers();
+      final fruitsFuture = _lookupService.getActiveFruits();
+      final suppliers = await suppliersFuture;
+      final fruits = await fruitsFuture;
 
       if (widget.isEditing) {
         final detail = await _purchaseService.getById(widget.purchaseId!);

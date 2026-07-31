@@ -85,10 +85,12 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
                 INSERT INTO dbo.ShopReturnItems (ShopReturnID, FruitID, Quantity, UnitPrice, TotalAmount, CostBasis)
                 VALUES (@ShopReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @CostBasis);
                 """;
+            var costBasisByFruit = await ResolveReturnCostBasisBatchAsync(
+                connection, transaction, shopReturn.Items.Select(i => i.FruitID).Distinct(), shopReturn.SupplyID);
             foreach (var item in shopReturn.Items)
             {
                 item.ShopReturnID = shopReturnId;
-                item.CostBasis = await ResolveReturnCostBasisAsync(connection, transaction, item.FruitID, shopReturn.SupplyID);
+                item.CostBasis = costBasisByFruit.GetValueOrDefault(item.FruitID);
                 await connection.ExecuteAsync(insertItemSql, item, transaction);
             }
 
@@ -145,10 +147,12 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
                 INSERT INTO dbo.ShopReturnItems (ShopReturnID, FruitID, Quantity, UnitPrice, TotalAmount, CostBasis)
                 VALUES (@ShopReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @CostBasis);
                 """;
+            var costBasisByFruit = await ResolveReturnCostBasisBatchAsync(
+                connection, transaction, shopReturn.Items.Select(i => i.FruitID).Distinct(), shopReturn.SupplyID);
             foreach (var item in shopReturn.Items)
             {
                 item.ShopReturnID = shopReturn.ShopReturnID;
-                item.CostBasis = await ResolveReturnCostBasisAsync(connection, transaction, item.FruitID, shopReturn.SupplyID);
+                item.CostBasis = costBasisByFruit.GetValueOrDefault(item.FruitID);
                 await connection.ExecuteAsync(insertItemSql, item, transaction);
             }
 
@@ -235,22 +239,30 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
     }
 
     /// <summary>
-    /// Cost this returned stock re-enters inventory at: the original sale's
-    /// recorded CostBasis when the return is linked to a specific Supply
-    /// invoice and that fruit was actually on it, otherwise the fruit's
-    /// current average cost as the best available estimate.
+    /// Cost this returned stock re-enters inventory at, resolved for every
+    /// distinct fruit on the return in two batched queries instead of one
+    /// (or two) round trips per line item: the original sale's recorded
+    /// CostBasis when the return is linked to a specific Supply invoice and
+    /// that fruit was actually on it, otherwise the fruit's current average
+    /// cost as the best available estimate.
     /// </summary>
-    private static async Task<decimal> ResolveReturnCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId, int? supplyId)
+    private static async Task<Dictionary<int, decimal>> ResolveReturnCostBasisBatchAsync(
+        IDbConnection connection, IDbTransaction transaction, IEnumerable<int> fruitIds, int? supplyId)
     {
-        if (supplyId.HasValue)
-        {
-            var linkedCostBasis = await connection.ExecuteScalarAsync<decimal?>(
-                "SELECT TOP 1 CostBasis FROM dbo.SupplyItems WHERE SupplyID = @SupplyID AND FruitID = @FruitID",
-                new { SupplyID = supplyId, FruitID = fruitId }, transaction);
-            if (linkedCostBasis.HasValue) return linkedCostBasis.Value;
-        }
+        var fruitIdList = fruitIds.ToList();
+        var linked = supplyId.HasValue
+            ? (await connection.QueryAsync<(int FruitID, decimal CostBasis)>(
+                "SELECT FruitID, CostBasis FROM dbo.SupplyItems WHERE SupplyID = @SupplyID AND FruitID IN @FruitIds",
+                new { SupplyID = supplyId, FruitIds = fruitIdList }, transaction)).ToDictionary(r => r.FruitID, r => r.CostBasis)
+            : [];
 
-        return await connection.ExecuteScalarAsync<decimal?>(
-            "SELECT AverageCost FROM dbo.FruitCostBasis WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction) ?? 0m;
+        var unresolved = fruitIdList.Where(id => !linked.ContainsKey(id)).ToList();
+        var averageCost = unresolved.Count == 0
+            ? []
+            : (await connection.QueryAsync<(int FruitID, decimal AverageCost)>(
+                "SELECT FruitID, AverageCost FROM dbo.FruitCostBasis WHERE FruitID IN @FruitIds",
+                new { FruitIds = unresolved }, transaction)).ToDictionary(r => r.FruitID, r => r.AverageCost);
+
+        return fruitIdList.ToDictionary(id => id, id => linked.TryGetValue(id, out var lcb) ? lcb : averageCost.GetValueOrDefault(id));
     }
 }

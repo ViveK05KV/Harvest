@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
@@ -32,7 +32,8 @@ import { ExportService } from '../../core/services/export.service';
     MatProgressBarModule,
     MatMenuModule
   ],
-  templateUrl: './fruit-master-list.component.html'
+  templateUrl: './fruit-master-list.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FruitMasterListComponent extends MasterListBase<FruitMaster, SaveFruitMaster> {
   private readonly exportService = inject(ExportService);

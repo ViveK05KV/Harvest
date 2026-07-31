@@ -63,8 +63,10 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
       _error = null;
     });
     try {
-      final employees = await _lookupService.getActiveEmployees();
-      final routes = await _lookupService.getActiveRoutes();
+      final employeesFuture = _lookupService.getActiveEmployees();
+      final routesFuture = _lookupService.getActiveRoutes();
+      final employees = await employeesFuture;
+      final routes = await routesFuture;
 
       if (widget.isEditing) {
         final log = await _logService.getById(widget.logId!);

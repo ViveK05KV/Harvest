@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
@@ -29,7 +29,8 @@ import { ExpenseCategory, SaveExpenseCategory } from '../../core/models/master-d
     MatTooltipModule,
     MatProgressBarModule
   ],
-  templateUrl: './expense-category-list.component.html'
+  templateUrl: './expense-category-list.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExpenseCategoryListComponent extends MasterListBase<ExpenseCategory, SaveExpenseCategory> {
   readonly displayedColumns = ['categoryName', 'description', 'isActive', 'actions'];

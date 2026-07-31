@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,8 @@ const LOW_STOCK_THRESHOLD = 10;
   selector: 'app-stock',
   standalone: true,
   imports: [MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressBarModule, MatChipsModule],
-  templateUrl: './stock.component.html'
+  templateUrl: './stock.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StockComponent implements OnInit {
   private readonly stockService = inject(StockService);

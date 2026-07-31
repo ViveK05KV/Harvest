@@ -81,8 +81,10 @@ class _SupplierReturnFormScreenState extends State<SupplierReturnFormScreen> {
       _error = null;
     });
     try {
-      final suppliers = await _lookupService.getActiveSuppliers();
-      final fruits = await _lookupService.getActiveFruits();
+      final suppliersFuture = _lookupService.getActiveSuppliers();
+      final fruitsFuture = _lookupService.getActiveFruits();
+      final suppliers = await suppliersFuture;
+      final fruits = await fruitsFuture;
 
       if (widget.isEditing) {
         final detail = await _supplierReturnService.getById(widget.supplierReturnId!);

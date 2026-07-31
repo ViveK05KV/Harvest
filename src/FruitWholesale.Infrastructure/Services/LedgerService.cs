@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Domain.Entities;
@@ -379,19 +380,11 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             }
         }
 
-        foreach (var (supplyItemId, costBasis) in supplyCostBasis)
-        {
-            await connection.ExecuteAsync(
-                "UPDATE dbo.SupplyItems SET CostBasis = @CostBasis WHERE SupplyItemID = @SupplyItemID",
-                new { CostBasis = costBasis, SupplyItemID = supplyItemId }, transaction);
-        }
-
-        foreach (var (supplierReturnItemId, costBasis) in supplierReturnCostBasis)
-        {
-            await connection.ExecuteAsync(
-                "UPDATE dbo.SupplierReturnItems SET CostBasis = @CostBasis WHERE SupplierReturnItemID = @SupplierReturnItemID",
-                new { CostBasis = costBasis, SupplierReturnItemID = supplierReturnItemId }, transaction);
-        }
+        // Batched as a single set-based UPDATE per table (via OPENJSON) instead of one
+        // round trip per changed row — a fruit's full transaction history can be large,
+        // and this recalculation runs on every Purchase/Supply/Return write.
+        await BatchUpdateCostBasisAsync(connection, transaction, "dbo.SupplyItems", "SupplyItemID", supplyCostBasis);
+        await BatchUpdateCostBasisAsync(connection, transaction, "dbo.SupplierReturnItems", "SupplierReturnItemID", supplierReturnCostBasis);
 
         const string upsertSql = """
             UPDATE dbo.FruitCostBasis SET QuantityOnHand = @QuantityOnHand, AverageCost = @AverageCost, UpdatedAt = SYSUTCDATETIME()
@@ -402,6 +395,29 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
                 VALUES (@FruitID, @QuantityOnHand, @AverageCost, SYSUTCDATETIME());
             """;
         await connection.ExecuteAsync(upsertSql, new { FruitID = fruitId, QuantityOnHand = quantityOnHand, AverageCost = averageCost }, transaction);
+    }
+
+    /// <summary>
+    /// Applies a {ItemID -&gt; CostBasis} map to a table in one round trip via OPENJSON,
+    /// instead of one UPDATE per row. table/idColumn are always call-site literals
+    /// (never user input), so interpolating them into the SQL text here is safe.
+    /// </summary>
+    private static async Task BatchUpdateCostBasisAsync(
+        IDbConnection connection, IDbTransaction transaction, string table, string idColumn, IReadOnlyDictionary<int, decimal> costBasisByItemId)
+    {
+        if (costBasisByItemId.Count == 0)
+        {
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(costBasisByItemId.Select(kvp => new { ItemID = kvp.Key, CostBasis = kvp.Value }));
+        var sql = $"""
+            UPDATE t SET t.CostBasis = j.CostBasis
+            FROM {table} t
+            INNER JOIN OPENJSON(@Json) WITH (ItemID INT '$.ItemID', CostBasis DECIMAL(18,4) '$.CostBasis') j
+                ON j.ItemID = t.{idColumn};
+            """;
+        await connection.ExecuteAsync(sql, new { Json = json }, transaction);
     }
 
     private sealed class CostBasisEvent

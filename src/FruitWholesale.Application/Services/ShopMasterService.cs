@@ -37,8 +37,13 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
     {
         var shop = await repository.GetByIdAsync(shopId) ?? throw new NotFoundException(nameof(ShopMaster), shopId);
         var dto = mapper.Map<ShopMasterDto>(shop);
-        dto.CurrentOutstanding = await ledgerService.GetShopOutstandingAsync(shopId);
-        dto.NetBalance = dto.CurrentOutstanding - await GetLinkedSupplierOutstandingAsync(shop.LinkedSupplierID);
+
+        var outstandingTask = ledgerService.GetShopOutstandingAsync(shopId);
+        var linkedOutstandingTask = GetLinkedSupplierOutstandingAsync(shop.LinkedSupplierID);
+        await Task.WhenAll(outstandingTask, linkedOutstandingTask);
+
+        dto.CurrentOutstanding = await outstandingTask;
+        dto.NetBalance = dto.CurrentOutstanding - await linkedOutstandingTask;
         return dto;
     }
 

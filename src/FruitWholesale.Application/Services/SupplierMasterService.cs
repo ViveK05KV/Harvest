@@ -37,8 +37,13 @@ public class SupplierMasterService(ISupplierMasterRepository repository, ILedger
     {
         var supplier = await repository.GetByIdAsync(supplierId) ?? throw new NotFoundException(nameof(SupplierMaster), supplierId);
         var dto = mapper.Map<SupplierMasterDto>(supplier);
-        dto.CurrentOutstanding = await ledgerService.GetSupplierOutstandingAsync(supplierId);
-        dto.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - dto.CurrentOutstanding;
+
+        var outstandingTask = ledgerService.GetSupplierOutstandingAsync(supplierId);
+        var linkedOutstandingTask = GetLinkedShopOutstandingAsync(supplier.LinkedShopID);
+        await Task.WhenAll(outstandingTask, linkedOutstandingTask);
+
+        dto.CurrentOutstanding = await outstandingTask;
+        dto.NetBalance = await linkedOutstandingTask - dto.CurrentOutstanding;
         return dto;
     }
 

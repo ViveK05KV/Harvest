@@ -11,7 +11,7 @@ GO
 DROP INDEX IF EXISTS IX_Supply_ShopID_SupplyDate ON dbo.Supply;
 CREATE NONCLUSTERED INDEX IX_Supply_ShopID_SupplyDate ON dbo.Supply (ShopID, SupplyDate DESC) INCLUDE (TotalAmount);
 DROP INDEX IF EXISTS IX_Supply_SupplyDate ON dbo.Supply;
-CREATE NONCLUSTERED INDEX IX_Supply_SupplyDate ON dbo.Supply (SupplyDate DESC);
+CREATE NONCLUSTERED INDEX IX_Supply_SupplyDate ON dbo.Supply (SupplyDate DESC) INCLUDE (TotalAmount);
 DROP INDEX IF EXISTS IX_SupplyItems_SupplyID ON dbo.SupplyItems;
 CREATE NONCLUSTERED INDEX IX_SupplyItems_SupplyID ON dbo.SupplyItems (SupplyID) INCLUDE (FruitID, Quantity, TotalAmount, CostBasis);
 DROP INDEX IF EXISTS IX_SupplyItems_FruitID ON dbo.SupplyItems;
@@ -21,7 +21,7 @@ CREATE NONCLUSTERED INDEX IX_SupplyItems_FruitID ON dbo.SupplyItems (FruitID) IN
 DROP INDEX IF EXISTS IX_Purchase_SupplierID_PurchaseDate ON dbo.Purchase;
 CREATE NONCLUSTERED INDEX IX_Purchase_SupplierID_PurchaseDate ON dbo.Purchase (SupplierID, PurchaseDate DESC) INCLUDE (TotalAmount);
 DROP INDEX IF EXISTS IX_Purchase_PurchaseDate ON dbo.Purchase;
-CREATE NONCLUSTERED INDEX IX_Purchase_PurchaseDate ON dbo.Purchase (PurchaseDate DESC);
+CREATE NONCLUSTERED INDEX IX_Purchase_PurchaseDate ON dbo.Purchase (PurchaseDate DESC) INCLUDE (TotalAmount);
 DROP INDEX IF EXISTS IX_PurchaseItems_PurchaseID ON dbo.PurchaseItems;
 CREATE NONCLUSTERED INDEX IX_PurchaseItems_PurchaseID ON dbo.PurchaseItems (PurchaseID);
 DROP INDEX IF EXISTS IX_PurchaseItems_FruitID ON dbo.PurchaseItems;
@@ -31,7 +31,7 @@ CREATE NONCLUSTERED INDEX IX_PurchaseItems_FruitID ON dbo.PurchaseItems (FruitID
 DROP INDEX IF EXISTS IX_Collections_ShopID_CollectionDate ON dbo.Collections;
 CREATE NONCLUSTERED INDEX IX_Collections_ShopID_CollectionDate ON dbo.Collections (ShopID, CollectionDate DESC);
 DROP INDEX IF EXISTS IX_Collections_CollectionDate ON dbo.Collections;
-CREATE NONCLUSTERED INDEX IX_Collections_CollectionDate ON dbo.Collections (CollectionDate DESC);
+CREATE NONCLUSTERED INDEX IX_Collections_CollectionDate ON dbo.Collections (CollectionDate DESC) INCLUDE (AmountReceived);
 
 -- SupplierPayments
 DROP INDEX IF EXISTS IX_SupplierPayments_SupplierID_PaymentDate ON dbo.SupplierPayments;

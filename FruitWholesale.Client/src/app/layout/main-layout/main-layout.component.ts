@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -131,7 +132,7 @@ export class MainLayoutComponent {
   ];
 
   constructor() {
-    this.breakpointObserver.observe(Breakpoints.Handset).subscribe((result) => {
+    this.breakpointObserver.observe(Breakpoints.Handset).pipe(takeUntilDestroyed()).subscribe((result) => {
       this.isHandset.set(result.matches);
       this.sidenavOpened.set(!result.matches);
     });
