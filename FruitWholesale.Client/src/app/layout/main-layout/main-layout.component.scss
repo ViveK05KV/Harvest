@@ -128,6 +128,7 @@
   background: var(--app-page-bg);
   box-shadow: none;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
+  gap: 4px;
 }
 
 .toolbar-greeting {
@@ -144,6 +145,7 @@
 .create-sale-btn {
   margin-right: 8px;
   border-radius: 10px;
+  flex-shrink: 0;
 
   mat-icon {
     margin-right: 4px;
@@ -187,5 +189,36 @@
 @media (max-width: 599px) {
   .app-content {
     padding: 12px;
+  }
+
+  .app-toolbar {
+    padding: 0 8px;
+  }
+
+  .toolbar-greeting {
+    display: none;
+  }
+
+  .create-sale-btn {
+    min-width: 0;
+    padding: 0 10px;
+    margin-right: 0;
+
+    mat-icon {
+      margin-right: 0;
+    }
+  }
+
+  .create-sale-label {
+    display: none;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .user-menu-btn {
+    min-width: 0;
+    padding: 0 4px;
   }
 }

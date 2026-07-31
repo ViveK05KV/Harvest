@@ -71,21 +71,6 @@
     @if (isBackOffice() && s.totalProfit !== null) {
       <mat-card class="hero-card">
         <div class="hero-card-top">
-          <span class="hero-kicker hero-kicker--green">Today's profit</span>
-          <mat-icon class="hero-icon hero-icon--green">trending_up</mat-icon>
-        </div>
-        <span class="hero-value hero-value--green">{{ s.todayProfit ?? 0 | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
-        @if (todayMarginPercent(); as margin) {
-          <span class="hero-sub">{{ margin | number: '1.1-1' }}% margin</span>
-        }
-        <span class="hero-spacer"></span>
-        <div class="hero-sparkline">
-          <app-chart type="line" [data]="profitSparklineData()" [options]="sparklineOptions" />
-        </div>
-      </mat-card>
-
-      <mat-card class="hero-card">
-        <div class="hero-card-top">
           <span class="hero-kicker">Total profit</span>
           <span class="hero-admin-badge">ADMIN</span>
         </div>
@@ -186,7 +171,7 @@
       @if (isBackOffice() && s.totalProfit !== null) {
         <mat-card class="chart-card">
           <div class="card-heading">
-            <div><span class="card-kicker">Profit</span><h3>Today</h3></div>
+            <div><span class="card-kicker">Profit</span><h3>Snapshot</h3></div>
             <span class="hero-admin-badge">ADMIN</span>
           </div>
           <div class="profit-stat-row">

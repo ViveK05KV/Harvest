@@ -309,3 +309,13 @@ table.mat-mdc-table {
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
+
+@media (max-width: 599px) {
+  .header-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .remarks-field {
+    grid-column: span 1 !important;
+  }
+}
