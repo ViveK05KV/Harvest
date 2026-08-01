@@ -17,11 +17,19 @@ class LedgerService {
     return PaginatedList.fromJson(json as Map<String, dynamic>, LedgerEntry.fromJson);
   }
 
-  Future<PaginatedList<CashLedgerEntry>> getCashLedger({int pageNumber = 1, String? transactionType}) async {
+  Future<PaginatedList<CashLedgerEntry>> getCashLedger({
+    int pageNumber = 1,
+    int pageSize = 20,
+    String? transactionType,
+    String? fromDate,
+    String? toDate,
+  }) async {
     final json = await _api.get('/ledger/cash', query: {
       'pageNumber': pageNumber,
-      'pageSize': 20,
+      'pageSize': pageSize,
       if (transactionType != null) 'transactionType': transactionType,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
     });
     return PaginatedList.fromJson(json as Map<String, dynamic>, CashLedgerEntry.fromJson);
   }

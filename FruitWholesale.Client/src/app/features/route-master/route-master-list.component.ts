@@ -13,6 +13,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MasterListBase } from '../../core/base/master-list-base';
 import { RouteMasterService } from './route-master.service';
 import { RouteMasterFormComponent } from './route-master-form.component';
+import { RouteShopsComponent } from './route-shops.component';
 import { RouteMaster, SaveRouteMaster } from '../../core/models/master-data.model';
 
 @Component({
@@ -54,5 +55,9 @@ export class RouteMasterListComponent extends MasterListBase<RouteMaster, SaveRo
 
   openEdit(route: RouteMaster): void {
     this.openFormDialog(RouteMasterFormComponent, '460px', route);
+  }
+
+  openShops(route: RouteMaster): void {
+    this.dialog.open(RouteShopsComponent, { width: '420px', data: route });
   }
 }

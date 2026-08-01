@@ -14,8 +14,10 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MasterListBase } from '../../core/base/master-list-base';
 import { SupplierMasterService } from './supplier-master.service';
 import { SupplierMasterFormComponent } from './supplier-master-form.component';
+import { SupplierBalanceAdjustmentComponent } from './supplier-balance-adjustment.component';
 import { SupplierMaster, SaveSupplierMaster } from '../../core/models/master-data.model';
 import { ExportService } from '../../core/services/export.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-supplier-master-list',
@@ -38,9 +40,12 @@ import { ExportService } from '../../core/services/export.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SupplierMasterListComponent extends MasterListBase<SupplierMaster, SaveSupplierMaster> {
+  private readonly supplierService = inject(SupplierMasterService);
   private readonly exportService = inject(ExportService);
+  private readonly authService = inject(AuthService);
 
   readonly displayedColumns = ['supplierName', 'phone', 'currentOutstanding', 'isActive', 'actions'];
+  readonly canAdjustBalance = this.authService.hasRole('Admin', 'Accountant');
 
   constructor() {
     super(inject(SupplierMasterService), {
@@ -59,6 +64,21 @@ export class SupplierMasterListComponent extends MasterListBase<SupplierMaster, 
 
   openEdit(supplier: SupplierMaster): void {
     this.openFormDialog(SupplierMasterFormComponent, '480px', supplier);
+  }
+
+  openBalanceAdjustment(supplier: SupplierMaster): void {
+    this.dialog
+      .open(SupplierBalanceAdjustmentComponent, { width: '440px', data: supplier })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.supplierService.applyBalanceAdjustment(supplier.supplierID, result).subscribe({
+          next: () => {
+            this.notification.success('Balance adjustment applied.');
+            this.load();
+          }
+        });
+      });
   }
 
   exportExcel(): void {

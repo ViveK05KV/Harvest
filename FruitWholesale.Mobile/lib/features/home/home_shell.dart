@@ -25,6 +25,7 @@ import '../stock/stock_screen.dart';
 import '../supplier_master/supplier_master_list_screen.dart';
 import '../supplier_payment/supplier_payment_list_screen.dart';
 import '../supplier_return/supplier_return_list_screen.dart';
+import '../supply/supply_form_screen.dart';
 import '../supply/supply_list_screen.dart';
 import '../users/user_list_screen.dart';
 
@@ -93,7 +94,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
       NavItem(label: 'Cash Ledger', icon: Icons.account_balance_outlined, builder: (_) => const CashLedgerScreen(), roles: _backOffice),
       // Stock is open to Staff too, unlike the rest of this group.
-      NavItem(label: 'Stock', icon: Icons.inventory_outlined, builder: (_) => const StockScreen()),
+      NavItem(label: 'Inventory', icon: Icons.inventory_outlined, builder: (_) => const StockScreen()),
     ]),
     NavGroup(label: 'Reports', items: [
       NavItem(label: 'Reports', icon: Icons.assessment_outlined, builder: (_) => const ReportsScreen(), roles: _backOffice),
@@ -162,6 +163,11 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: Text(_selected.label),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_shopping_cart_outlined),
+            tooltip: 'Create Sale',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupplyFormScreen())),
+          ),
           PopupMenuButton<String>(
             icon: const CircleAvatar(child: Icon(Icons.person)),
             onSelected: (value) {

@@ -4,9 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
-import '../../core/api/lookup_service.dart';
-import '../../core/models/supplier_option.dart';
+import '../../core/widgets/net_balance_badge.dart';
 import '../../core/widgets/paginated_list_view.dart';
+import '../supplier_master/supplier_master_models.dart';
+import '../supplier_master/supplier_master_service.dart';
 import 'ledger_models.dart';
 import 'ledger_service.dart';
 
@@ -19,9 +20,9 @@ class SupplierLedgerScreen extends StatefulWidget {
 
 class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
   late final LedgerService _ledgerService = LedgerService(context.read<ApiClient>());
-  late final LookupService _lookupService = LookupService(context.read<ApiClient>());
+  late final SupplierMasterService _supplierService = SupplierMasterService(context.read<ApiClient>());
 
-  List<SupplierOption> _suppliers = [];
+  List<SupplierMaster> _suppliers = [];
   int? _selectedSupplierId;
   String? _error;
   bool _loadingSuppliers = true;
@@ -34,7 +35,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
 
   Future<void> _loadSuppliers() async {
     try {
-      final suppliers = await _lookupService.getActiveSuppliers();
+      final suppliers = await _supplierService.getAllActive();
       setState(() {
         _suppliers = suppliers;
         _loadingSuppliers = false;
@@ -47,6 +48,14 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
     }
   }
 
+  SupplierMaster? get _selectedSupplier {
+    if (_selectedSupplierId == null) return null;
+    for (final supplier in _suppliers) {
+      if (supplier.supplierId == _selectedSupplierId) return supplier;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd-MMM-yyyy');
@@ -57,7 +66,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: _loadingSuppliers
                 ? const LinearProgressIndicator()
                 : DropdownButtonFormField<int>(
@@ -70,6 +79,16 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                     onChanged: (value) => setState(() => _selectedSupplierId = value),
                   ),
           ),
+          if (_selectedSupplier != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: NetBalanceBadge(
+                netBalance: _selectedSupplier!.netBalance,
+                tooltip: _selectedSupplier!.linkedShopId != null
+                    ? 'Combined position with linked Shop: ${_selectedSupplier!.linkedShopName}'
+                    : "${_selectedSupplier!.supplierName}'s outstanding balance",
+              ),
+            ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

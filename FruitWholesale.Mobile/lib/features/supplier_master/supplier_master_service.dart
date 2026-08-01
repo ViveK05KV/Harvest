@@ -12,6 +12,11 @@ class SupplierMasterService {
     return PaginatedList.fromJson(json as Map<String, dynamic>, SupplierMaster.fromJson);
   }
 
+  Future<List<SupplierMaster>> getAllActive() async {
+    final json = await _api.get('/suppliermaster/active') as List;
+    return json.map((e) => SupplierMaster.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<SupplierMaster> getById(int id) async {
     final json = await _api.get('/suppliermaster/$id');
     return SupplierMaster.fromJson(json as Map<String, dynamic>);

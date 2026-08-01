@@ -13,8 +13,8 @@ public class ShopMasterController(IShopMasterService service) : ApiControllerBas
 
     [HttpGet]
     [Authorize(Roles = BackOfficeRoles)]
-    public async Task<ActionResult<PaginatedList<ShopMasterDto>>> GetPaged([FromQuery] PaginationRequest request) =>
-        Ok(await service.GetPagedAsync(request));
+    public async Task<ActionResult<PaginatedList<ShopMasterDto>>> GetPaged([FromQuery] PaginationRequest request, [FromQuery] int? routeId = null) =>
+        Ok(await service.GetPagedAsync(request, routeId));
 
     // Open to all authenticated roles (including Staff) — needed for the Supply/Collections shop dropdowns.
     [HttpGet("active")]
@@ -51,4 +51,9 @@ public class ShopMasterController(IShopMasterService service) : ApiControllerBas
         await service.SetActiveAsync(id, false);
         return NoContent();
     }
+
+    [HttpPost("{id:int}/balance-adjustment")]
+    [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
+    public async Task<ActionResult> ApplyBalanceAdjustment(int id, ShopBalanceAdjustmentDto dto) =>
+        FromResult(await service.ApplyBalanceAdjustmentAsync(id, dto));
 }

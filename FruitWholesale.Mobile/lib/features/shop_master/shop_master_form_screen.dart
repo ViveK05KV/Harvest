@@ -5,6 +5,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
 import '../../core/models/route_option.dart';
+import '../../core/models/supplier_option.dart';
 import '../../core/widgets/error_banner.dart';
 import '../../core/widgets/save_button.dart';
 import 'shop_master_models.dart';
@@ -36,6 +37,9 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
   List<RouteOption> _routes = [];
   int? _routeId;
 
+  List<SupplierOption> _suppliers = [];
+  int? _linkedSupplierId;
+
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -64,6 +68,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
     });
     try {
       final routes = await _lookupService.getActiveRoutes();
+      final suppliers = await _lookupService.getActiveSuppliers();
       if (widget.isEditing) {
         final shop = await _service.getById(widget.shopId!);
         _nameController.text = shop.shopName;
@@ -73,8 +78,12 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
         _openingBalanceController.text = shop.openingBalance.toStringAsFixed(2);
         _creditLimitController.text = shop.creditLimit.toStringAsFixed(2);
         _routeId = shop.routeId;
+        _linkedSupplierId = shop.linkedSupplierId;
       }
-      setState(() => _routes = routes);
+      setState(() {
+        _routes = routes;
+        _suppliers = suppliers;
+      });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -97,6 +106,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
       openingBalance: double.tryParse(_openingBalanceController.text) ?? 0,
       creditLimit: double.tryParse(_creditLimitController.text) ?? 0,
       routeId: _routeId,
+      linkedSupplierId: _linkedSupplierId,
     );
 
     try {
@@ -160,6 +170,21 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                       for (final route in _routes) DropdownMenuItem(value: route.routeId, child: Text(route.routeName)),
                     ],
                     onChanged: (value) => setState(() => _routeId = value),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int?>(
+                    initialValue: _linkedSupplierId,
+                    decoration: const InputDecoration(
+                      labelText: 'Linked Supplier',
+                      helperText: 'If this shop is also one of your suppliers, link it to see a combined net balance.',
+                      helperMaxLines: 2,
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(value: null, child: Text('Not linked')),
+                      for (final supplier in _suppliers)
+                        DropdownMenuItem(value: supplier.supplierId, child: Text(supplier.supplierName)),
+                    ],
+                    onChanged: (value) => setState(() => _linkedSupplierId = value),
                   ),
                   const SizedBox(height: 16),
                   if (!widget.isEditing) ...[

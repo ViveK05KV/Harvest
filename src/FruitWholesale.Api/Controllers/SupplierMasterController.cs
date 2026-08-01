@@ -43,4 +43,9 @@ public class SupplierMasterController(ISupplierMasterService service) : ApiContr
         await service.SetActiveAsync(id, false);
         return NoContent();
     }
+
+    [HttpPost("{id:int}/balance-adjustment")]
+    [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
+    public async Task<ActionResult> ApplyBalanceAdjustment(int id, SupplierBalanceAdjustmentDto dto) =>
+        FromResult(await service.ApplyBalanceAdjustmentAsync(id, dto));
 }

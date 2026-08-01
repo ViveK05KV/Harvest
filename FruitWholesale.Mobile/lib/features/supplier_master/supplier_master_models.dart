@@ -7,6 +7,13 @@ class SupplierMaster {
   final bool isActive;
   final double currentOutstanding;
 
+  /// Reverse of ShopMaster.linkedSupplierId — the shop (if any) linked to this supplier.
+  final int? linkedShopId;
+  final String? linkedShopName;
+
+  /// Linked shop's outstanding minus this supplier's own outstanding; meaningless when not linked.
+  final double netBalance;
+
   const SupplierMaster({
     this.supplierId = 0,
     required this.supplierName,
@@ -15,6 +22,9 @@ class SupplierMaster {
     this.openingBalance = 0,
     this.isActive = true,
     this.currentOutstanding = 0,
+    this.linkedShopId,
+    this.linkedShopName,
+    this.netBalance = 0,
   });
 
   factory SupplierMaster.fromJson(Map<String, dynamic> json) {
@@ -26,6 +36,9 @@ class SupplierMaster {
       openingBalance: (json['openingBalance'] as num).toDouble(),
       isActive: json['isActive'] as bool,
       currentOutstanding: (json['currentOutstanding'] as num).toDouble(),
+      linkedShopId: json['linkedShopID'] as int?,
+      linkedShopName: json['linkedShopName'] as String?,
+      netBalance: (json['netBalance'] as num?)?.toDouble() ?? (json['currentOutstanding'] as num).toDouble(),
     );
   }
 

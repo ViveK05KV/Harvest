@@ -12,6 +12,11 @@ class ShopMasterService {
     return PaginatedList.fromJson(json as Map<String, dynamic>, ShopMaster.fromJson);
   }
 
+  Future<List<ShopMaster>> getAllActive() async {
+    final json = await _api.get('/shopmaster/active') as List;
+    return json.map((e) => ShopMaster.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<ShopMaster> getById(int id) async {
     final json = await _api.get('/shopmaster/$id');
     return ShopMaster.fromJson(json as Map<String, dynamic>);

@@ -51,6 +51,11 @@
         <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
           <mat-icon>edit</mat-icon>
         </button>
+        @if (canAdjustBalance) {
+          <button mat-icon-button matTooltip="Adjust Balance" (click)="openBalanceAdjustment(row)">
+            <mat-icon>account_balance_wallet</mat-icon>
+          </button>
+        }
       </td>
     </ng-container>
 

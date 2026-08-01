@@ -2,6 +2,7 @@ using AutoMapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.SupplierMaster;
 using FruitWholesale.Domain.Entities;
+using FruitWholesale.Domain.Enums;
 using FruitWholesale.Shared.Exceptions;
 using FruitWholesale.Shared.Pagination;
 using FruitWholesale.Shared.Results;
@@ -16,9 +17,14 @@ public interface ISupplierMasterService
     Task<Result<SupplierMasterDto>> CreateAsync(CreateSupplierMasterDto dto);
     Task<Result<SupplierMasterDto>> UpdateAsync(UpdateSupplierMasterDto dto);
     Task SetActiveAsync(int supplierId, bool isActive);
+    Task<Result> ApplyBalanceAdjustmentAsync(int supplierId, SupplierBalanceAdjustmentDto dto);
 }
 
-public class SupplierMasterService(ISupplierMasterRepository repository, ILedgerService ledgerService, IMapper mapper) : ISupplierMasterService
+public class SupplierMasterService(
+    ISupplierMasterRepository repository,
+    ILedgerService ledgerService,
+    IDbConnectionFactory connectionFactory,
+    IMapper mapper) : ISupplierMasterService
 {
     public async Task<PaginatedList<SupplierMasterDto>> GetPagedAsync(PaginationRequest request)
     {
@@ -81,6 +87,36 @@ public class SupplierMasterService(ISupplierMasterRepository repository, ILedger
     {
         _ = await repository.GetByIdAsync(supplierId) ?? throw new NotFoundException(nameof(SupplierMaster), supplierId);
         await repository.SetActiveAsync(supplierId, isActive);
+    }
+
+    public async Task<Result> ApplyBalanceAdjustmentAsync(int supplierId, SupplierBalanceAdjustmentDto dto)
+    {
+        if (dto.Amount <= 0)
+        {
+            return Result.Failure("Adjustment amount must be greater than zero.");
+        }
+
+        _ = await repository.GetByIdAsync(supplierId) ?? throw new NotFoundException(nameof(SupplierMaster), supplierId);
+
+        using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            var debit = dto.IsIncrease ? dto.Amount : 0;
+            var credit = dto.IsIncrease ? 0 : dto.Amount;
+
+            await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, supplierId, DateTime.UtcNow,
+                LedgerTransactionTypes.Adjustment, null, debit, credit, dto.Narration);
+
+            transaction.Commit();
+            return Result.Success();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 
     private async Task<decimal> GetLinkedShopOutstandingAsync(int? linkedShopId) =>

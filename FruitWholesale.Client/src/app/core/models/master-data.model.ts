@@ -54,6 +54,14 @@ export interface ShopMaster {
   netBalance: number;
 }
 
+/** Posts a manual correcting entry to a shop's ledger (mirrors SupplierBalanceAdjustment). */
+export interface ShopBalanceAdjustment {
+  amount: number;
+  /** True increases what this shop owes the business; false decreases it. */
+  isIncrease: boolean;
+  narration: string;
+}
+
 export interface SaveShopMaster {
   shopID?: number;
   shopName: string;
@@ -87,6 +95,14 @@ export interface SaveSupplierMaster {
   phone?: string;
   address?: string;
   openingBalance?: number;
+}
+
+/** Posts a manual correcting entry to a supplier's ledger (mirrors CashAdjustment). */
+export interface SupplierBalanceAdjustment {
+  amount: number;
+  /** True increases what the business owes this supplier; false decreases it. */
+  isIncrease: boolean;
+  narration: string;
 }
 
 export interface ExpenseCategory {

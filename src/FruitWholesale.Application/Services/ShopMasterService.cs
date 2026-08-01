@@ -2,6 +2,7 @@ using AutoMapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.ShopMaster;
 using FruitWholesale.Domain.Entities;
+using FruitWholesale.Domain.Enums;
 using FruitWholesale.Shared.Exceptions;
 using FruitWholesale.Shared.Pagination;
 using FruitWholesale.Shared.Results;
@@ -10,19 +11,24 @@ namespace FruitWholesale.Application.Services;
 
 public interface IShopMasterService
 {
-    Task<PaginatedList<ShopMasterDto>> GetPagedAsync(PaginationRequest request);
+    Task<PaginatedList<ShopMasterDto>> GetPagedAsync(PaginationRequest request, int? routeId = null);
     Task<IReadOnlyList<ShopMasterDto>> GetAllActiveAsync();
     Task<ShopMasterDto> GetByIdAsync(int shopId);
     Task<Result<ShopMasterDto>> CreateAsync(CreateShopMasterDto dto);
     Task<Result<ShopMasterDto>> UpdateAsync(UpdateShopMasterDto dto);
     Task SetActiveAsync(int shopId, bool isActive);
+    Task<Result> ApplyBalanceAdjustmentAsync(int shopId, ShopBalanceAdjustmentDto dto);
 }
 
-public class ShopMasterService(IShopMasterRepository repository, ILedgerService ledgerService, IMapper mapper) : IShopMasterService
+public class ShopMasterService(
+    IShopMasterRepository repository,
+    ILedgerService ledgerService,
+    IDbConnectionFactory connectionFactory,
+    IMapper mapper) : IShopMasterService
 {
-    public async Task<PaginatedList<ShopMasterDto>> GetPagedAsync(PaginationRequest request)
+    public async Task<PaginatedList<ShopMasterDto>> GetPagedAsync(PaginationRequest request, int? routeId = null)
     {
-        var result = await repository.GetPagedAsync(request);
+        var result = await repository.GetPagedAsync(request, routeId);
         var dtos = await EnrichWithOutstandingAsync(result.Items);
         return new PaginatedList<ShopMasterDto>(dtos, result.TotalCount, result.PageNumber, result.PageSize);
     }
@@ -90,6 +96,36 @@ public class ShopMasterService(IShopMasterRepository repository, ILedgerService 
     {
         _ = await repository.GetByIdAsync(shopId) ?? throw new NotFoundException(nameof(ShopMaster), shopId);
         await repository.SetActiveAsync(shopId, isActive);
+    }
+
+    public async Task<Result> ApplyBalanceAdjustmentAsync(int shopId, ShopBalanceAdjustmentDto dto)
+    {
+        if (dto.Amount <= 0)
+        {
+            return Result.Failure("Adjustment amount must be greater than zero.");
+        }
+
+        _ = await repository.GetByIdAsync(shopId) ?? throw new NotFoundException(nameof(ShopMaster), shopId);
+
+        using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            var debit = dto.IsIncrease ? dto.Amount : 0;
+            var credit = dto.IsIncrease ? 0 : dto.Amount;
+
+            await ledgerService.AddShopLedgerEntryAsync(connection, transaction, shopId, DateTime.UtcNow,
+                LedgerTransactionTypes.Adjustment, null, debit, credit, dto.Narration);
+
+            transaction.Commit();
+            return Result.Success();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 
     private async Task<decimal> GetLinkedSupplierOutstandingAsync(int? linkedSupplierId) =>

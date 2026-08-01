@@ -34,17 +34,19 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
         return result.ToList();
     }
 
-    public async Task<PaginatedList<ShopMaster>> GetPagedAsync(PaginationRequest request)
+    public async Task<PaginatedList<ShopMaster>> GetPagedAsync(PaginationRequest request, int? routeId = null)
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
             SELECT COUNT(*) FROM dbo.ShopMaster s
-            WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern);
+            WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
+                AND (@RouteID IS NULL OR s.RouteID = @RouteID);
 
             SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
             LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
             LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
             WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
+                AND (@RouteID IS NULL OR s.RouteID = @RouteID)
             ORDER BY s.ShopName ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -52,6 +54,7 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
         {
             SearchTerm = request.SearchTerm,
             SearchPattern = $"%{request.SearchTerm}%",
+            RouteID = routeId,
             request.Offset,
             request.PageSize
         });

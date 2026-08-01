@@ -4,6 +4,15 @@
     <mat-icon matPrefix>search</mat-icon>
     <input matInput placeholder="Search shops..." (input)="onSearch($any($event.target).value)" />
   </mat-form-field>
+  <mat-form-field subscriptSizing="dynamic" class="route-filter-field">
+    <mat-label>Route</mat-label>
+    <mat-select [(ngModel)]="routeId" (selectionChange)="onRouteFilterChange()">
+      <mat-option [value]="null">All routes</mat-option>
+      @for (route of routes(); track route.routeID) {
+        <mat-option [value]="route.routeID">{{ route.routeName }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
   <button mat-icon-button [matMenuTriggerFor]="exportMenu" matTooltip="Export">
     <mat-icon>download</mat-icon>
   </button>
@@ -70,6 +79,11 @@
         <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
           <mat-icon>edit</mat-icon>
         </button>
+        @if (canAdjustBalance) {
+          <button mat-icon-button matTooltip="Adjust Balance" (click)="openBalanceAdjustment(row)">
+            <mat-icon>account_balance_wallet</mat-icon>
+          </button>
+        }
       </td>
     </ng-container>
 

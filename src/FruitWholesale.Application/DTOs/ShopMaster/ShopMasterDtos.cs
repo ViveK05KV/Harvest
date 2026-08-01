@@ -52,3 +52,18 @@ public class UpdateShopMasterDto
     public int? RouteID { get; set; }
     public int? LinkedSupplierID { get; set; }
 }
+
+/// <summary>
+/// Posts a manual correcting entry to a shop's ledger (mirrors the same
+/// mechanism on SupplierMaster). Editing OpeningBalance directly after
+/// creation wouldn't move CurrentOutstanding, since that figure is always
+/// derived from the ledger, not the OpeningBalance column.
+/// </summary>
+public class ShopBalanceAdjustmentDto
+{
+    public decimal Amount { get; set; }
+
+    /// <summary>True increases what this shop owes the business (debit); false decreases it (credit).</summary>
+    public bool IsIncrease { get; set; }
+    public string Narration { get; set; } = string.Empty;
+}

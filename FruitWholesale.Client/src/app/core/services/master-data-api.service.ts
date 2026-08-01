@@ -14,7 +14,7 @@ import { toHttpParams } from '../utils/http-params.util';
 export abstract class MasterDataApiService<TDto, TSaveDto> {
   protected constructor(protected readonly http: HttpClient, private readonly endpoint: string) {}
 
-  private get baseUrl(): string {
+  protected get baseUrl(): string {
     return `${environment.apiUrl}/${this.endpoint}`;
   }
 

@@ -4,9 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
-import '../../core/api/lookup_service.dart';
-import '../../core/models/shop_option.dart';
+import '../../core/widgets/net_balance_badge.dart';
 import '../../core/widgets/paginated_list_view.dart';
+import '../shop_master/shop_master_models.dart';
+import '../shop_master/shop_master_service.dart';
 import 'ledger_models.dart';
 import 'ledger_service.dart';
 
@@ -19,9 +20,9 @@ class ShopLedgerScreen extends StatefulWidget {
 
 class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
   late final LedgerService _ledgerService = LedgerService(context.read<ApiClient>());
-  late final LookupService _lookupService = LookupService(context.read<ApiClient>());
+  late final ShopMasterService _shopService = ShopMasterService(context.read<ApiClient>());
 
-  List<ShopOption> _shops = [];
+  List<ShopMaster> _shops = [];
   int? _selectedShopId;
   String? _error;
   bool _loadingShops = true;
@@ -34,7 +35,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
 
   Future<void> _loadShops() async {
     try {
-      final shops = await _lookupService.getActiveShops();
+      final shops = await _shopService.getAllActive();
       setState(() {
         _shops = shops;
         _loadingShops = false;
@@ -47,6 +48,14 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
     }
   }
 
+  ShopMaster? get _selectedShop {
+    if (_selectedShopId == null) return null;
+    for (final shop in _shops) {
+      if (shop.shopId == _selectedShopId) return shop;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd-MMM-yyyy');
@@ -57,7 +66,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: _loadingShops
                 ? const LinearProgressIndicator()
                 : DropdownButtonFormField<int>(
@@ -67,6 +76,16 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
                     onChanged: (value) => setState(() => _selectedShopId = value),
                   ),
           ),
+          if (_selectedShop != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: NetBalanceBadge(
+                netBalance: _selectedShop!.netBalance,
+                tooltip: _selectedShop!.linkedSupplierId != null
+                    ? 'Combined position with linked Supplier: ${_selectedShop!.linkedSupplierName}'
+                    : "${_selectedShop!.shopName}'s outstanding balance",
+              ),
+            ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

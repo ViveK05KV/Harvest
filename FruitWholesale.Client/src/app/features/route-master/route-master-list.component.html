@@ -28,7 +28,11 @@
 
     <ng-container matColumnDef="shopCount">
       <th mat-header-cell *matHeaderCellDef>Shops</th>
-      <td mat-cell *matCellDef="let row"><mat-chip>{{ row.shopCount }}</mat-chip></td>
+      <td mat-cell *matCellDef="let row">
+        <button mat-button (click)="openShops(row)" matTooltip="View shops on this route">
+          <mat-chip>{{ row.shopCount }}</mat-chip>
+        </button>
+      </td>
     </ng-container>
 
     <ng-container matColumnDef="isActive">

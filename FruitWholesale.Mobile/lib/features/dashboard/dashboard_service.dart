@@ -25,4 +25,14 @@ class DashboardService {
     final json = await _api.get('/dashboard/sales-vs-purchases', query: {'period': period.toApi});
     return SalesVsPurchases.fromJson(json as Map<String, dynamic>);
   }
+
+  Future<List<TrendPoint>> getCashTrend() async {
+    final json = await _api.get('/dashboard/cash-trend') as List;
+    return json.map((e) => TrendPoint.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<TrendPoint>> getProfitTrend() async {
+    final json = await _api.get('/dashboard/profit-trend') as List;
+    return json.map((e) => TrendPoint.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }

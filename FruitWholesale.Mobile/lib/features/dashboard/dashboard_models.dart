@@ -44,32 +44,16 @@ class DashboardSummary {
   }
 }
 
-class TopFruit {
-  final String fruitName;
-  final double totalQuantity;
-  final double totalAmount;
+class CategoryAmount {
+  final String category;
+  final double amount;
 
-  const TopFruit({required this.fruitName, required this.totalQuantity, required this.totalAmount});
+  const CategoryAmount({required this.category, required this.amount});
 
-  factory TopFruit.fromJson(Map<String, dynamic> json) {
-    return TopFruit(
-      fruitName: json['fruitName'] as String,
-      totalQuantity: (json['totalQuantity'] as num).toDouble(),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-    );
-  }
-}
-
-class TopCustomer {
-  final String shopName;
-  final double totalAmount;
-
-  const TopCustomer({required this.shopName, required this.totalAmount});
-
-  factory TopCustomer.fromJson(Map<String, dynamic> json) {
-    return TopCustomer(
-      shopName: json['shopName'] as String,
-      totalAmount: (json['totalAmount'] as num).toDouble(),
+  factory CategoryAmount.fromJson(Map<String, dynamic> json) {
+    return CategoryAmount(
+      category: json['category'] as String,
+      amount: (json['amount'] as num).toDouble(),
     );
   }
 }
@@ -138,16 +122,14 @@ class SalesVsPurchases {
 }
 
 class DashboardCharts {
-  final List<TopFruit> topSellingFruits;
-  final List<TopCustomer> topCustomers;
+  final List<CategoryAmount> expensesByCategory;
 
-  const DashboardCharts({required this.topSellingFruits, required this.topCustomers});
+  const DashboardCharts({required this.expensesByCategory});
 
   factory DashboardCharts.fromJson(Map<String, dynamic> json) {
     return DashboardCharts(
-      topSellingFruits:
-          (json['topSellingFruits'] as List).map((e) => TopFruit.fromJson(e as Map<String, dynamic>)).toList(),
-      topCustomers: (json['topCustomers'] as List).map((e) => TopCustomer.fromJson(e as Map<String, dynamic>)).toList(),
+      expensesByCategory:
+          (json['expensesByCategory'] as List).map((e) => CategoryAmount.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
 }

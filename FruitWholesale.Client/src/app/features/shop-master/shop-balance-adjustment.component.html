@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>Adjust Balance — {{ shop.shopName }}</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <p class="muted">
+      Posts a manual correction to this shop's ledger. Use this only for corrections — every other balance movement
+      (supply, collections, returns) is automatic.
+    </p>
+
+    <mat-radio-group formControlName="isIncrease" class="radio-row">
+      <mat-radio-button [value]="true">Increase balance owed</mat-radio-button>
+      <mat-radio-button [value]="false">Decrease balance owed</mat-radio-button>
+    </mat-radio-group>
+
+    <mat-form-field class="full-width">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" formControlName="amount" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Narration / Reason</mat-label>
+      <textarea matInput formControlName="narration" rows="2"></textarea>
+      @if (form.controls.narration.touched && form.controls.narration.hasError('required')) {
+        <mat-error>Narration is required</mat-error>
+      }
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-flat-button color="primary" type="submit">Apply Adjustment</button>
+  </mat-dialog-actions>
+</form>

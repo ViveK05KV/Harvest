@@ -38,7 +38,7 @@ public interface IShopMasterRepository
 {
     Task<ShopMaster?> GetByIdAsync(int shopId);
     Task<IReadOnlyList<ShopMaster>> GetAllActiveAsync();
-    Task<PaginatedList<ShopMaster>> GetPagedAsync(PaginationRequest request);
+    Task<PaginatedList<ShopMaster>> GetPagedAsync(PaginationRequest request, int? routeId = null);
     Task<int> CreateAsync(ShopMaster shop);
     Task UpdateAsync(ShopMaster shop);
     Task SetActiveAsync(int shopId, bool isActive);
