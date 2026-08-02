@@ -3,6 +3,9 @@ export interface CurrentStock {
   fruitName: string;
   unit: string;
   currentStock: number;
+  tracksByBox: boolean;
+  fullBoxCount: number;
+  openedBoxRemainingKg?: number | null;
 }
 
 export interface StockLedgerEntry {

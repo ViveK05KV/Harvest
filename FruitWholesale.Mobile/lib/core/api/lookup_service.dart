@@ -25,13 +25,30 @@ class LookupService {
   static Future<List<EmployeeOption>>? _employeesCache;
   static Future<List<ExpenseCategoryOption>>? _expenseCategoriesCache;
 
-  Future<List<ShopOption>> getActiveShops() => _shopsCache ??= _fetchShops();
-  Future<List<FruitOption>> getActiveFruits() => _fruitsCache ??= _fetchFruits();
-  Future<List<RouteOption>> getActiveRoutes() => _routesCache ??= _fetchRoutes();
-  Future<List<SupplierOption>> getActiveSuppliers() => _suppliersCache ??= _fetchSuppliers();
-  Future<List<EmployeeOption>> getActiveEmployees() => _employeesCache ??= _fetchEmployees();
+  Future<List<ShopOption>> getActiveShops() =>
+      _shopsCache ??= _cache(_fetchShops(), (v) => _shopsCache = v);
+  Future<List<FruitOption>> getActiveFruits() =>
+      _fruitsCache ??= _cache(_fetchFruits(), (v) => _fruitsCache = v);
+  Future<List<RouteOption>> getActiveRoutes() =>
+      _routesCache ??= _cache(_fetchRoutes(), (v) => _routesCache = v);
+  Future<List<SupplierOption>> getActiveSuppliers() =>
+      _suppliersCache ??= _cache(_fetchSuppliers(), (v) => _suppliersCache = v);
+  Future<List<EmployeeOption>> getActiveEmployees() =>
+      _employeesCache ??= _cache(_fetchEmployees(), (v) => _employeesCache = v);
   Future<List<ExpenseCategoryOption>> getActiveExpenseCategories() =>
-      _expenseCategoriesCache ??= _fetchExpenseCategories();
+      _expenseCategoriesCache ??= _cache(_fetchExpenseCategories(), (v) => _expenseCategoriesCache = v);
+
+  /// Caches [future] into the field [store] resets, but only while it's still
+  /// pending or has succeeded. If it fails (e.g. a transient network blip),
+  /// [store] is cleared so the *next* call retries from scratch instead of
+  /// replaying the same rejected future for the rest of the app session —
+  /// `??=` alone can't tell "cached failure" apart from "cached success".
+  /// This listener is independent of the future returned to the caller, so
+  /// the caller's own try/catch still sees the original error normally.
+  Future<T> _cache<T>(Future<T> future, void Function(Future<T>?) store) {
+    future.then((_) {}, onError: (Object _) => store(null));
+    return future;
+  }
 
   static void invalidateAll() {
     _shopsCache = null;

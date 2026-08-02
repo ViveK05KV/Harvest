@@ -49,9 +49,9 @@ public class FruitMasterRepository(IDbConnectionFactory connectionFactory) : IFr
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            INSERT INTO dbo.FruitMaster (FruitName, Unit, IsActive)
+            INSERT INTO dbo.FruitMaster (FruitName, Unit, TracksByBox, BoxWeightKg, IsActive)
             OUTPUT INSERTED.FruitID
-            VALUES (@FruitName, @Unit, @IsActive);
+            VALUES (@FruitName, @Unit, @TracksByBox, @BoxWeightKg, @IsActive);
             """;
         return await connection.QuerySingleAsync<int>(sql, fruit);
     }
@@ -61,7 +61,7 @@ public class FruitMasterRepository(IDbConnectionFactory connectionFactory) : IFr
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
             UPDATE dbo.FruitMaster
-            SET FruitName = @FruitName, Unit = @Unit, UpdatedAt = SYSUTCDATETIME()
+            SET FruitName = @FruitName, Unit = @Unit, TracksByBox = @TracksByBox, BoxWeightKg = @BoxWeightKg, UpdatedAt = SYSUTCDATETIME()
             WHERE FruitID = @FruitID;
             """;
         await connection.ExecuteAsync(sql, fruit);

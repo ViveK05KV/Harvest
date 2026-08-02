@@ -67,6 +67,34 @@
   width: 110px;
 }
 
+.type-field {
+  width: 90px;
+}
+
+.no-box-track {
+  display: inline-block;
+  width: 90px;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.kg-hint {
+  font-size: 11px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rate-unit {
+  font-size: 11px;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
 .amount-cell {
   font-weight: 600;
   white-space: nowrap;

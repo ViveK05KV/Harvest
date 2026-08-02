@@ -45,7 +45,7 @@ public class FruitMasterService(IFruitMasterRepository repository, IMapper mappe
             return Result.Failure<FruitMasterDto>("A fruit with this name already exists.");
         }
 
-        var fruit = new FruitMaster { FruitName = dto.FruitName, Unit = dto.Unit, IsActive = true };
+        var fruit = new FruitMaster { FruitName = dto.FruitName, Unit = dto.Unit, TracksByBox = dto.TracksByBox, BoxWeightKg = dto.BoxWeightKg, IsActive = true };
         fruit.FruitID = await repository.CreateAsync(fruit);
         return Result.Success(mapper.Map<FruitMasterDto>(fruit));
     }
@@ -61,6 +61,8 @@ public class FruitMasterService(IFruitMasterRepository repository, IMapper mappe
 
         fruit.FruitName = dto.FruitName;
         fruit.Unit = dto.Unit;
+        fruit.TracksByBox = dto.TracksByBox;
+        fruit.BoxWeightKg = dto.BoxWeightKg;
         await repository.UpdateAsync(fruit);
         return Result.Success(mapper.Map<FruitMasterDto>(fruit));
     }

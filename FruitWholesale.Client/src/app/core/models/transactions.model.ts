@@ -8,6 +8,7 @@ export interface SupplyItem {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  boxCount?: number | null;
 }
 
 export interface Supply {
@@ -33,6 +34,7 @@ export interface SaveSupplyItem {
   fruitID: number | null;
   quantity: number;
   unitPrice: number;
+  boxCount?: number | null;
 }
 
 export interface SaveSupply {
@@ -52,6 +54,7 @@ export interface PurchaseItem {
   quantity: number;
   purchasePrice: number;
   totalAmount: number;
+  boxCount?: number | null;
 }
 
 export interface Purchase {
@@ -77,6 +80,7 @@ export interface SavePurchaseItem {
   fruitID: number | null;
   quantity: number;
   purchasePrice: number;
+  boxCount?: number | null;
 }
 
 export interface SavePurchase {
@@ -96,6 +100,7 @@ export interface ShopReturnItem {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  boxCount?: number | null;
 }
 
 export interface ShopReturn {
@@ -124,6 +129,7 @@ export interface SaveShopReturnItem {
   fruitID: number | null;
   quantity: number;
   unitPrice: number;
+  boxCount?: number | null;
 }
 
 export interface SaveShopReturn {
@@ -144,6 +150,7 @@ export interface SupplierReturnItem {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  boxCount?: number | null;
 }
 
 export interface SupplierReturn {
@@ -172,6 +179,7 @@ export interface SaveSupplierReturnItem {
   fruitID: number | null;
   quantity: number;
   unitPrice: number;
+  boxCount?: number | null;
 }
 
 export interface SaveSupplierReturn {

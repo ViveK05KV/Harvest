@@ -61,6 +61,30 @@
   white-space: nowrap;
 }
 
+.no-box-track {
+  display: inline-block;
+  width: 110px;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.kg-hint {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rate-unit {
+  font-size: 11px;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
 .grand-total {
   display: flex;
   justify-content: flex-end;

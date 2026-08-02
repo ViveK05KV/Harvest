@@ -24,17 +24,26 @@ public class StockService(
     {
         var fruitsTask = fruitRepository.GetAllActiveAsync();
         var stockByFruitTask = ledgerService.GetCurrentStockForAllFruitsAsync();
-        await Task.WhenAll(fruitsTask, stockByFruitTask);
+        var boxSummaryByFruitTask = ledgerService.GetCurrentBoxSummaryForAllFruitsAsync();
+        await Task.WhenAll(fruitsTask, stockByFruitTask, boxSummaryByFruitTask);
 
         var fruits = await fruitsTask;
         var stockByFruit = await stockByFruitTask;
+        var boxSummaryByFruit = await boxSummaryByFruitTask;
 
-        return fruits.Select(f => new CurrentStockDto
+        return fruits.Select(f =>
         {
-            FruitID = f.FruitID,
-            FruitName = f.FruitName,
-            Unit = f.Unit,
-            CurrentStock = stockByFruit.GetValueOrDefault(f.FruitID, 0m)
+            var boxSummary = boxSummaryByFruit.GetValueOrDefault(f.FruitID);
+            return new CurrentStockDto
+            {
+                FruitID = f.FruitID,
+                FruitName = f.FruitName,
+                Unit = f.Unit,
+                CurrentStock = stockByFruit.GetValueOrDefault(f.FruitID, 0m),
+                TracksByBox = f.TracksByBox,
+                FullBoxCount = boxSummary?.FullBoxCount ?? 0,
+                OpenedBoxRemainingKg = boxSummary?.OpenedBoxRemainingKg
+            };
         }).ToList();
     }
 

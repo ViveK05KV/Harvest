@@ -26,6 +26,8 @@ export interface FruitMaster {
   fruitID: number;
   fruitName: string;
   unit: string;
+  tracksByBox: boolean;
+  boxWeightKg?: number | null;
   isActive: boolean;
 }
 
@@ -33,6 +35,8 @@ export interface SaveFruitMaster {
   fruitID?: number;
   fruitName: string;
   unit: string;
+  tracksByBox: boolean;
+  boxWeightKg?: number | null;
 }
 
 export interface ShopMaster {

@@ -6,6 +6,11 @@ public class CurrentStockDto
     public string FruitName { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
     public decimal CurrentStock { get; set; }
+
+    // Only meaningful when TracksByBox is true - see database/18_AddFruitBoxTracking.sql.
+    public bool TracksByBox { get; set; }
+    public int FullBoxCount { get; set; }
+    public decimal? OpenedBoxRemainingKg { get; set; }
 }
 
 public class StockLedgerDto

@@ -58,7 +58,8 @@ public class SupplyService(ISupplyRepository repository, IMapper mapper) : ISupp
                 FruitID = i.FruitID,
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice,
-                TotalAmount = i.Quantity * i.UnitPrice
+                TotalAmount = (i.BoxCount ?? 0) > 0 ? i.BoxCount!.Value * i.UnitPrice : i.Quantity * i.UnitPrice,
+                BoxCount = i.BoxCount
             }).ToList()
         };
 
@@ -93,7 +94,8 @@ public class SupplyService(ISupplyRepository repository, IMapper mapper) : ISupp
                 FruitID = i.FruitID,
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice,
-                TotalAmount = i.Quantity * i.UnitPrice
+                TotalAmount = (i.BoxCount ?? 0) > 0 ? i.BoxCount!.Value * i.UnitPrice : i.Quantity * i.UnitPrice,
+                BoxCount = i.BoxCount
             }).ToList()
         };
 

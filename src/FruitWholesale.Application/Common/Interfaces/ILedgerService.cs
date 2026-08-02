@@ -69,6 +69,16 @@ public interface ILedgerService
 
     Task<Dictionary<int, decimal>> GetCurrentStockForAllFruitsAsync();
 
+    /// <summary>
+    /// Rebuilds a TracksByBox fruit's FruitBoxes from scratch by replaying its
+    /// Purchase (box-in) and Supply (kg-out) history in chronological order - same
+    /// approach as RecalculateFruitCostBasisAsync. No-ops (and clears any stray rows)
+    /// for fruits that aren't TracksByBox. Call after any Purchase/Supply write.
+    /// </summary>
+    Task RecalculateFruitBoxesAsync(IDbConnection connection, IDbTransaction transaction, int fruitId);
+
+    Task<Dictionary<int, FruitBoxSummary>> GetCurrentBoxSummaryForAllFruitsAsync();
+
     Task<PaginatedLedger<StockLedger>> GetStockLedgerAsync(int fruitId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
 }
 
@@ -76,4 +86,10 @@ public class PaginatedLedger<T>
 {
     public IReadOnlyList<T> Items { get; init; } = [];
     public int TotalCount { get; init; }
+}
+
+public class FruitBoxSummary
+{
+    public int FullBoxCount { get; init; }
+    public decimal? OpenedBoxRemainingKg { get; init; }
 }

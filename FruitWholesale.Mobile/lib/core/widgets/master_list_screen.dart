@@ -21,6 +21,19 @@ class MasterListScreen<T> extends StatefulWidget {
   final Future<void> Function(int id, bool activate) onSetActive;
   final Widget Function(BuildContext context, {int? id}) formBuilder;
 
+  /// Optional widget rendered between the app bar and the list — e.g. a
+  /// filter dropdown. Owned entirely by the caller.
+  final Widget? header;
+
+  /// Optional extra widget rendered before the active/inactive switch on
+  /// each row (e.g. an "Adjust Balance" icon button).
+  final Widget? Function(T item)? trailingExtra;
+
+  /// When this value changes between builds, the list is refetched — lets a
+  /// parent-owned filter (e.g. a selected route) drive a reload without the
+  /// caller needing to reach into this widget's internal state.
+  final Object? filterSignal;
+
   const MasterListScreen({
     super.key,
     required this.title,
@@ -33,6 +46,9 @@ class MasterListScreen<T> extends StatefulWidget {
     required this.isActiveOf,
     required this.onSetActive,
     required this.formBuilder,
+    this.header,
+    this.trailingExtra,
+    this.filterSignal,
   });
 
   @override
@@ -45,6 +61,12 @@ class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
   // PaginatedListView only fetches once per widget identity, so force a
   // fresh instance (and thus a fresh fetch) whenever data may have changed.
   void _reload() => setState(() => _listKey = UniqueKey());
+
+  @override
+  void didUpdateWidget(covariant MasterListScreen<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterSignal != oldWidget.filterSignal) _reload();
+  }
 
   Future<void> _openForm({int? id}) async {
     final changed = await Navigator.of(context).push<bool>(
@@ -69,27 +91,41 @@ class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: PaginatedListView<T>(
-        key: _listKey,
-        fetchPage: widget.fetchPaged,
-        emptyState: Column(
-          children: [
-            const SizedBox(height: 80),
-            Icon(widget.emptyIcon, size: 48),
-            const SizedBox(height: 12),
-            Center(child: Text(widget.emptyLabel)),
-          ],
-        ),
-        padding: const EdgeInsets.only(bottom: 88),
-        itemBuilder: (context, item) {
-          final active = widget.isActiveOf(item);
-          return ListTile(
-            title: Text(widget.titleOf(item), style: const TextStyle(color: Color(0xFF1D3125), fontWeight: FontWeight.w600)),
-            subtitle: Text(widget.subtitleOf(item), style: const TextStyle(color: Color(0xFF4F6255))),
-            trailing: Switch(value: active, onChanged: (_) => _toggleActive(item)),
-            onTap: () => _openForm(id: widget.idOf(item)),
-          );
-        },
+      body: Column(
+        children: [
+          if (widget.header != null) widget.header!,
+          Expanded(
+            child: PaginatedListView<T>(
+              key: _listKey,
+              fetchPage: widget.fetchPaged,
+              emptyState: Column(
+                children: [
+                  const SizedBox(height: 80),
+                  Icon(widget.emptyIcon, size: 48),
+                  const SizedBox(height: 12),
+                  Center(child: Text(widget.emptyLabel)),
+                ],
+              ),
+              padding: const EdgeInsets.only(bottom: 88),
+              itemBuilder: (context, item) {
+                final active = widget.isActiveOf(item);
+                final extra = widget.trailingExtra?.call(item);
+                return ListTile(
+                  title: Text(widget.titleOf(item), style: const TextStyle(color: Color(0xFF1D3125), fontWeight: FontWeight.w600)),
+                  subtitle: Text(widget.subtitleOf(item), style: const TextStyle(color: Color(0xFF4F6255))),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (extra != null) extra,
+                      Switch(value: active, onChanged: (_) => _toggleActive(item)),
+                    ],
+                  ),
+                  onTap: () => _openForm(id: widget.idOf(item)),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),

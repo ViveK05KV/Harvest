@@ -35,4 +35,12 @@ class SupplierMasterService {
   Future<void> setActive(int id, bool active) async {
     await _api.patch('/suppliermaster/$id/${active ? 'activate' : 'deactivate'}');
   }
+
+  Future<void> applyBalanceAdjustment(int id, {required double amount, required bool isIncrease, required String narration}) async {
+    await _api.post('/suppliermaster/$id/balance-adjustment', body: {
+      'amount': amount,
+      'isIncrease': isIncrease,
+      'narration': narration,
+    });
+  }
 }

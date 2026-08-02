@@ -92,7 +92,7 @@ export class SupplyFormComponent implements OnInit {
             remarks: supply.remarks
           });
           supply.items.forEach((item) =>
-            this.itemsArray.push(this.buildItem(item.fruitID, item.quantity, item.unitPrice))
+            this.itemsArray.push(this.buildItem(item.fruitID, item.quantity, item.unitPrice, item.boxCount ?? null))
           );
           this.loading.set(false);
         });
@@ -104,12 +104,44 @@ export class SupplyFormComponent implements OnInit {
     });
   }
 
-  buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0) {
+  buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
+      saleType: this.fb.nonNullable.control<'kg' | 'box'>(boxCount != null ? 'box' : 'kg'),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
-      unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]]
+      unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
+      boxCount: this.fb.control<number | null>(boxCount, Validators.min(1))
     });
+  }
+
+  fruitTracksByBox(fruitID: number | null): boolean {
+    return this.fruits().find((f) => f.fruitID === fruitID)?.tracksByBox ?? false;
+  }
+
+  fruitBoxWeight(fruitID: number | null): number | null {
+    return this.fruits().find((f) => f.fruitID === fruitID)?.boxWeightKg ?? null;
+  }
+
+  onSaleTypeChange(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.saleType === 'kg') {
+      item.patchValue({ boxCount: null });
+    } else {
+      this.recomputeQuantityFromBoxes(index);
+    }
+  }
+
+  onBoxCountChange(index: number): void {
+    this.recomputeQuantityFromBoxes(index);
+  }
+
+  private recomputeQuantityFromBoxes(index: number): void {
+    const item = this.itemsArray.at(index);
+    const boxWeight = this.fruitBoxWeight(item.value.fruitID);
+    const boxCount = item.value.boxCount;
+    if (boxWeight != null && boxCount != null && boxCount > 0) {
+      item.patchValue({ quantity: Math.round(boxWeight * boxCount * 1000) / 1000 });
+    }
   }
 
   addRow(): void {
@@ -126,6 +158,9 @@ export class SupplyFormComponent implements OnInit {
 
   rowAmount(index: number): number {
     const item = this.itemsArray.at(index).getRawValue();
+    if (this.fruitTracksByBox(item.fruitID) && item.saleType === 'box') {
+      return (item.boxCount || 0) * (item.unitPrice || 0);
+    }
     return (item.quantity || 0) * (item.unitPrice || 0);
   }
 
@@ -158,7 +193,12 @@ export class SupplyFormComponent implements OnInit {
       shopID: raw.shopID,
       invoiceNo: raw.invoiceNo,
       remarks: raw.remarks,
-      items: raw.items.map((i) => ({ fruitID: i.fruitID, quantity: i.quantity, unitPrice: i.unitPrice }))
+      items: raw.items.map((i) => ({
+        fruitID: i.fruitID,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        boxCount: this.fruitTracksByBox(i.fruitID) && i.saleType === 'box' ? i.boxCount : null
+      }))
     };
 
     this.saving.set(true);

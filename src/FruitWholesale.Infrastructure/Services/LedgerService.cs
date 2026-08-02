@@ -3,6 +3,7 @@ using System.Text.Json;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Domain.Entities;
+using FruitWholesale.Domain.Enums;
 
 namespace FruitWholesale.Infrastructure.Services;
 
@@ -478,6 +479,135 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             """;
         var rows = await connection.QueryAsync<(int FruitID, decimal RunningStock)>(sql);
         return rows.ToDictionary(r => r.FruitID, r => r.RunningStock);
+    }
+
+    public async Task RecalculateFruitBoxesAsync(IDbConnection connection, IDbTransaction transaction, int fruitId)
+    {
+        var tracksByBox = await connection.ExecuteScalarAsync<bool>(
+            "SELECT TracksByBox FROM dbo.FruitMaster WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
+
+        await connection.ExecuteAsync("DELETE FROM dbo.FruitBoxes WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
+        if (!tracksByBox) return;
+
+        // Purchase (box-in) and Supply (kg-out) events, chronologically - same event-replay
+        // approach as RecalculateFruitCostBasisAsync, so edits/deletes to either never need
+        // manual box reconciliation, just a full replay. Shop Returns add stock back (a box-in
+        // event, same shape as Purchase) and Supplier Returns remove stock (a kg-out event,
+        // same shape as Supply) so they fold into the same two event types.
+        const string eventsSql = """
+            SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
+                   p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.BoxCount, p.PurchaseID
+            FROM dbo.PurchaseItems pi
+            INNER JOIN dbo.Purchase p ON p.PurchaseID = pi.PurchaseID
+            WHERE pi.FruitID = @FruitID AND pi.BoxCount IS NOT NULL AND pi.BoxCount > 0
+
+            UNION ALL
+
+            SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
+                   s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS BoxCount, NULL AS PurchaseID
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            WHERE si.FruitID = @FruitID
+
+            UNION ALL
+
+            SELECT 'PURCHASE' AS EventType, ri.ShopReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
+                   r.CreatedAt AS ParentCreatedAt, ri.Quantity, ri.BoxCount, NULL AS PurchaseID
+            FROM dbo.ShopReturnItems ri
+            INNER JOIN dbo.ShopReturns r ON r.ShopReturnID = ri.ShopReturnID
+            WHERE ri.FruitID = @FruitID AND ri.BoxCount IS NOT NULL AND ri.BoxCount > 0
+
+            UNION ALL
+
+            SELECT 'SUPPLY' AS EventType, ri.SupplierReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
+                   r.CreatedAt AS ParentCreatedAt, ri.Quantity, NULL AS BoxCount, NULL AS PurchaseID
+            FROM dbo.SupplierReturnItems ri
+            INNER JOIN dbo.SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
+            WHERE ri.FruitID = @FruitID
+
+            ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
+            """;
+        var events = await connection.QueryAsync<BoxEvent>(eventsSql, new { FruitID = fruitId }, transaction);
+
+        var boxes = new List<BoxState>();
+        foreach (var evt in events)
+        {
+            if (evt.EventType == "PURCHASE")
+            {
+                var perBoxWeight = evt.Quantity / evt.BoxCount!.Value;
+                for (var i = 0; i < evt.BoxCount.Value; i++)
+                {
+                    boxes.Add(new BoxState { InitialWeightKg = perBoxWeight, RemainingWeightKg = perBoxWeight, Status = FruitBoxStatuses.Full, PurchaseID = evt.PurchaseID });
+                }
+            }
+            else // SUPPLY
+            {
+                var remaining = evt.Quantity;
+                while (remaining > 0)
+                {
+                    var openBox = boxes.FirstOrDefault(b => b.Status == FruitBoxStatuses.Opened);
+                    if (openBox is null)
+                    {
+                        openBox = boxes.FirstOrDefault(b => b.Status == FruitBoxStatuses.Full);
+                        if (openBox is null) break; // selling more kg than tracked box inventory covers - stop silently, StockLedger kg is still correct
+                        openBox.Status = FruitBoxStatuses.Opened;
+                    }
+
+                    var drain = Math.Min(remaining, openBox.RemainingWeightKg);
+                    openBox.RemainingWeightKg -= drain;
+                    remaining -= drain;
+                    if (openBox.RemainingWeightKg <= 0)
+                    {
+                        openBox.RemainingWeightKg = 0;
+                        openBox.Status = FruitBoxStatuses.Empty;
+                    }
+                }
+            }
+        }
+
+        if (boxes.Count == 0) return;
+
+        const string insertSql = """
+            INSERT INTO dbo.FruitBoxes (FruitID, PurchaseID, InitialWeightKg, RemainingWeightKg, Status)
+            VALUES (@FruitID, @PurchaseID, @InitialWeightKg, @RemainingWeightKg, @Status);
+            """;
+        foreach (var box in boxes)
+        {
+            await connection.ExecuteAsync(insertSql, new { FruitID = fruitId, box.PurchaseID, box.InitialWeightKg, box.RemainingWeightKg, box.Status }, transaction);
+        }
+    }
+
+    private sealed class BoxEvent
+    {
+        public string EventType { get; set; } = string.Empty;
+        public int ItemID { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public DateTime ParentCreatedAt { get; set; }
+        public decimal Quantity { get; set; }
+        public int? BoxCount { get; set; }
+        public int? PurchaseID { get; set; }
+    }
+
+    private sealed class BoxState
+    {
+        public decimal InitialWeightKg { get; set; }
+        public decimal RemainingWeightKg { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public int? PurchaseID { get; set; }
+    }
+
+    public async Task<Dictionary<int, FruitBoxSummary>> GetCurrentBoxSummaryForAllFruitsAsync()
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT FruitID,
+                   SUM(CASE WHEN Status = 'Full' THEN 1 ELSE 0 END) AS FullBoxCount,
+                   MAX(CASE WHEN Status = 'Opened' THEN RemainingWeightKg END) AS OpenedBoxRemainingKg
+            FROM dbo.FruitBoxes
+            GROUP BY FruitID;
+            """;
+        var rows = await connection.QueryAsync<(int FruitID, int FullBoxCount, decimal? OpenedBoxRemainingKg)>(sql);
+        return rows.ToDictionary(r => r.FruitID, r => new FruitBoxSummary { FullBoxCount = r.FullBoxCount, OpenedBoxRemainingKg = r.OpenedBoxRemainingKg });
     }
 
     public async Task<PaginatedLedger<StockLedger>> GetStockLedgerAsync(int fruitId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize)

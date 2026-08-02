@@ -82,8 +82,8 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
             var shopReturnId = await connection.QuerySingleAsync<int>(insertSql, shopReturn, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.ShopReturnItems (ShopReturnID, FruitID, Quantity, UnitPrice, TotalAmount, CostBasis)
-                VALUES (@ShopReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @CostBasis);
+                INSERT INTO dbo.ShopReturnItems (ShopReturnID, FruitID, Quantity, UnitPrice, TotalAmount, CostBasis, BoxCount)
+                VALUES (@ShopReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @CostBasis, @BoxCount);
                 """;
             var costBasisByFruit = await ResolveReturnCostBasisBatchAsync(
                 connection, transaction, shopReturn.Items.Select(i => i.FruitID).Distinct(), shopReturn.SupplyID);
@@ -107,6 +107,7 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -144,8 +145,8 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
             await connection.ExecuteAsync("DELETE FROM dbo.ShopReturnItems WHERE ShopReturnID = @ShopReturnID", new { shopReturn.ShopReturnID }, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.ShopReturnItems (ShopReturnID, FruitID, Quantity, UnitPrice, TotalAmount, CostBasis)
-                VALUES (@ShopReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @CostBasis);
+                INSERT INTO dbo.ShopReturnItems (ShopReturnID, FruitID, Quantity, UnitPrice, TotalAmount, CostBasis, BoxCount)
+                VALUES (@ShopReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @CostBasis, @BoxCount);
                 """;
             var costBasisByFruit = await ResolveReturnCostBasisBatchAsync(
                 connection, transaction, shopReturn.Items.Select(i => i.FruitID).Distinct(), shopReturn.SupplyID);
@@ -177,6 +178,7 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -208,6 +210,7 @@ public class ShopReturnRepository(IDbConnectionFactory connectionFactory, ILedge
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();

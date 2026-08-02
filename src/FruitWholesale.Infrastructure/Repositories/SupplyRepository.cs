@@ -79,8 +79,8 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             var supplyId = await connection.QuerySingleAsync<int>(insertSql, supply, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount)
-                VALUES (@SupplyID, @FruitID, @Quantity, @UnitPrice, @TotalAmount);
+                INSERT INTO dbo.SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
+                VALUES (@SupplyID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in supply.Items)
             {
@@ -101,6 +101,7 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -138,8 +139,8 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             await connection.ExecuteAsync("DELETE FROM dbo.SupplyItems WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount)
-                VALUES (@SupplyID, @FruitID, @Quantity, @UnitPrice, @TotalAmount);
+                INSERT INTO dbo.SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
+                VALUES (@SupplyID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in supply.Items)
             {
@@ -168,6 +169,7 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -199,6 +201,7 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();

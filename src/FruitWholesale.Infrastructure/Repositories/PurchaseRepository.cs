@@ -79,8 +79,8 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             var purchaseId = await connection.QuerySingleAsync<int>(insertSql, purchase, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount)
-                VALUES (@PurchaseID, @FruitID, @Quantity, @PurchasePrice, @TotalAmount);
+                INSERT INTO dbo.PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount, BoxCount)
+                VALUES (@PurchaseID, @FruitID, @Quantity, @PurchasePrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in purchase.Items)
             {
@@ -101,6 +101,7 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -138,8 +139,8 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             await connection.ExecuteAsync("DELETE FROM dbo.PurchaseItems WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount)
-                VALUES (@PurchaseID, @FruitID, @Quantity, @PurchasePrice, @TotalAmount);
+                INSERT INTO dbo.PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount, BoxCount)
+                VALUES (@PurchaseID, @FruitID, @Quantity, @PurchasePrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in purchase.Items)
             {
@@ -168,6 +169,7 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();
@@ -199,6 +201,7 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
                 await ledgerService.RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+                await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
             }
 
             transaction.Commit();

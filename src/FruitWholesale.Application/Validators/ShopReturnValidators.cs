@@ -10,6 +10,7 @@ public class SaveShopReturnItemValidator : AbstractValidator<SaveShopReturnItemD
         RuleFor(x => x.FruitID).GreaterThan(0);
         RuleFor(x => x.Quantity).GreaterThan(0);
         RuleFor(x => x.UnitPrice).GreaterThan(0);
+        RuleFor(x => x.BoxCount).GreaterThan(0).When(x => x.BoxCount.HasValue);
     }
 }
 

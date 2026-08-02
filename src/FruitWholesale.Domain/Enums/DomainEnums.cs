@@ -67,3 +67,10 @@ public static class JobTypes
 
     public static readonly string[] All = [Supply, Collection, Loading, Other];
 }
+
+public static class FruitBoxStatuses
+{
+    public const string Full = "Full";
+    public const string Opened = "Opened";
+    public const string Empty = "Empty";
+}

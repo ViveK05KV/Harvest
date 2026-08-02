@@ -7,10 +7,12 @@ class CollectionService {
 
   CollectionService(this._api);
 
-  Future<PaginatedList<Collection>> getPaged({int pageNumber = 1, int pageSize = 20}) async {
+  Future<PaginatedList<Collection>> getPaged({int pageNumber = 1, int pageSize = 20, String? fromDate, String? toDate}) async {
     final json = await _api.get('/collection', query: {
       'pageNumber': pageNumber,
       'pageSize': pageSize,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
     });
     return PaginatedList.fromJson(json as Map<String, dynamic>, Collection.fromJson);
   }

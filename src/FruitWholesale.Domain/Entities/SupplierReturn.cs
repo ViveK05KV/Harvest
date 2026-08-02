@@ -34,6 +34,7 @@ public class SupplierReturnItem
     /// input the caller supplies.
     /// </summary>
     public decimal CostBasis { get; set; }
+    public int? BoxCount { get; set; }
 
     public string? FruitName { get; set; }
     public string? Unit { get; set; }

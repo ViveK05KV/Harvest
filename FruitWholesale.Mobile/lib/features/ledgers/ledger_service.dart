@@ -33,4 +33,9 @@ class LedgerService {
     });
     return PaginatedList.fromJson(json as Map<String, dynamic>, CashLedgerEntry.fromJson);
   }
+
+  Future<double> getCurrentCashBalance() async {
+    final json = await _api.get('/ledger/cash/balance');
+    return (json as num).toDouble();
+  }
 }

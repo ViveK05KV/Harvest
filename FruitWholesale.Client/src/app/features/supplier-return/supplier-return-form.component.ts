@@ -102,7 +102,7 @@ export class SupplierReturnFormComponent implements OnInit {
           });
           if (supplierReturn.supplierID) this.loadSupplierPurchases(supplierReturn.supplierID);
           supplierReturn.items.forEach((item) =>
-            this.itemsArray.push(this.buildItem(item.fruitID, item.quantity, item.unitPrice))
+            this.itemsArray.push(this.buildItem(item.fruitID, item.quantity, item.unitPrice, item.boxCount ?? null))
           );
           this.loading.set(false);
         });
@@ -135,7 +135,9 @@ export class SupplierReturnFormComponent implements OnInit {
     this.purchaseService.getById(purchaseId).subscribe({
       next: (purchase) => {
         this.itemsArray.clear();
-        purchase.items.forEach((item) => this.itemsArray.push(this.buildItem(item.fruitID, item.quantity, item.purchasePrice)));
+        purchase.items.forEach((item) =>
+          this.itemsArray.push(this.buildItem(item.fruitID, item.quantity, item.purchasePrice, item.boxCount ?? null))
+        );
         this.loadingInvoiceItems.set(false);
         this.notification.info('Items loaded from invoice — adjust quantities to what is actually being returned.');
       },
@@ -143,12 +145,30 @@ export class SupplierReturnFormComponent implements OnInit {
     });
   }
 
-  buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0) {
+  buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
-      unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]]
+      unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
+      boxCount: this.fb.control<number | null>(boxCount, Validators.min(1))
     });
+  }
+
+  fruitTracksByBox(fruitID: number | null): boolean {
+    return this.fruits().find((f) => f.fruitID === fruitID)?.tracksByBox ?? false;
+  }
+
+  fruitBoxWeight(fruitID: number | null): number | null {
+    return this.fruits().find((f) => f.fruitID === fruitID)?.boxWeightKg ?? null;
+  }
+
+  onBoxCountChange(index: number): void {
+    const item = this.itemsArray.at(index);
+    const boxWeight = this.fruitBoxWeight(item.value.fruitID);
+    const boxCount = item.value.boxCount;
+    if (boxWeight != null && boxCount != null && boxCount > 0) {
+      item.patchValue({ quantity: Math.round(boxWeight * boxCount * 1000) / 1000 });
+    }
   }
 
   addRow(): void {
@@ -165,6 +185,9 @@ export class SupplierReturnFormComponent implements OnInit {
 
   rowAmount(index: number): number {
     const item = this.itemsArray.at(index).getRawValue();
+    if (this.fruitTracksByBox(item.fruitID) && item.boxCount) {
+      return item.boxCount * (item.unitPrice || 0);
+    }
     return (item.quantity || 0) * (item.unitPrice || 0);
   }
 
@@ -186,7 +209,12 @@ export class SupplierReturnFormComponent implements OnInit {
       purchaseID: raw.purchaseID,
       referenceNo: raw.referenceNo,
       remarks: raw.remarks,
-      items: raw.items.map((i) => ({ fruitID: i.fruitID, quantity: i.quantity, unitPrice: i.unitPrice }))
+      items: raw.items.map((i) => ({
+        fruitID: i.fruitID,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        boxCount: this.fruitTracksByBox(i.fruitID) ? i.boxCount : null
+      }))
     };
 
     this.saving.set(true);

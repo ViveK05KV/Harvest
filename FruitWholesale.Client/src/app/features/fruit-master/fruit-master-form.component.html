@@ -17,6 +17,18 @@
         }
       </mat-select>
     </mat-form-field>
+
+    <mat-checkbox formControlName="tracksByBox">
+      Sold by box (track physical box count alongside kg, e.g. apples)
+    </mat-checkbox>
+
+    @if (form.controls.tracksByBox.value) {
+      <mat-form-field class="full-width">
+        <mat-label>Box Weight (Kg)</mat-label>
+        <input matInput type="number" step="0.01" min="0.001" formControlName="boxWeightKg" />
+        <span matTextSuffix>kg</span>
+      </mat-form-field>
+    }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button type="button" mat-dialog-close>Cancel</button>

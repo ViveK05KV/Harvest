@@ -7,8 +7,13 @@ class EmployeeWorkLogService {
 
   EmployeeWorkLogService(this._api);
 
-  Future<PaginatedList<EmployeeWorkLog>> getPaged({int pageNumber = 1, int pageSize = 20}) async {
-    final json = await _api.get('/employeeworklog', query: {'pageNumber': pageNumber, 'pageSize': pageSize});
+  Future<PaginatedList<EmployeeWorkLog>> getPaged({int pageNumber = 1, int pageSize = 20, String? fromDate, String? toDate}) async {
+    final json = await _api.get('/employeeworklog', query: {
+      'pageNumber': pageNumber,
+      'pageSize': pageSize,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    });
     return PaginatedList.fromJson(json as Map<String, dynamic>, EmployeeWorkLog.fromJson);
   }
 

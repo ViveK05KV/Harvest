@@ -58,7 +58,8 @@ public class PurchaseService(IPurchaseRepository repository, IMapper mapper) : I
                 FruitID = i.FruitID,
                 Quantity = i.Quantity,
                 PurchasePrice = i.PurchasePrice,
-                TotalAmount = i.Quantity * i.PurchasePrice
+                TotalAmount = (i.BoxCount ?? 0) > 0 ? i.BoxCount!.Value * i.PurchasePrice : i.Quantity * i.PurchasePrice,
+                BoxCount = i.BoxCount
             }).ToList()
         };
 
@@ -93,7 +94,8 @@ public class PurchaseService(IPurchaseRepository repository, IMapper mapper) : I
                 FruitID = i.FruitID,
                 Quantity = i.Quantity,
                 PurchasePrice = i.PurchasePrice,
-                TotalAmount = i.Quantity * i.PurchasePrice
+                TotalAmount = (i.BoxCount ?? 0) > 0 ? i.BoxCount!.Value * i.PurchasePrice : i.Quantity * i.PurchasePrice,
+                BoxCount = i.BoxCount
             }).ToList()
         };
 

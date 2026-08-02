@@ -28,7 +28,7 @@ export class StockComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   readonly authService = inject(AuthService);
 
-  readonly displayedColumns = ['fruitName', 'currentStock', 'unit', 'actions'];
+  readonly displayedColumns = ['fruitName', 'currentStock', 'unit', 'boxes', 'actions'];
   readonly items = signal<CurrentStock[]>([]);
   readonly loading = signal(false);
 
@@ -51,6 +51,12 @@ export class StockComponent implements OnInit {
 
   isLow(stock: CurrentStock): boolean {
     return stock.currentStock <= LOW_STOCK_THRESHOLD;
+  }
+
+  boxSummary(stock: CurrentStock): string {
+    if (!stock.tracksByBox) return '';
+    const opened = stock.openedBoxRemainingKg != null ? ` (+1 opened, ${stock.openedBoxRemainingKg.toFixed(1)}kg)` : '';
+    return `${stock.fullBoxCount} box${stock.fullBoxCount === 1 ? '' : 'es'}${opened}`;
   }
 
   viewLedger(stock: CurrentStock): void {

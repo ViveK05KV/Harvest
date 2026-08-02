@@ -32,6 +32,11 @@
       <td mat-cell *matCellDef="let row">{{ row.unit }}</td>
     </ng-container>
 
+    <ng-container matColumnDef="boxes">
+      <th mat-header-cell *matHeaderCellDef>Boxes</th>
+      <td mat-cell *matCellDef="let row">{{ row.tracksByBox ? boxSummary(row) : '—' }}</td>
+    </ng-container>
+
     <ng-container matColumnDef="actions">
       <th mat-header-cell *matHeaderCellDef></th>
       <td mat-cell *matCellDef="let row">

@@ -9,6 +9,7 @@ public class ShopReturnItemDto
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalAmount { get; set; }
+    public int? BoxCount { get; set; }
 }
 
 public class ShopReturnDto
@@ -40,6 +41,7 @@ public class SaveShopReturnItemDto
     public int FruitID { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public int? BoxCount { get; set; }
 }
 
 public class CreateShopReturnDto

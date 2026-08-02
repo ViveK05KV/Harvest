@@ -99,6 +99,8 @@ CREATE TABLE dbo.FruitMaster
     FruitID     INT IDENTITY(1,1)  NOT NULL,
     FruitName   NVARCHAR(150)      NOT NULL,
     Unit        NVARCHAR(20)       NOT NULL, -- Kg, Box, Dozen, Piece
+    TracksByBox BIT                NOT NULL CONSTRAINT DF_FruitMaster_TracksByBox DEFAULT (0), -- see 18_AddFruitBoxTracking.sql
+    BoxWeightKg DECIMAL(18,3)      NULL, -- nominal kg per box; see 19_AddFruitBoxWeight.sql
     IsActive    BIT                NOT NULL CONSTRAINT DF_FruitMaster_IsActive DEFAULT (1),
     CreatedAt   DATETIME2          NOT NULL CONSTRAINT DF_FruitMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
     UpdatedAt   DATETIME2          NULL,
@@ -245,6 +247,7 @@ CREATE TABLE dbo.SupplyItems
     UnitPrice     DECIMAL(18,2)      NOT NULL,
     TotalAmount   DECIMAL(18,2)      NOT NULL,
     CostBasis     DECIMAL(18,4)      NOT NULL CONSTRAINT DF_SupplyItems_CostBasis DEFAULT (0), -- weighted-avg fruit cost at time of sale; see 08_AddProfitTracking.sql
+    BoxCount      INT                NULL, -- display-only box count for "by box" sales; see 19_AddFruitBoxWeight.sql
     CONSTRAINT PK_SupplyItems PRIMARY KEY CLUSTERED (SupplyItemID),
     CONSTRAINT FK_SupplyItems_Supply FOREIGN KEY (SupplyID) REFERENCES dbo.Supply(SupplyID) ON DELETE CASCADE,
     CONSTRAINT FK_SupplyItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
@@ -306,6 +309,7 @@ CREATE TABLE dbo.PurchaseItems
     Quantity        DECIMAL(18,3)      NOT NULL,
     PurchasePrice   DECIMAL(18,2)      NOT NULL,
     TotalAmount     DECIMAL(18,2)      NOT NULL,
+    BoxCount        INT                NULL, -- physical box count for TracksByBox fruits; see 18_AddFruitBoxTracking.sql
     CONSTRAINT PK_PurchaseItems PRIMARY KEY CLUSTERED (PurchaseItemID),
     CONSTRAINT FK_PurchaseItems_Purchase FOREIGN KEY (PurchaseID) REFERENCES dbo.Purchase(PurchaseID) ON DELETE CASCADE,
     CONSTRAINT FK_PurchaseItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
@@ -475,6 +479,33 @@ CREATE TABLE dbo.StockLedger
 GO
 
 /* =====================================================================
+   FruitBoxes — dual-unit (box count + kg) tracking layer for
+   TracksByBox fruits, on top of StockLedger's kg-only tracking. One row
+   per physical box; rebuilt from scratch by
+   LedgerService.RecalculateFruitBoxesAsync on every Purchase/Supply
+   write. See 18_AddFruitBoxTracking.sql for the full design rationale.
+   ===================================================================== */
+IF OBJECT_ID('dbo.FruitBoxes', 'U') IS NOT NULL DROP TABLE dbo.FruitBoxes;
+GO
+CREATE TABLE dbo.FruitBoxes
+(
+    FruitBoxID         INT IDENTITY(1,1) NOT NULL,
+    FruitID            INT               NOT NULL,
+    PurchaseID         INT               NULL,
+    InitialWeightKg    DECIMAL(18,3)     NOT NULL,
+    RemainingWeightKg  DECIMAL(18,3)     NOT NULL,
+    Status             NVARCHAR(10)      NOT NULL, -- Full | Opened | Empty
+    CreatedAt          DATETIME2         NOT NULL CONSTRAINT DF_FruitBoxes_CreatedAt DEFAULT (SYSUTCDATETIME()),
+    UpdatedAt          DATETIME2         NULL,
+    CONSTRAINT PK_FruitBoxes PRIMARY KEY CLUSTERED (FruitBoxID),
+    CONSTRAINT FK_FruitBoxes_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID),
+    CONSTRAINT FK_FruitBoxes_Purchase FOREIGN KEY (PurchaseID) REFERENCES dbo.Purchase(PurchaseID) ON DELETE SET NULL
+);
+GO
+CREATE NONCLUSTERED INDEX IX_FruitBoxes_FruitID_Status ON dbo.FruitBoxes (FruitID, Status) INCLUDE (RemainingWeightKg);
+GO
+
+/* =====================================================================
    CashLedger
    ===================================================================== */
 IF OBJECT_ID('dbo.CashLedger', 'U') IS NOT NULL DROP TABLE dbo.CashLedger;
@@ -537,6 +568,7 @@ CREATE TABLE dbo.ShopReturnItems
     UnitPrice         DECIMAL(18,2)     NOT NULL,
     TotalAmount       DECIMAL(18,2)     NOT NULL,
     CostBasis         DECIMAL(18,4)     NOT NULL CONSTRAINT DF_ShopReturnItems_CostBasis DEFAULT (0),
+    BoxCount          INT               NULL, -- see 20_AddReturnBoxCount.sql
     CONSTRAINT PK_ShopReturnItems PRIMARY KEY CLUSTERED (ShopReturnItemID),
     CONSTRAINT FK_ShopReturnItems_ShopReturns FOREIGN KEY (ShopReturnID) REFERENCES dbo.ShopReturns(ShopReturnID) ON DELETE CASCADE,
     CONSTRAINT FK_ShopReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
@@ -576,6 +608,7 @@ CREATE TABLE dbo.SupplierReturnItems
     UnitPrice              DECIMAL(18,2)     NOT NULL,
     TotalAmount            DECIMAL(18,2)     NOT NULL,
     CostBasis              DECIMAL(18,4)     NOT NULL CONSTRAINT DF_SupplierReturnItems_CostBasis DEFAULT (0),
+    BoxCount               INT               NULL, -- see 20_AddReturnBoxCount.sql
     CONSTRAINT PK_SupplierReturnItems PRIMARY KEY CLUSTERED (SupplierReturnItemID),
     CONSTRAINT FK_SupplierReturnItems_SupplierReturns FOREIGN KEY (SupplierReturnID) REFERENCES dbo.SupplierReturns(SupplierReturnID) ON DELETE CASCADE,
     CONSTRAINT FK_SupplierReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)

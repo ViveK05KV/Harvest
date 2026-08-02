@@ -7,8 +7,12 @@ class ShopMasterService {
 
   ShopMasterService(this._api);
 
-  Future<PaginatedList<ShopMaster>> getPaged(int pageNumber) async {
-    final json = await _api.get('/shopmaster', query: {'pageNumber': pageNumber, 'pageSize': 20});
+  Future<PaginatedList<ShopMaster>> getPaged(int pageNumber, {int? routeId, int pageSize = 20}) async {
+    final json = await _api.get('/shopmaster', query: {
+      'pageNumber': pageNumber,
+      'pageSize': pageSize,
+      if (routeId != null) 'routeId': routeId,
+    });
     return PaginatedList.fromJson(json as Map<String, dynamic>, ShopMaster.fromJson);
   }
 
@@ -34,5 +38,13 @@ class ShopMasterService {
 
   Future<void> setActive(int id, bool active) async {
     await _api.patch('/shopmaster/$id/${active ? 'activate' : 'deactivate'}');
+  }
+
+  Future<void> applyBalanceAdjustment(int id, {required double amount, required bool isIncrease, required String narration}) async {
+    await _api.post('/shopmaster/$id/balance-adjustment', body: {
+      'amount': amount,
+      'isIncrease': isIncrease,
+      'narration': narration,
+    });
   }
 }

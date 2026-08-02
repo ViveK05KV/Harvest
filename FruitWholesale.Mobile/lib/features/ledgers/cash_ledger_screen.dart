@@ -18,6 +18,13 @@ class _CashLedgerScreenState extends State<CashLedgerScreen> {
   late final LedgerService _service = LedgerService(context.read<ApiClient>());
   Key _listKey = UniqueKey();
   String? _transactionType;
+  double? _currentBalance;
+
+  @override
+  void initState() {
+    super.initState();
+    _service.getCurrentCashBalance().then((balance) => setState(() => _currentBalance = balance));
+  }
 
   void _onTypeChanged(String? value) {
     setState(() {
@@ -35,6 +42,7 @@ class _CashLedgerScreenState extends State<CashLedgerScreen> {
       appBar: AppBar(title: const Text('Cash Ledger')),
       body: Column(
         children: [
+          if (_currentBalance != null) _CurrentBalanceBox(balance: _currentBalance!, currencyFormat: currencyFormat),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Align(
@@ -84,6 +92,37 @@ class _CashLedgerScreenState extends State<CashLedgerScreen> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrentBalanceBox extends StatelessWidget {
+  final double balance;
+  final NumberFormat currencyFormat;
+
+  const _CurrentBalanceBox({required this.balance, required this.currencyFormat});
+
+  @override
+  Widget build(BuildContext context) {
+    final isNegative = balance < 0;
+    final color = isNegative ? Colors.red.shade700 : Colors.green.shade700;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Current Balance', style: TextStyle(color: color, fontSize: 13)),
+          Text(
+            currencyFormat.format(balance),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ],
       ),

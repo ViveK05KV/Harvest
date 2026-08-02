@@ -8,6 +8,7 @@ const cashLedgerTypeLabels = <String, String>{
   'SupplierPayment': 'Supplier Payment',
   'DailyExpense': 'Daily Expense',
   'EmployeeWorkLog': 'Employee Wages',
+  'Adjustment': 'Cash Adjustment',
 };
 
 /// Shared shape for Shop and Supplier ledgers (debit/credit style).
