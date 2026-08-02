@@ -33,6 +33,7 @@ class PurchaseItem {
   final double quantity;
   final double purchasePrice;
   final double totalAmount;
+  final int? boxCount;
 
   const PurchaseItem({
     this.purchaseItemId = 0,
@@ -42,6 +43,7 @@ class PurchaseItem {
     required this.quantity,
     required this.purchasePrice,
     this.totalAmount = 0,
+    this.boxCount,
   });
 
   factory PurchaseItem.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,7 @@ class PurchaseItem {
       quantity: (json['quantity'] as num).toDouble(),
       purchasePrice: (json['purchasePrice'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
+      boxCount: json['boxCount'] as int?,
     );
   }
 
@@ -60,6 +63,7 @@ class PurchaseItem {
         'fruitID': fruitId,
         'quantity': quantity,
         'purchasePrice': purchasePrice,
+        'boxCount': boxCount,
       };
 }
 

@@ -28,16 +28,20 @@ class SupplyFormScreen extends StatefulWidget {
 
 class _LineItemForm {
   int? fruitId;
+  String saleType = 'kg';
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController unitPriceController = TextEditingController();
+  final TextEditingController boxCountController = TextEditingController();
 
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get unitPrice => double.tryParse(unitPriceController.text) ?? 0;
-  double get amount => quantity * unitPrice;
+  int? get boxCount => int.tryParse(boxCountController.text);
+  double get amount => (saleType == 'box' && boxCount != null) ? boxCount! * unitPrice : quantity * unitPrice;
 
   void dispose() {
     quantityController.dispose();
     unitPriceController.dispose();
+    boxCountController.dispose();
   }
 }
 
@@ -98,6 +102,10 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
             final form = _LineItemForm()..fruitId = i.fruitId;
             form.quantityController.text = trimZeros(i.quantity);
             form.unitPriceController.text = trimZeros(i.unitPrice);
+            if (i.boxCount != null) {
+              form.saleType = 'box';
+              form.boxCountController.text = '${i.boxCount}';
+            }
             return form;
           }));
         if (_items.isEmpty) _items.add(_LineItemForm());
@@ -117,6 +125,27 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
   }
 
   double get _grandTotal => _items.fold(0, (sum, item) => sum + item.amount);
+
+  FruitOption? _findFruit(int? fruitId) {
+    for (final fruit in _fruits) {
+      if (fruit.fruitId == fruitId) return fruit;
+    }
+    return null;
+  }
+
+  bool _fruitTracksByBox(int? fruitId) => _findFruit(fruitId)?.tracksByBox ?? false;
+
+  double? _fruitBoxWeight(int? fruitId) => _findFruit(fruitId)?.boxWeightKg;
+
+  void _onBoxCountChanged(_LineItemForm item) {
+    final boxWeight = _fruitBoxWeight(item.fruitId);
+    final boxCount = item.boxCount;
+    if (boxWeight != null && boxCount != null && boxCount > 0) {
+      setState(() => item.quantityController.text = trimZeros(boxWeight * boxCount));
+    } else {
+      setState(() {});
+    }
+  }
 
   void _addRow() => setState(() => _items.add(_LineItemForm()));
 
@@ -151,7 +180,12 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
       invoiceNo: _invoiceNoController.text.trim(),
       remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
       items: validItems
-          .map((i) => SupplyItem(fruitId: i.fruitId!, quantity: i.quantity, unitPrice: i.unitPrice))
+          .map((i) => SupplyItem(
+                fruitId: i.fruitId!,
+                quantity: i.quantity,
+                unitPrice: i.unitPrice,
+                boxCount: (_fruitTracksByBox(i.fruitId) && i.saleType == 'box') ? i.boxCount : null,
+              ))
           .toList(),
     );
 
@@ -261,27 +295,62 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
                 ),
               ],
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: item.quantityController,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
-                  ),
+            if (_fruitTracksByBox(item.fruitId)) ...[
+              DropdownButtonFormField<String>(
+                initialValue: item.saleType,
+                decoration: const InputDecoration(labelText: 'Sale Type'),
+                items: const [
+                  DropdownMenuItem(value: 'kg', child: Text('By Kg')),
+                  DropdownMenuItem(value: 'box', child: Text('By Box')),
+                ],
+                onChanged: (value) => setState(() => item.saleType = value ?? 'kg'),
+              ),
+              const SizedBox(height: 12),
+              if (item.saleType == 'box')
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: item.boxCountController,
+                        decoration: const InputDecoration(labelText: 'Boxes'),
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _onBoxCountChanged(item),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text('= ${trimZeros(item.quantity)} kg', style: const TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                TextFormField(
+                  controller: item.quantityController,
+                  decoration: const InputDecoration(labelText: 'Quantity (kg)'),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: item.unitPriceController,
-                    decoration: const InputDecoration(labelText: 'Rate'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-              ],
+            ] else
+              TextFormField(
+                controller: item.quantityController,
+                decoration: const InputDecoration(labelText: 'Quantity'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+              ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: item.unitPriceController,
+              decoration: InputDecoration(
+                labelText: 'Rate',
+                suffixText: (_fruitTracksByBox(item.fruitId) && item.saleType == 'box') ? '/box' : '/kg',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
             ),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: Text(

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
+import '../../core/utils/number_format_utils.dart';
 import '../../core/widgets/error_banner.dart';
 import '../../core/widgets/save_button.dart';
 import 'fruit_master_models.dart';
@@ -25,7 +26,9 @@ class _FruitMasterFormScreenState extends State<FruitMasterFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _unitController = TextEditingController();
+  final _boxWeightController = TextEditingController();
 
+  bool _tracksByBox = false;
   bool _loading = false;
   bool _saving = false;
   String? _error;
@@ -40,6 +43,7 @@ class _FruitMasterFormScreenState extends State<FruitMasterFormScreen> {
   void dispose() {
     _nameController.dispose();
     _unitController.dispose();
+    _boxWeightController.dispose();
     super.dispose();
   }
 
@@ -49,6 +53,8 @@ class _FruitMasterFormScreenState extends State<FruitMasterFormScreen> {
       final fruit = await _service.getById(widget.fruitId!);
       _nameController.text = fruit.fruitName;
       _unitController.text = fruit.unit;
+      _tracksByBox = fruit.tracksByBox;
+      if (fruit.boxWeightKg != null) _boxWeightController.text = trimZeros(fruit.boxWeightKg!);
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -62,7 +68,12 @@ class _FruitMasterFormScreenState extends State<FruitMasterFormScreen> {
       _saving = true;
       _error = null;
     });
-    final fruit = FruitMaster(fruitName: _nameController.text.trim(), unit: _unitController.text.trim());
+    final fruit = FruitMaster(
+      fruitName: _nameController.text.trim(),
+      unit: _unitController.text.trim(),
+      tracksByBox: _tracksByBox,
+      boxWeightKg: double.tryParse(_boxWeightController.text),
+    );
     try {
       if (widget.isEditing) {
         await _service.update(widget.fruitId!, fruit);
@@ -104,6 +115,23 @@ class _FruitMasterFormScreenState extends State<FruitMasterFormScreen> {
                     decoration: const InputDecoration(labelText: 'Unit', helperText: 'e.g. kg, box, dozen'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Unit is required' : null,
                   ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _tracksByBox,
+                    title: const Text('Sold by box'),
+                    subtitle: const Text('Track physical box count alongside kg, e.g. apples'),
+                    onChanged: (v) => setState(() => _tracksByBox = v ?? false),
+                  ),
+                  if (_tracksByBox) ...[
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _boxWeightController,
+                      decoration: const InputDecoration(labelText: 'Box Weight (Kg)'),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   SaveButton(saving: _saving, onPressed: _save),
                 ],

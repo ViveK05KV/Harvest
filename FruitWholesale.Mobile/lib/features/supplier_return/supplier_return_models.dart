@@ -36,6 +36,7 @@ class SupplierReturnItem {
   final double quantity;
   final double unitPrice;
   final double totalAmount;
+  final int? boxCount;
 
   const SupplierReturnItem({
     this.supplierReturnItemId = 0,
@@ -45,6 +46,7 @@ class SupplierReturnItem {
     required this.quantity,
     required this.unitPrice,
     this.totalAmount = 0,
+    this.boxCount,
   });
 
   factory SupplierReturnItem.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,7 @@ class SupplierReturnItem {
       quantity: (json['quantity'] as num).toDouble(),
       unitPrice: (json['unitPrice'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
+      boxCount: json['boxCount'] as int?,
     );
   }
 
@@ -63,6 +66,7 @@ class SupplierReturnItem {
         'fruitID': fruitId,
         'quantity': quantity,
         'unitPrice': unitPrice,
+        'boxCount': boxCount,
       };
 }
 

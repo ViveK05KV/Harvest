@@ -100,6 +100,7 @@ class _StockScreenState extends State<StockScreen> {
         return ListTile(
           leading: const CircleAvatar(child: Icon(Icons.inventory_outlined)),
           title: Text(item.fruitName),
+          subtitle: item.tracksByBox ? Text(item.boxSummary) : null,
           trailing: Text('${item.currentStock} ${item.unit}', style: const TextStyle(fontWeight: FontWeight.w600)),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => StockLedgerScreen(fruitId: item.fruitId, fruitName: item.fruitName)),

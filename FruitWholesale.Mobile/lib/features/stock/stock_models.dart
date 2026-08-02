@@ -3,12 +3,18 @@ class CurrentStock {
   final String fruitName;
   final String unit;
   final double currentStock;
+  final bool tracksByBox;
+  final int fullBoxCount;
+  final double? openedBoxRemainingKg;
 
   const CurrentStock({
     required this.fruitId,
     required this.fruitName,
     required this.unit,
     required this.currentStock,
+    this.tracksByBox = false,
+    this.fullBoxCount = 0,
+    this.openedBoxRemainingKg,
   });
 
   factory CurrentStock.fromJson(Map<String, dynamic> json) {
@@ -17,7 +23,16 @@ class CurrentStock {
       fruitName: json['fruitName'] as String,
       unit: json['unit'] as String,
       currentStock: (json['currentStock'] as num).toDouble(),
+      tracksByBox: json['tracksByBox'] as bool? ?? false,
+      fullBoxCount: json['fullBoxCount'] as int? ?? 0,
+      openedBoxRemainingKg: (json['openedBoxRemainingKg'] as num?)?.toDouble(),
     );
+  }
+
+  String get boxSummary {
+    if (!tracksByBox) return '';
+    final opened = openedBoxRemainingKg != null ? ' (+1 opened, ${openedBoxRemainingKg!.toStringAsFixed(1)}kg)' : '';
+    return '$fullBoxCount box${fullBoxCount == 1 ? '' : 'es'}$opened';
   }
 }
 

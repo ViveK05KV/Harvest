@@ -29,14 +29,17 @@ class _LineItemForm {
   int? fruitId;
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
+  final TextEditingController boxCountController = TextEditingController();
 
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get price => double.tryParse(priceController.text) ?? 0;
-  double get amount => quantity * price;
+  int? get boxCount => int.tryParse(boxCountController.text);
+  double get amount => (boxCount != null && boxCount! > 0) ? boxCount! * price : quantity * price;
 
   void dispose() {
     quantityController.dispose();
     priceController.dispose();
+    boxCountController.dispose();
   }
 }
 
@@ -97,6 +100,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             final form = _LineItemForm()..fruitId = i.fruitId;
             form.quantityController.text = trimZeros(i.quantity);
             form.priceController.text = trimZeros(i.purchasePrice);
+            if (i.boxCount != null) form.boxCountController.text = '${i.boxCount}';
             return form;
           }));
         if (_items.isEmpty) _items.add(_LineItemForm());
@@ -116,6 +120,27 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   double get _grandTotal => _items.fold(0, (sum, item) => sum + item.amount);
+
+  FruitOption? _findFruit(int? fruitId) {
+    for (final fruit in _fruits) {
+      if (fruit.fruitId == fruitId) return fruit;
+    }
+    return null;
+  }
+
+  bool _fruitTracksByBox(int? fruitId) => _findFruit(fruitId)?.tracksByBox ?? false;
+
+  double? _fruitBoxWeight(int? fruitId) => _findFruit(fruitId)?.boxWeightKg;
+
+  void _onBoxCountChanged(_LineItemForm item) {
+    final boxWeight = _fruitBoxWeight(item.fruitId);
+    final boxCount = item.boxCount;
+    if (boxWeight != null && boxCount != null && boxCount > 0) {
+      setState(() => item.quantityController.text = trimZeros(boxWeight * boxCount));
+    } else {
+      setState(() {});
+    }
+  }
 
   void _addRow() => setState(() => _items.add(_LineItemForm()));
 
@@ -149,7 +174,14 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       supplierId: _selectedSupplierId!,
       invoiceNo: _invoiceNoController.text.trim(),
       remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
-      items: validItems.map((i) => PurchaseItem(fruitId: i.fruitId!, quantity: i.quantity, purchasePrice: i.price)).toList(),
+      items: validItems
+          .map((i) => PurchaseItem(
+                fruitId: i.fruitId!,
+                quantity: i.quantity,
+                purchasePrice: i.price,
+                boxCount: _fruitTracksByBox(i.fruitId) ? i.boxCount : null,
+              ))
+          .toList(),
     );
 
     try {
@@ -255,27 +287,51 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _removeRow(index)),
               ],
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: item.quantityController,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
+            if (_fruitTracksByBox(item.fruitId)) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: item.boxCountController,
+                      decoration: const InputDecoration(labelText: 'Box Count'),
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => _onBoxCountChanged(item),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: item.priceController,
-                    decoration: const InputDecoration(labelText: 'Purchase Price'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _fruitBoxWeight(item.fruitId) != null
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text('= ${trimZeros(item.quantity)} kg', style: const TextStyle(fontSize: 13)),
+                          )
+                        : TextFormField(
+                            controller: item.quantityController,
+                            decoration: const InputDecoration(labelText: 'Quantity (kg)'),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => setState(() {}),
+                          ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ] else
+              TextFormField(
+                controller: item.quantityController,
+                decoration: const InputDecoration(labelText: 'Quantity'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+              ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: item.priceController,
+              decoration: InputDecoration(
+                labelText: 'Purchase Price',
+                suffixText: (_fruitTracksByBox(item.fruitId) && item.boxCount != null) ? '/box' : '/kg',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
             ),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: Text(

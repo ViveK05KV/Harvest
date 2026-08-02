@@ -2,12 +2,16 @@ class FruitMaster {
   final int fruitId;
   final String fruitName;
   final String unit;
+  final bool tracksByBox;
+  final double? boxWeightKg;
   final bool isActive;
 
   const FruitMaster({
     this.fruitId = 0,
     required this.fruitName,
     required this.unit,
+    this.tracksByBox = false,
+    this.boxWeightKg,
     this.isActive = true,
   });
 
@@ -16,6 +20,8 @@ class FruitMaster {
       fruitId: json['fruitID'] as int,
       fruitName: json['fruitName'] as String,
       unit: json['unit'] as String,
+      tracksByBox: json['tracksByBox'] as bool? ?? false,
+      boxWeightKg: (json['boxWeightKg'] as num?)?.toDouble(),
       isActive: json['isActive'] as bool,
     );
   }
@@ -23,5 +29,7 @@ class FruitMaster {
   Map<String, dynamic> toSaveJson() => {
         'fruitName': fruitName,
         'unit': unit,
+        'tracksByBox': tracksByBox,
+        'boxWeightKg': tracksByBox ? boxWeightKg : null,
       };
 }
