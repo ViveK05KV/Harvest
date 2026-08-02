@@ -16,6 +16,7 @@ import { ShopMasterService } from '../shop-master/shop-master.service';
 import { SupplierMasterService } from '../supplier-master/supplier-master.service';
 import { LedgerService } from '../ledgers/ledger.service';
 import { cashLedgerTypeLabel } from '../../core/models/ledger.model';
+import { toIso } from '../../core/utils/date.util';
 import {
   DASHBOARD_PERIODS,
   DASHBOARD_PERIOD_LABELS,
@@ -273,7 +274,7 @@ export class DashboardComponent implements OnInit {
 
   private loadCashTape(): void {
     this.cashTapeLoading.set(true);
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = toIso(new Date());
     this.ledgerService.getCashLedger({ pageNumber: 1, pageSize: 50 }, todayStr, todayStr).subscribe({
       next: (result) => {
         this.cashTape.set(

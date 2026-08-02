@@ -25,11 +25,14 @@ public class ValidationFilter(IServiceProvider serviceProvider) : IAsyncActionFi
         // ShopMasterController's DTOs use ShopID, not ShopMasterID (the "Master" suffix
         // on the controller isn't part of the entity's id name), and UsersController's
         // DTO uses UserID against the plural controller name "Users". So instead of one
-        // exact name, match every int property ending in "ID" whose prefix the controller
-        // name starts with, and take the longest (most specific) match — this also
-        // disambiguates DTOs carrying a foreign id too (e.g. UpdateShopReturnDto has both
-        // ShopReturnID and ShopID; controller "ShopReturn" matches both prefixes "Shop"
-        // and "ShopReturn", and the longer one is the correct primary key).
+        // exact name, match every int property ending in "ID" whose name-minus-"ID"
+        // appears anywhere in the controller name, and take the longest (most specific)
+        // match — this also disambiguates DTOs carrying a foreign id too (e.g.
+        // UpdateShopReturnDto has both ShopReturnID and ShopID; controller "ShopReturn"
+        // contains both "Shop" and "ShopReturn", and the longer one is the correct
+        // primary key). A plain prefix check isn't enough: DailyExpenseController's
+        // UpdateDailyExpenseDto uses ExpenseID, and "Expense" is a substring of
+        // "DailyExpense" but not a prefix of it.
         if (context.ActionArguments.TryGetValue("id", out var routeIdValue) && routeIdValue is int routeId
             && context.RouteData.Values.TryGetValue("controller", out var controllerNameValue) && controllerNameValue is string controllerName)
         {
@@ -39,7 +42,7 @@ public class ValidationFilter(IServiceProvider serviceProvider) : IAsyncActionFi
 
                 var property = argument.GetType().GetProperties()
                     .Where(p => p.PropertyType == typeof(int) && p.CanWrite && p.Name.EndsWith("ID", StringComparison.Ordinal))
-                    .Where(p => controllerName.StartsWith(p.Name[..^2], StringComparison.Ordinal))
+                    .Where(p => controllerName.Contains(p.Name[..^2], StringComparison.Ordinal))
                     .OrderByDescending(p => p.Name.Length)
                     .FirstOrDefault();
 

@@ -17,6 +17,7 @@ import { LedgerService } from './ledger.service';
 import { CASH_LEDGER_TRANSACTION_TYPES, CashLedgerEntry, cashLedgerTypeLabel } from '../../core/models/ledger.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-cash-ledger',
@@ -77,8 +78,8 @@ export class CashLedgerComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    const from = this.fromDate ? this.fromDate.toISOString().slice(0, 10) : null;
-    const to = this.toDate ? this.toDate.toISOString().slice(0, 10) : null;
+    const from = this.fromDate ? toIso(this.fromDate) : null;
+    const to = this.toDate ? toIso(this.toDate) : null;
     this.ledgerService.getCashLedger(this.request, from, to, this.transactionType).subscribe({
       next: (result) => {
         this.items.set(result.items);

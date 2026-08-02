@@ -18,6 +18,7 @@ import { SupplierLedgerEntry, ledgerParticulars } from '../../core/models/ledger
 import { SupplierMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supplier-ledger',
@@ -101,8 +102,8 @@ export class SupplierLedgerComponent implements OnInit {
   load(): void {
     if (!this.supplierId) return;
     this.loading.set(true);
-    const from = this.fromDate ? this.fromDate.toISOString().slice(0, 10) : null;
-    const to = this.toDate ? this.toDate.toISOString().slice(0, 10) : null;
+    const from = this.fromDate ? toIso(this.fromDate) : null;
+    const to = this.toDate ? toIso(this.toDate) : null;
     this.ledgerService.getSupplierLedger(this.supplierId, this.request, from, to).subscribe({
       next: (result) => {
         this.items.set(result.items);

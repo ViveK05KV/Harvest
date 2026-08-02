@@ -12,6 +12,7 @@ import { EmployeeService } from '../employee/employee.service';
 import { RouteMasterService } from '../route-master/route-master.service';
 import { Employee, EmployeeWorkLog, RouteMaster } from '../../core/models/master-data.model';
 import { JOB_TYPES, PAYMENT_MODES } from '../../core/models/common.model';
+import { toIso } from '../../core/utils/date.util';
 
 const ROUTE_RELEVANT_JOB_TYPES = ['Supply', 'Collection'];
 
@@ -68,7 +69,7 @@ export class EmployeeWorkLogFormComponent implements OnInit {
     const raw = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
-      workDate: (raw.workDate as unknown as Date).toISOString().slice(0, 10),
+      workDate: toIso(raw.workDate as unknown as Date),
       routeID: this.showRoute() ? raw.routeID : null
     });
   }

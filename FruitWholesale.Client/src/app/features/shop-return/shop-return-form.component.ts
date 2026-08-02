@@ -20,6 +20,7 @@ import { SupplyService } from '../supply/supply.service';
 import { ShopMaster, FruitMaster } from '../../core/models/master-data.model';
 import { SupplyListItem } from '../../core/models/transactions.model';
 import { NotificationService } from '../../core/services/notification.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-shop-return-form',
@@ -178,7 +179,7 @@ export class ShopReturnFormComponent implements OnInit {
 
     const raw = this.form.getRawValue();
     const payload = {
-      returnDate: (raw.returnDate as unknown as Date).toISOString().slice(0, 10),
+      returnDate: toIso(raw.returnDate as unknown as Date),
       shopID: raw.shopID,
       supplyID: raw.supplyID,
       referenceNo: raw.referenceNo,

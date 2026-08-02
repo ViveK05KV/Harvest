@@ -18,6 +18,7 @@ import { ShopMasterService } from '../shop-master/shop-master.service';
 import { FruitMasterService } from '../fruit-master/fruit-master.service';
 import { ShopMaster, FruitMaster } from '../../core/models/master-data.model';
 import { NotificationService } from '../../core/services/notification.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supply-form',
@@ -153,7 +154,7 @@ export class SupplyFormComponent implements OnInit {
 
     const raw = this.form.getRawValue();
     const payload = {
-      supplyDate: (raw.supplyDate as unknown as Date).toISOString().slice(0, 10),
+      supplyDate: toIso(raw.supplyDate as unknown as Date),
       shopID: raw.shopID,
       invoiceNo: raw.invoiceNo,
       remarks: raw.remarks,

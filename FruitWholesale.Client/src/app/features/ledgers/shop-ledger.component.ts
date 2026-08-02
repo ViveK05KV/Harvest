@@ -19,6 +19,7 @@ import { ShopLedgerEntry, ledgerParticulars } from '../../core/models/ledger.mod
 import { ShopMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-shop-ledger',
@@ -103,8 +104,8 @@ export class ShopLedgerComponent implements OnInit {
   load(): void {
     if (!this.shopId) return;
     this.loading.set(true);
-    const from = this.fromDate ? this.fromDate.toISOString().slice(0, 10) : null;
-    const to = this.toDate ? this.toDate.toISOString().slice(0, 10) : null;
+    const from = this.fromDate ? toIso(this.fromDate) : null;
+    const to = this.toDate ? toIso(this.toDate) : null;
     this.ledgerService.getShopLedger(this.shopId, this.request, from, to).subscribe({
       next: (result) => {
         this.items.set(result.items);

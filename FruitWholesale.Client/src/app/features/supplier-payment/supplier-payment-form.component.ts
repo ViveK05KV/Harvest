@@ -11,6 +11,7 @@ import { SupplierMasterService } from '../supplier-master/supplier-master.servic
 import { SupplierMaster } from '../../core/models/master-data.model';
 import { SupplierPayment } from '../../core/models/transactions.model';
 import { PAYMENT_MODES } from '../../core/models/common.model';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supplier-payment-form',
@@ -58,7 +59,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     const raw = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
-      paymentDate: (raw.paymentDate as unknown as Date).toISOString().slice(0, 10)
+      paymentDate: toIso(raw.paymentDate as unknown as Date)
     });
   }
 }

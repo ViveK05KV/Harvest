@@ -21,6 +21,7 @@ import { SupplierMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supplier-return-list',
@@ -97,8 +98,8 @@ export class SupplierReturnListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    const from = this.fromDate ? this.fromDate.toISOString().slice(0, 10) : null;
-    const to = this.toDate ? this.toDate.toISOString().slice(0, 10) : null;
+    const from = this.fromDate ? toIso(this.fromDate) : null;
+    const to = this.toDate ? toIso(this.toDate) : null;
     this.service.getPaged(this.request, this.supplierId, from, to).subscribe({
       next: (result) => {
         this.items.set(result.items);

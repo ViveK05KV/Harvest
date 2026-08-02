@@ -11,6 +11,7 @@ import { ExpenseCategoryService } from '../expense-category/expense-category.ser
 import { ExpenseCategory } from '../../core/models/master-data.model';
 import { DailyExpense } from '../../core/models/transactions.model';
 import { PAYMENT_MODES } from '../../core/models/common.model';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-daily-expense-form',
@@ -57,7 +58,7 @@ export class DailyExpenseFormComponent implements OnInit {
     const raw = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
-      expenseDate: (raw.expenseDate as unknown as Date).toISOString().slice(0, 10)
+      expenseDate: toIso(raw.expenseDate as unknown as Date)
     });
   }
 }

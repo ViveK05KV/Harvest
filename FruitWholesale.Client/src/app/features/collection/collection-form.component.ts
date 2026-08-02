@@ -11,6 +11,7 @@ import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopMaster } from '../../core/models/master-data.model';
 import { Collection } from '../../core/models/transactions.model';
 import { PAYMENT_MODES } from '../../core/models/common.model';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-collection-form',
@@ -58,7 +59,7 @@ export class CollectionFormComponent implements OnInit {
     const raw = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
-      collectionDate: (raw.collectionDate as unknown as Date).toISOString().slice(0, 10)
+      collectionDate: toIso(raw.collectionDate as unknown as Date)
     });
   }
 }
