@@ -48,7 +48,8 @@ const CASH_LEDGER_TYPE_LABELS: Record<string, string> = {
   Collection: 'Collection (from shop)',
   SupplierPayment: 'Supplier Payment',
   DailyExpense: 'Daily Expense',
-  EmployeeWorkLog: 'Employee Wages'
+  EmployeeWorkLog: 'Employee Wages',
+  Adjustment: 'Cash Adjustment'
 };
 
 export function cashLedgerTypeLabel(transactionType: string): string {

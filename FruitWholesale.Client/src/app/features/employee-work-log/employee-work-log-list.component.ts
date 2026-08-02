@@ -6,10 +6,13 @@ import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/p
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { EmployeeWorkLogService } from './employee-work-log.service';
 import { EmployeeWorkLogFormComponent } from './employee-work-log-form.component';
@@ -18,6 +21,7 @@ import { Employee, EmployeeWorkLog } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-employee-work-log-list',
@@ -31,10 +35,13 @@ import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatChipsModule,
     MatTooltipModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   templateUrl: './employee-work-log-list.component.html'
 })
@@ -54,6 +61,8 @@ export class EmployeeWorkLogListComponent implements OnInit {
   readonly employees = signal<Employee[]>([]);
 
   employeeId: number | null = null;
+  fromDate: Date | null = null;
+  toDate: Date | null = null;
 
   private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10 };
 
@@ -75,7 +84,9 @@ export class EmployeeWorkLogListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.service.getPaged(this.request, this.employeeId).subscribe({
+    const from = this.fromDate ? toIso(this.fromDate) : null;
+    const to = this.toDate ? toIso(this.toDate) : null;
+    this.service.getPaged(this.request, this.employeeId, from, to).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

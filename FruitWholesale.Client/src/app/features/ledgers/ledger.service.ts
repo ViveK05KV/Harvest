@@ -23,9 +23,19 @@ export class LedgerService {
     });
   }
 
-  getCashLedger(request: PaginationRequest, fromDate?: string | null, toDate?: string | null, transactionType?: string | null) {
+  getCashLedger(
+    request: PaginationRequest,
+    fromDate?: string | null,
+    toDate?: string | null,
+    transactionType?: string | null,
+    newestFirst = false
+  ) {
     return this.http.get<PaginatedList<CashLedgerEntry>>(`${this.baseUrl}/cash`, {
-      params: toHttpParams({ ...request, fromDate, toDate, transactionType })
+      params: toHttpParams({ ...request, fromDate, toDate, transactionType, newestFirst })
     });
+  }
+
+  getCurrentCashBalance() {
+    return this.http.get<number>(`${this.baseUrl}/cash/balance`);
   }
 }

@@ -45,7 +45,10 @@ public interface ILedgerService
 
     Task<PaginatedLedger<SupplierLedger>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
 
-    Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, int pageNumber, int pageSize);
+    Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, bool newestFirst, int pageNumber, int pageSize);
+
+    /// <summary>The RunningBalance on the chronologically latest CashLedger row - the company's current cash on hand, unaffected by any list filter.</summary>
+    Task<decimal> GetCurrentCashBalanceAsync();
 
     Task<decimal> AddStockLedgerEntryAsync(IDbConnection connection, IDbTransaction transaction, int fruitId,
         DateTime transactionDate, string transactionType, string referenceTable, int? referenceId,

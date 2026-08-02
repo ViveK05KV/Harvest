@@ -80,6 +80,47 @@ html.dark-theme {
   font-weight: 500;
 }
 
+// Angular Material's own mdc-data-table cell/row rules ship with matching
+// specificity and load after this stylesheet, so plain single-class
+// selectors lose the cascade here - qualify with the element too.
+td.amount-column,
+th.amount-column {
+  text-align: right !important;
+}
+
+.negative-balance {
+  color: var(--app-color-negative);
+}
+
+tr.opening-balance-row,
+tr.opening-balance-row:hover {
+  background-color: color-mix(in srgb, var(--mat-sys-primary, #d99326) 12%, transparent) !important;
+}
+
+.cash-balance-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+
+  .cash-balance-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+
+  &.balance-positive {
+    background-color: color-mix(in srgb, var(--app-color-positive) 15%, transparent);
+    color: var(--app-color-positive);
+  }
+
+  &.balance-negative {
+    background-color: color-mix(in srgb, var(--app-color-negative) 15%, transparent);
+    color: var(--app-color-negative);
+  }
+}
+
 .form-row {
   display: flex;
   flex-wrap: wrap;

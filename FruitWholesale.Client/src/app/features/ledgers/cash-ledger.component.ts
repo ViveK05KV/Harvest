@@ -51,6 +51,7 @@ export class CashLedgerComponent implements OnInit {
   readonly items = signal<CashLedgerEntry[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
+  readonly currentBalance = signal<number | null>(null);
 
   readonly transactionTypeOptions = CASH_LEDGER_TRANSACTION_TYPES;
   readonly typeLabel = cashLedgerTypeLabel;
@@ -58,15 +59,23 @@ export class CashLedgerComponent implements OnInit {
   fromDate: Date | null = null;
   toDate: Date | null = null;
   transactionType: string | null = null;
+  newestFirst = false;
 
   private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 20 };
 
   ngOnInit(): void {
     this.load();
+    this.ledgerService.getCurrentCashBalance().subscribe((balance) => this.currentBalance.set(balance));
   }
 
   onFilterChange(): void {
     this.request.pageNumber = 1;
+    this.load();
+  }
+
+  onSortDirectionChange(): void {
+    this.request.pageNumber = 1;
+    this.paginator?.firstPage();
     this.load();
   }
 
@@ -76,11 +85,23 @@ export class CashLedgerComponent implements OnInit {
     this.load();
   }
 
+  // The backend always pins the ledger's opening-balance-equivalent row (see
+  // sp_RecalculateCashLedgerBalance) to the very first slot of the very first page,
+  // regardless of sort direction. Only that specific row should get the highlight -
+  // an ordinary later "Cash Adjustment" entry must not be styled the same way.
+  isOpeningBalanceRow(row: CashLedgerEntry, index: number): boolean {
+    return (
+      this.request.pageNumber === 1 &&
+      index === 0 &&
+      (row.transactionType === 'OpeningBalance' || row.transactionType === 'Adjustment')
+    );
+  }
+
   load(): void {
     this.loading.set(true);
     const from = this.fromDate ? toIso(this.fromDate) : null;
     const to = this.toDate ? toIso(this.toDate) : null;
-    this.ledgerService.getCashLedger(this.request, from, to, this.transactionType).subscribe({
+    this.ledgerService.getCashLedger(this.request, from, to, this.transactionType, this.newestFirst).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

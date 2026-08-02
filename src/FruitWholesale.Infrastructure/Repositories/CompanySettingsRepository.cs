@@ -33,6 +33,12 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
                 await ledgerService.AddCashLedgerEntryAsync(connection, transaction, DateTime.UtcNow.Date,
                     LedgerTransactionTypes.OpeningBalance, ReferenceTables.CompanySettings, companyId,
                     Domain.Enums.PaymentModes.Cash, settings.OpeningCashBalance, 0, "Opening cash balance");
+                // The company profile can be set up after other cash transactions already exist
+                // (e.g. backdated Daily Expenses entered first). AddCashLedgerEntryAsync only
+                // chains off whatever the chronologically-latest balance happens to be at insert
+                // time, which is meaningless for an opening balance - recalculate immediately so
+                // sp_RecalculateCashLedgerBalance's "OpeningBalance always first" rule takes over.
+                await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
             }
 
             transaction.Commit();

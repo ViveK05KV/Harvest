@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Domain.Entities;
@@ -75,7 +76,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
 
             await ledgerService.AddCashLedgerEntryAsync(connection, transaction, collection.CollectionDate,
                 LedgerTransactionTypes.Collection, ReferenceTables.Collections, collectionId, collection.PaymentMode,
-                collection.AmountReceived, 0, $"Collection from shop (ID {collection.ShopID})");
+                collection.AmountReceived, 0, $"Collection from {await ShopNameAsync(connection, transaction, collection.ShopID)}");
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -120,7 +121,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Collections, collection.CollectionID);
             await ledgerService.AddCashLedgerEntryAsync(connection, transaction, collection.CollectionDate,
                 LedgerTransactionTypes.Collection, ReferenceTables.Collections, collection.CollectionID, collection.PaymentMode,
-                collection.AmountReceived, 0, $"Collection from shop (ID {collection.ShopID})");
+                collection.AmountReceived, 0, $"Collection from {await ShopNameAsync(connection, transaction, collection.ShopID)}");
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -162,4 +163,11 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         collection.DiscountAmount > 0
             ? $"Collection received ({collection.PaymentMode}) + discount {collection.DiscountAmount:0.##}"
             : $"Collection received ({collection.PaymentMode})";
+
+    // The Cash Ledger mixes every shop/supplier together, unlike a single shop's own ledger, so
+    // its narration needs the counterparty's name spelled out rather than just an internal ID.
+    private static async Task<string> ShopNameAsync(IDbConnection connection, IDbTransaction transaction, int shopId) =>
+        await connection.QueryFirstOrDefaultAsync<string>(
+            "SELECT ShopName FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction)
+        ?? "Unknown Shop";
 }

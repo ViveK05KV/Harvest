@@ -11,6 +11,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SupplierPaymentService } from './supplier-payment.service';
 import { SupplierPaymentFormComponent } from './supplier-payment-form.component';
@@ -20,6 +22,7 @@ import { SupplierMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
+import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supplier-payment-list',
@@ -37,7 +40,9 @@ import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog
     MatSelectModule,
     MatChipsModule,
     MatTooltipModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   templateUrl: './supplier-payment-list.component.html'
 })
@@ -57,6 +62,8 @@ export class SupplierPaymentListComponent implements OnInit {
   readonly suppliers = signal<SupplierMaster[]>([]);
 
   supplierId: number | null = null;
+  fromDate: Date | null = null;
+  toDate: Date | null = null;
 
   private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10 };
 
@@ -78,7 +85,9 @@ export class SupplierPaymentListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.service.getPaged(this.request, this.supplierId).subscribe({
+    const from = this.fromDate ? toIso(this.fromDate) : null;
+    const to = this.toDate ? toIso(this.toDate) : null;
+    this.service.getPaged(this.request, this.supplierId, from, to).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

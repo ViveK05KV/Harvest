@@ -240,10 +240,19 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         return new PaginatedLedger<SupplierLedger> { Items = items, TotalCount = total };
     }
 
-    public async Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, int pageNumber, int pageSize)
+    public async Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, bool newestFirst, int pageNumber, int pageSize)
     {
         using var connection = connectionFactory.CreateConnection();
+        // The opening-balance row (see sp_RecalculateCashLedgerBalance for the exact rule - the
+        // very first CashLedger row ever, if it's an OpeningBalance or Adjustment entry) is always
+        // ranked first, independent of @NewestFirst - accounting ledgers anchor it at the top
+        // regardless of sort direction. RunningBalance itself is precomputed by that same
+        // procedure on every write, so reversing display order here is a pure re-sort: it never
+        // touches the stored balances, and paging in either direction stays consistent (Option A
+        // from the ledger rewrite - calculate over the full filtered set, then paginate).
         const string sql = """
+            DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
+
             SELECT COUNT(*) FROM dbo.CashLedger
             WHERE (@FromDate IS NULL OR TransactionDate >= @FromDate)
               AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
@@ -253,7 +262,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             WHERE (@FromDate IS NULL OR TransactionDate >= @FromDate)
               AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
               AND (@TransactionType IS NULL OR TransactionType = @TransactionType)
-            ORDER BY TransactionDate ASC, CashLedgerID ASC
+            ORDER BY
+                CASE
+                    WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END,
+                CASE WHEN @NewestFirst = 0 THEN TransactionDate END ASC,
+                CASE WHEN @NewestFirst = 1 THEN TransactionDate END DESC,
+                CASE WHEN @NewestFirst = 0 THEN CashLedgerID END ASC,
+                CASE WHEN @NewestFirst = 1 THEN CashLedgerID END DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
@@ -261,12 +278,20 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             FromDate = fromDate,
             ToDate = toDate,
             TransactionType = transactionType,
+            NewestFirst = newestFirst,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         });
         var total = await multi.ReadSingleAsync<int>();
         var items = (await multi.ReadAsync<CashLedger>()).ToList();
         return new PaginatedLedger<CashLedger> { Items = items, TotalCount = total };
+    }
+
+    public async Task<decimal> GetCurrentCashBalanceAsync()
+    {
+        using var connection = connectionFactory.CreateConnection();
+        return await connection.QueryFirstOrDefaultAsync<decimal?>(
+            "SELECT TOP 1 RunningBalance FROM dbo.CashLedger ORDER BY TransactionDate DESC, CashLedgerID DESC") ?? 0m;
     }
 
     public async Task<decimal> AddStockLedgerEntryAsync(IDbConnection connection, IDbTransaction transaction, int fruitId,

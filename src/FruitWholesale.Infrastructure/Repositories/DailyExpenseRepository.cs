@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Domain.Entities;
@@ -70,7 +71,7 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
 
             await ledgerService.AddCashLedgerEntryAsync(connection, transaction, expense.ExpenseDate,
                 LedgerTransactionTypes.DailyExpense, ReferenceTables.DailyExpense, expenseId, expense.PaymentMode,
-                0, expense.Amount, $"Expense: {expense.PaidTo}");
+                0, expense.Amount, await ExpenseNarrationAsync(connection, transaction, expense));
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -101,7 +102,7 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.DailyExpense, expense.ExpenseID);
             await ledgerService.AddCashLedgerEntryAsync(connection, transaction, expense.ExpenseDate,
                 LedgerTransactionTypes.DailyExpense, ReferenceTables.DailyExpense, expense.ExpenseID, expense.PaymentMode,
-                0, expense.Amount, $"Expense: {expense.PaidTo}");
+                0, expense.Amount, await ExpenseNarrationAsync(connection, transaction, expense));
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -131,5 +132,17 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
             transaction.Rollback();
             throw;
         }
+    }
+
+    // The Cash Ledger mixes every expense category together, so its narration needs the actual
+    // category ("Fuel Expense", "Office Expense", ...) rather than the generic "Expense:" prefix -
+    // ExpenseCategoryID alone means nothing on a ledger row. PaidTo is appended when present for
+    // extra context (who the cash actually went to), but the category name is the headline.
+    private static async Task<string> ExpenseNarrationAsync(IDbConnection connection, IDbTransaction transaction, DailyExpense expense)
+    {
+        var categoryName = await connection.QueryFirstOrDefaultAsync<string>(
+            "SELECT CategoryName FROM dbo.ExpenseCategory WHERE ExpenseCategoryID = @ExpenseCategoryID",
+            new { expense.ExpenseCategoryID }, transaction) ?? "Expense";
+        return string.IsNullOrWhiteSpace(expense.PaidTo) ? categoryName : $"{categoryName} - {expense.PaidTo}";
     }
 }

@@ -107,6 +107,24 @@ GO
 -- OpeningCashBalance is booked as its own 'OpeningBalance' CashLedger
 -- row when the company profile is created, so this sums strictly from
 -- zero across all rows (including that opening row).
+--
+-- The opening-balance row is always ranked first regardless of its own
+-- TransactionDate. Two ways it can end up in the table:
+--   1. TransactionType = 'OpeningBalance', inserted once at company-profile
+--      creation time, stamped with that day's date.
+--   2. TransactionType = 'Adjustment', entered later by an admin via
+--      "Adjust Balance" as the very first cash transaction the business
+--      ever recorded in the system (no company OpeningCashBalance was set
+--      at setup time, so this Adjustment row IS the opening balance in
+--      substance, per the "very first transaction ever created" rule).
+-- Either way, if the business already had backdated transactions entered
+-- around the same time, a plain date sort can push this row after them,
+-- making the ledger run negative until it "catches up" at the end. An
+-- opening balance is conceptually the state of the account before any
+-- transaction, so it must anchor the sequence first no matter when the
+-- row itself was created - but only the very first row overall (lowest
+-- CashLedgerID) qualifies, so an ordinary Adjustment made later doesn't
+-- wrongly jump the queue.
 -- =========================================================================
 IF OBJECT_ID('dbo.sp_RecalculateCashLedgerBalance', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_RecalculateCashLedgerBalance;
@@ -116,13 +134,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
+
     ;WITH Ordered AS
     (
         SELECT
             CashLedgerID,
             CashIn,
             CashOut,
-            ROW_NUMBER() OVER (ORDER BY TransactionDate ASC, CashLedgerID ASC) AS rn
+            ROW_NUMBER() OVER (
+                ORDER BY
+                    CASE
+                        WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                        ELSE 1
+                    END,
+                    TransactionDate ASC,
+                    CashLedgerID ASC
+            ) AS rn
         FROM dbo.CashLedger
     )
     SELECT * INTO #CashLedgerCalc FROM Ordered;

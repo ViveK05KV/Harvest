@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Domain.Entities;
@@ -75,7 +76,7 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
 
             await ledgerService.AddCashLedgerEntryAsync(connection, transaction, payment.PaymentDate,
                 LedgerTransactionTypes.SupplierPayment, ReferenceTables.SupplierPayments, paymentId, payment.PaymentMode,
-                0, payment.AmountPaid, $"Payment to supplier (ID {payment.SupplierID})");
+                0, payment.AmountPaid, $"Payment to {await SupplierNameAsync(connection, transaction, payment.SupplierID)}");
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -120,7 +121,7 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.SupplierPayments, payment.SupplierPaymentID);
             await ledgerService.AddCashLedgerEntryAsync(connection, transaction, payment.PaymentDate,
                 LedgerTransactionTypes.SupplierPayment, ReferenceTables.SupplierPayments, payment.SupplierPaymentID, payment.PaymentMode,
-                0, payment.AmountPaid, $"Payment to supplier (ID {payment.SupplierID})");
+                0, payment.AmountPaid, $"Payment to {await SupplierNameAsync(connection, transaction, payment.SupplierID)}");
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -162,4 +163,11 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
         payment.DiscountAmount > 0
             ? $"Payment made ({payment.PaymentMode}) + discount {payment.DiscountAmount:0.##}"
             : $"Payment made ({payment.PaymentMode})";
+
+    // The Cash Ledger mixes every supplier/shop together, unlike a single party's own ledger, so
+    // its narration needs the counterparty's name spelled out rather than just an internal ID.
+    private static async Task<string> SupplierNameAsync(IDbConnection connection, IDbTransaction transaction, int supplierId) =>
+        await connection.QueryFirstOrDefaultAsync<string>(
+            "SELECT SupplierName FROM dbo.SupplierMaster WHERE SupplierID = @SupplierID", new { SupplierID = supplierId }, transaction)
+        ?? "Unknown Supplier";
 }
