@@ -23,3 +23,8 @@
 
 14_AddShopSupplierLink.sql
 15_OptimizationIndexes.sql
+16_FixCashLedgerOpeningBalanceOrder.sql
+17_BackfillCashLedgerNarration.sql
+18_AddFruitBoxTracking.sql
+19_AddFruitBoxWeight.sql
+20_AddReturnBoxCount.sql
