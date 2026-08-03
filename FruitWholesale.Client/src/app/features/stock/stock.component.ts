@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
 import { StockService } from './stock.service';
 import { StockAdjustmentFormComponent } from './stock-adjustment-form.component';
@@ -18,7 +19,7 @@ const LOW_STOCK_THRESHOLD = 10;
 @Component({
   selector: 'app-stock',
   standalone: true,
-  imports: [MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressBarModule, MatChipsModule],
+  imports: [MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressBarModule, MatChipsModule, MatSortModule],
   templateUrl: './stock.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -31,6 +32,15 @@ export class StockComponent implements OnInit {
   readonly displayedColumns = ['fruitName', 'currentStock', 'unit', 'boxes', 'actions'];
   readonly items = signal<CurrentStock[]>([]);
   readonly loading = signal(false);
+  readonly sortState = signal<Sort>({ active: '', direction: '' });
+
+  readonly sortedItems = computed(() => {
+    const sort = this.sortState();
+    const items = this.items();
+    if (sort.active !== 'currentStock' || !sort.direction) return items;
+    const factor = sort.direction === 'asc' ? 1 : -1;
+    return [...items].sort((a, b) => (a.currentStock - b.currentStock) * factor);
+  });
 
   readonly canAdjust = this.authService.hasRole('Admin', 'Manager');
 
@@ -47,6 +57,10 @@ export class StockComponent implements OnInit {
       },
       error: () => this.loading.set(false)
     });
+  }
+
+  onSortChange(sort: Sort): void {
+    this.sortState.set(sort);
   }
 
   isLow(stock: CurrentStock): boolean {

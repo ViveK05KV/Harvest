@@ -22,6 +22,20 @@ class _StockScreenState extends State<StockScreen> {
   String? _error;
   bool _loading = true;
 
+  // 0 = unsorted (API order), 1 = ascending, 2 = descending.
+  int _stockSortState = 0;
+
+  List<CurrentStock> get _sortedItems {
+    final items = _items ?? [];
+    if (_stockSortState == 0) return items;
+    final sorted = [...items]..sort((a, b) => a.currentStock.compareTo(b.currentStock));
+    return _stockSortState == 2 ? sorted.reversed.toList() : sorted;
+  }
+
+  void _cycleSort() {
+    setState(() => _stockSortState = (_stockSortState + 1) % 3);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,8 +68,19 @@ class _StockScreenState extends State<StockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const sortIcons = [Icons.sort, Icons.arrow_upward, Icons.arrow_downward];
+    const sortTooltips = ['Sort by current stock', 'Current stock: low to high', 'Current stock: high to low'];
     return Scaffold(
-      appBar: AppBar(title: const Text('Stock')),
+      appBar: AppBar(
+        title: const Text('Stock'),
+        actions: [
+          IconButton(
+            icon: Icon(sortIcons[_stockSortState]),
+            tooltip: sortTooltips[_stockSortState],
+            onPressed: _cycleSort,
+          ),
+        ],
+      ),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAdjustment,
@@ -79,7 +104,7 @@ class _StockScreenState extends State<StockScreen> {
         ],
       );
     }
-    final items = _items ?? [];
+    final items = _sortedItems;
     if (items.isEmpty) {
       return ListView(
         children: const [

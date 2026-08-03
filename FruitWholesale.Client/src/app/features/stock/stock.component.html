@@ -14,14 +14,14 @@
 }
 
 <div class="table-container">
-  <table mat-table [dataSource]="items()">
+  <table mat-table [dataSource]="sortedItems()" matSort (matSortChange)="onSortChange($event)">
     <ng-container matColumnDef="fruitName">
       <th mat-header-cell *matHeaderCellDef>Fruit</th>
       <td mat-cell *matCellDef="let row">{{ row.fruitName }}</td>
     </ng-container>
 
     <ng-container matColumnDef="currentStock">
-      <th mat-header-cell *matHeaderCellDef>Current Stock</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Current Stock</th>
       <td mat-cell *matCellDef="let row">
         <mat-chip [color]="isLow(row) ? 'warn' : undefined" highlighted>{{ row.currentStock }}</mat-chip>
       </td>
