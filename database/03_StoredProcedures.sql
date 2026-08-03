@@ -227,9 +227,19 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
     DECLARE @CurrentCashBalance DECIMAL(18,2) =
-        ISNULL((SELECT TOP 1 RunningBalance FROM dbo.CashLedger ORDER BY TransactionDate DESC, CashLedgerID DESC),
-               ISNULL((SELECT TOP 1 OpeningCashBalance FROM dbo.CompanySettings ORDER BY CompanyID), 0));
+        ISNULL((
+            SELECT TOP 1 RunningBalance
+            FROM dbo.CashLedger
+            ORDER BY
+                CASE
+                    WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END DESC,
+                TransactionDate DESC,
+                CashLedgerID DESC
+        ), ISNULL((SELECT TOP 1 OpeningCashBalance FROM dbo.CompanySettings ORDER BY CompanyID), 0));
 
     DECLARE @TodayCollection DECIMAL(18,2) = ISNULL((SELECT SUM(AmountReceived) FROM dbo.Collections WHERE CollectionDate = @Today), 0);
     DECLARE @TodaySales       DECIMAL(18,2) = ISNULL((SELECT SUM(TotalAmount) FROM dbo.Supply WHERE SupplyDate = @Today), 0);
