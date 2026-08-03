@@ -117,6 +117,7 @@ public class ShopMasterService(
 
             await ledgerService.AddShopLedgerEntryAsync(connection, transaction, shopId, DateTime.UtcNow,
                 LedgerTransactionTypes.Adjustment, null, debit, credit, dto.Narration);
+            await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
 
             transaction.Commit();
             return Result.Success();

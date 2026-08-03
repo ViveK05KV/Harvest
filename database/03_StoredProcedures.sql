@@ -22,6 +22,14 @@ GO
 -- it must NOT re-add ShopMaster.OpeningBalance, or the opening balance
 -- would be double counted. Call after any insert, update or delete that
 -- touches a shop's ledger with a backdated entry.
+--
+-- The opening-balance row is always ranked first regardless of its own
+-- TransactionDate, same rule and rationale as sp_RecalculateCashLedgerBalance:
+-- it can be an 'OpeningBalance' row (shop creation) or an 'Adjustment' row
+-- (first-ever "Adjust Balance" entry for a shop that had no opening
+-- balance set), and either way only the very first row for that shop
+-- (lowest LedgerID) qualifies, so a later Adjustment doesn't wrongly
+-- jump the queue.
 -- =========================================================================
 IF OBJECT_ID('dbo.sp_RecalculateShopLedgerBalance', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_RecalculateShopLedgerBalance;
@@ -32,13 +40,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.ShopLedger WHERE ShopID = @ShopID);
+
     ;WITH Ordered AS
     (
         SELECT
             LedgerID,
             Debit,
             Credit,
-            ROW_NUMBER() OVER (ORDER BY TransactionDate ASC, LedgerID ASC) AS rn
+            ROW_NUMBER() OVER (
+                ORDER BY
+                    CASE
+                        WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                        ELSE 1
+                    END,
+                    TransactionDate ASC,
+                    LedgerID ASC
+            ) AS rn
         FROM dbo.ShopLedger
         WHERE ShopID = @ShopID
     )
@@ -63,7 +81,8 @@ GO
 -- sp_RecalculateSupplierLedgerBalance
 -- Same approach as sp_RecalculateShopLedgerBalance: the supplier's
 -- OpeningBalance is booked as its own ledger row at supplier-creation
--- time, so this sums strictly from zero.
+-- time, so this sums strictly from zero, and the first-ever row for that
+-- supplier is always ranked first regardless of its own TransactionDate.
 -- =========================================================================
 IF OBJECT_ID('dbo.sp_RecalculateSupplierLedgerBalance', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_RecalculateSupplierLedgerBalance;
@@ -74,13 +93,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.SupplierLedger WHERE SupplierID = @SupplierID);
+
     ;WITH Ordered AS
     (
         SELECT
             LedgerID,
             Debit,
             Credit,
-            ROW_NUMBER() OVER (ORDER BY TransactionDate ASC, LedgerID ASC) AS rn
+            ROW_NUMBER() OVER (
+                ORDER BY
+                    CASE
+                        WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                        ELSE 1
+                    END,
+                    TransactionDate ASC,
+                    LedgerID ASC
+            ) AS rn
         FROM dbo.SupplierLedger
         WHERE SupplierID = @SupplierID
     )
@@ -176,7 +205,10 @@ GO
 -- books QuantityOut, and this recomputes RunningStock for every row of
 -- one fruit's StockLedger in date order, summing strictly from zero
 -- (there is no opening-stock concept unless booked as its own
--- 'Adjustment' row, same convention as the other ledgers).
+-- 'Adjustment' row, same convention as the other ledgers) - and if that
+-- Adjustment happens to be the very first stock row for the fruit, it's
+-- ranked first regardless of its own TransactionDate, same rule as the
+-- other ledgers.
 -- =========================================================================
 IF OBJECT_ID('dbo.sp_RecalculateStockLedgerBalance', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_RecalculateStockLedgerBalance;
@@ -187,13 +219,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @FirstStockLedgerID BIGINT = (SELECT MIN(StockLedgerID) FROM dbo.StockLedger WHERE FruitID = @FruitID);
+
     ;WITH Ordered AS
     (
         SELECT
             StockLedgerID,
             QuantityIn,
             QuantityOut,
-            ROW_NUMBER() OVER (ORDER BY TransactionDate ASC, StockLedgerID ASC) AS rn
+            ROW_NUMBER() OVER (
+                ORDER BY
+                    CASE
+                        WHEN StockLedgerID = @FirstStockLedgerID AND TransactionType = 'Adjustment' THEN 0
+                        ELSE 1
+                    END,
+                    TransactionDate ASC,
+                    StockLedgerID ASC
+            ) AS rn
         FROM dbo.StockLedger
         WHERE FruitID = @FruitID
     )

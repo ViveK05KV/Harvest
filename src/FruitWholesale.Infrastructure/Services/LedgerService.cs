@@ -129,9 +129,24 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     public async Task<decimal> GetShopOutstandingAsync(int shopId)
     {
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<decimal?>(
-            "SELECT TOP 1 RunningBalance FROM dbo.ShopLedger WHERE ShopID = @ShopID ORDER BY TransactionDate DESC, LedgerID DESC",
-            new { ShopID = shopId }) ?? 0m;
+        // Must rank rows the same way sp_RecalculateShopLedgerBalance does: the opening
+        // balance/adjustment row is forced first regardless of its own TransactionDate, so a
+        // naive "latest TransactionDate" pick can land back on that row instead of the true
+        // final one. See GetCurrentCashBalanceAsync for the same pattern on CashLedger.
+        const string sql = """
+            DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.ShopLedger WHERE ShopID = @ShopID);
+            SELECT TOP 1 RunningBalance
+            FROM dbo.ShopLedger
+            WHERE ShopID = @ShopID
+            ORDER BY
+                CASE
+                    WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END DESC,
+                TransactionDate DESC,
+                LedgerID DESC;
+            """;
+        return await connection.QueryFirstOrDefaultAsync<decimal?>(sql, new { ShopID = shopId }) ?? 0m;
     }
 
     public async Task<Dictionary<int, decimal>> GetShopOutstandingBatchAsync(IEnumerable<int> shopIds)
@@ -141,13 +156,27 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
+            ;WITH Ranked AS (
+                SELECT ShopID, LedgerID, TransactionType, TransactionDate, RunningBalance,
+                       MIN(LedgerID) OVER (PARTITION BY ShopID) AS FirstLedgerID
+                FROM dbo.ShopLedger
+                WHERE ShopID IN @ShopIDs
+            )
             SELECT ShopID, RunningBalance
             FROM (
                 SELECT ShopID, RunningBalance,
-                       ROW_NUMBER() OVER (PARTITION BY ShopID ORDER BY TransactionDate DESC, LedgerID DESC) AS rn
-                FROM dbo.ShopLedger
-                WHERE ShopID IN @ShopIDs
-            ) ranked
+                       ROW_NUMBER() OVER (
+                           PARTITION BY ShopID
+                           ORDER BY
+                               CASE
+                                   WHEN LedgerID = FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                                   ELSE 1
+                               END DESC,
+                               TransactionDate DESC,
+                               LedgerID DESC
+                       ) AS rn
+                FROM Ranked
+            ) x
             WHERE rn = 1;
             """;
         var rows = await connection.QueryAsync<(int ShopID, decimal RunningBalance)>(sql, new { ShopIDs = ids });
@@ -157,9 +186,20 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     public async Task<decimal> GetSupplierOutstandingAsync(int supplierId)
     {
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<decimal?>(
-            "SELECT TOP 1 RunningBalance FROM dbo.SupplierLedger WHERE SupplierID = @SupplierID ORDER BY TransactionDate DESC, LedgerID DESC",
-            new { SupplierID = supplierId }) ?? 0m;
+        const string sql = """
+            DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.SupplierLedger WHERE SupplierID = @SupplierID);
+            SELECT TOP 1 RunningBalance
+            FROM dbo.SupplierLedger
+            WHERE SupplierID = @SupplierID
+            ORDER BY
+                CASE
+                    WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END DESC,
+                TransactionDate DESC,
+                LedgerID DESC;
+            """;
+        return await connection.QueryFirstOrDefaultAsync<decimal?>(sql, new { SupplierID = supplierId }) ?? 0m;
     }
 
     public async Task<Dictionary<int, decimal>> GetSupplierOutstandingBatchAsync(IEnumerable<int> supplierIds)
@@ -169,13 +209,27 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
+            ;WITH Ranked AS (
+                SELECT SupplierID, LedgerID, TransactionType, TransactionDate, RunningBalance,
+                       MIN(LedgerID) OVER (PARTITION BY SupplierID) AS FirstLedgerID
+                FROM dbo.SupplierLedger
+                WHERE SupplierID IN @SupplierIDs
+            )
             SELECT SupplierID, RunningBalance
             FROM (
                 SELECT SupplierID, RunningBalance,
-                       ROW_NUMBER() OVER (PARTITION BY SupplierID ORDER BY TransactionDate DESC, LedgerID DESC) AS rn
-                FROM dbo.SupplierLedger
-                WHERE SupplierID IN @SupplierIDs
-            ) ranked
+                       ROW_NUMBER() OVER (
+                           PARTITION BY SupplierID
+                           ORDER BY
+                               CASE
+                                   WHEN LedgerID = FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                                   ELSE 1
+                               END DESC,
+                               TransactionDate DESC,
+                               LedgerID DESC
+                       ) AS rn
+                FROM Ranked
+            ) x
             WHERE rn = 1;
             """;
         var rows = await connection.QueryAsync<(int SupplierID, decimal RunningBalance)>(sql, new { SupplierIDs = ids });

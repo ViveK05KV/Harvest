@@ -108,6 +108,7 @@ public class SupplierMasterService(
 
             await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, supplierId, DateTime.UtcNow,
                 LedgerTransactionTypes.Adjustment, null, debit, credit, dto.Narration);
+            await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, supplierId);
 
             transaction.Commit();
             return Result.Success();
