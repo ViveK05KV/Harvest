@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Text.Json;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
@@ -291,8 +291,23 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     public async Task<decimal> GetCurrentCashBalanceAsync()
     {
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<decimal?>(
-            "SELECT TOP 1 RunningBalance FROM dbo.CashLedger ORDER BY TransactionDate DESC, CashLedgerID DESC") ?? 0m;
+        // Must rank rows the same way sp_RecalculateCashLedgerBalance does: the opening
+        // balance/adjustment row is forced first regardless of its own TransactionDate (it can be
+        // stamped with today's date even though it represents the earliest balance), so a naive
+        // "latest TransactionDate" pick can land back on that row instead of the true final one.
+        const string sql = """
+            DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
+            SELECT TOP 1 RunningBalance
+            FROM dbo.CashLedger
+            ORDER BY
+                CASE
+                    WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END DESC,
+                TransactionDate DESC,
+                CashLedgerID DESC;
+            """;
+        return await connection.QueryFirstOrDefaultAsync<decimal?>(sql) ?? 0m;
     }
 
     public async Task<decimal> AddStockLedgerEntryAsync(IDbConnection connection, IDbTransaction transaction, int fruitId,
