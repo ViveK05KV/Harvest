@@ -30,3 +30,4 @@
 20_AddReturnBoxCount.sql
 21_ChangeBoxCountToDecimal.sql
 22_FixDashboardCashBalanceOrder.sql
+23_FixBoxPurchaseCostBasis.sql

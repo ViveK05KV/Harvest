@@ -359,9 +359,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         // way round — so a later purchase/return never retroactively changes profit already
         // booked on a past sale/return. See database/08_AddProfitTracking.sql and
         // database/09_AddReturns.sql for the full rationale.
+        //
+        // Purchase UnitCost is TotalAmount/Quantity, not PurchasePrice directly: for
+        // box-tracked fruits PurchasePrice is entered per BOX, while Quantity is always in
+        // kg, so using PurchasePrice as-is would price the whole kg quantity at the per-box
+        // rate. TotalAmount is already correctly BoxCount*PurchasePrice (or Quantity*Price
+        // for kg-rate fruits), so dividing by Quantity always yields the true per-kg cost.
         const string eventsSql = """
             SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
-                   p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.PurchasePrice AS UnitCost
+                   p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.TotalAmount / pi.Quantity AS UnitCost
             FROM dbo.PurchaseItems pi
             INNER JOIN dbo.Purchase p ON p.PurchaseID = pi.PurchaseID
             WHERE pi.FruitID = @FruitID
