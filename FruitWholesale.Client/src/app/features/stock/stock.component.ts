@@ -76,7 +76,11 @@ export class StockComponent implements OnInit {
   viewLedger(stock: CurrentStock): void {
     this.dialog.open(StockLedgerDialogComponent, {
       width: '700px',
-      data: { fruitID: stock.fruitID, fruitName: stock.fruitName, unit: stock.unit }
+      // StockLedger quantities are always tracked in kg, even for a fruit whose
+      // display/sale Unit is "Box" - a box purchase gets converted to its kg
+      // equivalent before it's ever written to the ledger, so "Box" is never
+      // the right unit to show next to a ledger In/Out/Balance figure.
+      data: { fruitID: stock.fruitID, fruitName: stock.fruitName, unit: stock.tracksByBox ? 'kg' : stock.unit }
     });
   }
 
