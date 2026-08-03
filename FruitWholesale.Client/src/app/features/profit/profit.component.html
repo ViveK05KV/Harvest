@@ -4,9 +4,9 @@
   @if (activeTab() !== 0) {
     <mat-form-field subscriptSizing="dynamic" style="width: 150px">
       <mat-label>From</mat-label>
-      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)" (dateChange)="onFilterChange()" />
+      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" [min]="minProfitDate" [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)" (dateChange)="onFilterChange()" />
       <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
-      <mat-datepicker #fromPicker></mat-datepicker>
+      <mat-datepicker #fromPicker [startAt]="minProfitDate"></mat-datepicker>
     </mat-form-field>
 
     <mat-form-field subscriptSizing="dynamic" style="width: 150px">

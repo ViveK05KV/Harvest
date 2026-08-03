@@ -58,6 +58,14 @@ public static class DashboardPeriods
     public static readonly string[] All = [ThisWeek, ThisMonth, Last6Months, Last12Months];
 }
 
+public static class ProfitConstants
+{
+    // No purchase/sale history exists before this date - only opening shop/supplier
+    // balances were carried forward. Business-wide profit totals are scoped to this
+    // date onward so pre-tracking test/legacy data never skews the reported total.
+    public static readonly DateTime TrackingStartDate = new(2026, 8, 1);
+}
+
 public static class JobTypes
 {
     public const string Supply = "Supply";

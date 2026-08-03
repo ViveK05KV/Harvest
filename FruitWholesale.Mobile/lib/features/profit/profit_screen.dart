@@ -25,6 +25,11 @@ class _FilterOption {
   const _FilterOption(this.id, this.label);
 }
 
+// No purchase/sale history exists before this date - only opening shop/supplier
+// balances were carried forward, so profit reporting is scoped to this date
+// onward everywhere (matches ProfitConstants.TrackingStartDate on the backend).
+final DateTime _profitTrackingStartDate = DateTime(2026, 8, 1);
+
 class ProfitScreen extends StatefulWidget {
   const ProfitScreen({super.key});
 
@@ -37,7 +42,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
   late final LookupService _lookup = LookupService(context.read<ApiClient>());
 
   _ProfitView _view = _ProfitView.businessTotal;
-  DateTime _from = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _from = DateTime(2026, 8, 1);
   DateTime _to = DateTime.now();
   bool _tillToday = false;
   int? _selectedShopId;
@@ -58,7 +63,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: isFrom ? _from : _to,
-      firstDate: DateTime(2020),
+      firstDate: _profitTrackingStartDate,
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
     if (picked == null) return;
@@ -86,7 +91,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
     final dateFormat = DateFormat('dd-MMM-yyyy');
     final useAllTime = _tillToday && _usesTillToday;
-    final from = useAllTime ? null : _from;
+    final from = useAllTime ? _profitTrackingStartDate : _from;
     final to = useAllTime ? null : _to;
 
     Widget marginText(double margin) => Text(

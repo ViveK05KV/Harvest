@@ -1,6 +1,7 @@
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.Profit;
+using FruitWholesale.Domain.Enums;
 
 namespace FruitWholesale.Infrastructure.Repositories;
 
@@ -101,9 +102,11 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
             SELECT ISNULL(SUM(si.TotalAmount), 0) AS Revenue,
                    ISNULL(SUM(si.Quantity * si.CostBasis), 0) AS Cost,
                    ISNULL(SUM(si.TotalAmount - si.Quantity * si.CostBasis), 0) AS Profit
-            FROM dbo.SupplyItems si;
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            WHERE s.SupplyDate >= @FromDate;
             """;
-        var total = await connection.QuerySingleAsync<BusinessProfitTotal>(sql);
+        var total = await connection.QuerySingleAsync<BusinessProfitTotal>(sql, new { FromDate = ProfitConstants.TrackingStartDate });
         total.MarginPercent = ComputeMargin(total.Revenue, total.Profit);
         return total;
     }

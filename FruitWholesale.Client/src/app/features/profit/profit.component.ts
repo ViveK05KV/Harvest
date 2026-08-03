@@ -17,7 +17,12 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ProfitService } from './profit.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopMaster } from '../../core/models/master-data.model';
-import { firstOfMonth, toIso } from '../../core/utils/date.util';
+import { toIso } from '../../core/utils/date.util';
+
+// No purchase/sale history exists before this date - only opening shop/supplier
+// balances were carried forward, so profit reporting is scoped to this date
+// onward everywhere (matches ProfitConstants.TrackingStartDate on the backend).
+const PROFIT_TRACKING_START_DATE = new Date(2026, 7, 1);
 import {
   BusinessProfitTotal,
   FruitProfitSummaryRow,
@@ -53,8 +58,9 @@ export class ProfitComponent implements OnInit {
   private readonly profitService = inject(ProfitService);
   private readonly shopService = inject(ShopMasterService);
 
-  fromDate = firstOfMonth();
+  fromDate = PROFIT_TRACKING_START_DATE;
   toDate = new Date();
+  readonly minProfitDate = PROFIT_TRACKING_START_DATE;
   readonly loading = signal(false);
   readonly activeTab = signal(0);
   readonly shops = signal<ShopMaster[]>([]);
@@ -106,7 +112,7 @@ export class ProfitComponent implements OnInit {
 
   loadActiveTab(): void {
     const useAllTime = this.tillToday && (this.activeTab() === 1 || this.activeTab() === 2);
-    const from = useAllTime ? undefined : toIso(this.fromDate);
+    const from = useAllTime ? toIso(PROFIT_TRACKING_START_DATE) : toIso(this.fromDate);
     const to = useAllTime ? undefined : toIso(this.toDate);
     this.loading.set(true);
 
