@@ -64,6 +64,7 @@ export class SupplyFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     supplyDate: [new Date(), Validators.required],
     shopID: this.fb.control<number | null>(null, Validators.required),
+    shopSearch: this.fb.nonNullable.control<string>(''),
     invoiceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
     items: this.fb.array<ReturnType<typeof this.buildItem>>([])
@@ -71,6 +72,21 @@ export class SupplyFormComponent implements OnInit {
 
   get itemsArray(): FormArray {
     return this.form.controls.items;
+  }
+
+  shopNameById(shopID: number | null): string {
+    return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
+  }
+
+  filteredShops(search: string | null | undefined): ShopMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.shops();
+    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
+  }
+
+  onShopSelected(event: MatAutocompleteSelectedEvent): void {
+    const shopID = event.option.value as number;
+    this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
   }
 
   ngOnInit(): void {
@@ -90,6 +106,7 @@ export class SupplyFormComponent implements OnInit {
           this.form.patchValue({
             supplyDate: new Date(supply.supplyDate),
             shopID: supply.shopID,
+            shopSearch: this.shopNameById(supply.shopID),
             invoiceNo: supply.invoiceNo,
             remarks: supply.remarks
           });
@@ -117,7 +134,7 @@ export class SupplyFormComponent implements OnInit {
     });
   }
 
-  filteredFruits(search: string | null): FruitMaster[] {
+  filteredFruits(search: string | null | undefined): FruitMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.fruits();
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));

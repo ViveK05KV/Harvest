@@ -4,6 +4,7 @@ import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -22,6 +23,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule
@@ -40,6 +42,7 @@ export class SupplierPaymentFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     paymentDate: [this.data ? new Date(this.data.paymentDate) : new Date(), Validators.required],
     supplierID: this.fb.control<number | null>(this.data?.supplierID ?? null, Validators.required),
+    supplierSearch: this.fb.nonNullable.control<string>(''),
     amountPaid: [this.data?.amountPaid ?? 0, [Validators.required, Validators.min(0.01)]],
     discountAmount: [this.data?.discountAmount ?? 0, [Validators.min(0)]],
     paymentMode: [this.data?.paymentMode ?? 'Cash', Validators.required],
@@ -48,7 +51,27 @@ export class SupplierPaymentFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.supplierService.getAllActive().subscribe((suppliers) => this.suppliers.set(suppliers));
+    this.supplierService.getAllActive().subscribe((suppliers) => {
+      this.suppliers.set(suppliers);
+      if (this.data?.supplierID) {
+        this.form.controls.supplierSearch.setValue(this.supplierNameById(this.data.supplierID));
+      }
+    });
+  }
+
+  supplierNameById(supplierID: number | null): string {
+    return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
+  }
+
+  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.suppliers();
+    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
+  }
+
+  onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
+    const supplierID = event.option.value as number;
+    this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
   }
 
   save(): void {
@@ -56,7 +79,7 @@ export class SupplierPaymentFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const raw = this.form.getRawValue();
+    const { supplierSearch, ...raw } = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
       paymentDate: toIso(raw.paymentDate as unknown as Date)

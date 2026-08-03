@@ -6,6 +6,7 @@ import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/p
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -32,6 +33,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatProgressBarModule,
@@ -56,6 +58,7 @@ export class SupplierLedgerComponent implements OnInit {
   readonly loading = signal(false);
 
   supplierId: number | null = null;
+  supplierSearch = '';
   fromDate: Date | null = null;
   toDate: Date | null = null;
 
@@ -66,6 +69,7 @@ export class SupplierLedgerComponent implements OnInit {
       this.suppliers.set(suppliers);
       if (suppliers.length > 0) {
         this.supplierId = suppliers[0].supplierID;
+        this.supplierSearch = suppliers[0].supplierName;
         this.load();
       }
     });
@@ -91,6 +95,19 @@ export class SupplierLedgerComponent implements OnInit {
     if (!this.supplierId) return;
     this.request.pageNumber = 1;
     this.load();
+  }
+
+  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.suppliers();
+    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
+  }
+
+  onSupplierFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const supplierId = event.option.value as number | null;
+    this.supplierId = supplierId;
+    this.supplierSearch = supplierId == null ? '' : (this.suppliers().find((s) => s.supplierID === supplierId)?.supplierName ?? '');
+    this.onFilterChange();
   }
 
   onPage(event: PageEvent): void {

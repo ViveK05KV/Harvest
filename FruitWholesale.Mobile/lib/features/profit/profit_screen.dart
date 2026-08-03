@@ -19,6 +19,12 @@ enum _ProfitView {
   const _ProfitView(this.label);
 }
 
+class _FilterOption {
+  final int? id;
+  final String label;
+  const _FilterOption(this.id, this.label);
+}
+
 class ProfitScreen extends StatefulWidget {
   const ProfitScreen({super.key});
 
@@ -58,6 +64,13 @@ class _ProfitScreenState extends State<ProfitScreen> {
     if (picked == null) return;
     setState(() => isFrom ? _from = picked : _to = picked);
     _run();
+  }
+
+  ShopOption? _findShop(int? shopId) {
+    for (final shop in _shops) {
+      if (shop.shopId == shopId) return shop;
+    }
+    return null;
   }
 
   bool get _usesDateFilter => _view == _ProfitView.byShop || _view == _ProfitView.byFruit || _view == _ProfitView.byShopFruit;
@@ -198,17 +211,29 @@ class _ProfitScreenState extends State<ProfitScreen> {
                 ),
                 if (_usesShopFilter) ...[
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<int?>(
-                    initialValue: _selectedShopId,
-                    decoration: InputDecoration(labelText: _view == _ProfitView.byShop ? 'Shop (for daily breakdown)' : 'Shop (optional filter)'),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('All Shops')),
-                      for (final shop in _shops) DropdownMenuItem(value: shop.shopId, child: Text(shop.shopName)),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _selectedShopId = value);
+                  Autocomplete<_FilterOption>(
+                    initialValue: TextEditingValue(text: _findShop(_selectedShopId)?.shopName ?? ''),
+                    displayStringForOption: (opt) => opt.label,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      final all = [
+                        const _FilterOption(null, 'All Shops'),
+                        ..._shops.map((s) => _FilterOption(s.shopId, s.shopName)),
+                      ];
+                      if (query.isEmpty) return all;
+                      return all.where((o) => o.label.toLowerCase().contains(query));
+                    },
+                    onSelected: (opt) {
+                      setState(() => _selectedShopId = opt.id);
                       _run();
                     },
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        labelText: _view == _ProfitView.byShop ? 'Shop (for daily breakdown)' : 'Shop (optional filter)',
+                      ),
+                    ),
                   ),
                 ],
                 if (_usesTillToday) ...[

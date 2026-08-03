@@ -27,12 +27,13 @@
   @if (activeTab() === 1 || activeTab() === 3) {
     <mat-form-field subscriptSizing="dynamic" style="width: 200px">
       <mat-label>Shop {{ activeTab() === 1 ? '(for daily breakdown)' : '(optional filter)' }}</mat-label>
-      <mat-select [(ngModel)]="selectedShopId" (selectionChange)="onFilterChange()">
+      <input matInput [(ngModel)]="selectedShopSearch" placeholder="Search shop" [matAutocomplete]="selectedShopFilterAuto" />
+      <mat-autocomplete #selectedShopFilterAuto="matAutocomplete" (optionSelected)="onSelectedShopFilterSelected($event)">
         <mat-option [value]="null">All Shops</mat-option>
-        @for (shop of shops(); track shop.shopID) {
+        @for (shop of filteredShops(selectedShopSearch); track shop.shopID) {
           <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
     </mat-form-field>
   }
 

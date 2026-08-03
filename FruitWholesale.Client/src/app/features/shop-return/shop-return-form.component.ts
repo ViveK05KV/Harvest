@@ -69,6 +69,7 @@ export class ShopReturnFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     returnDate: [new Date(), Validators.required],
     shopID: this.fb.control<number | null>(null, Validators.required),
+    shopSearch: this.fb.nonNullable.control<string>(''),
     supplyID: this.fb.control<number | null>(null),
     referenceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
@@ -96,6 +97,7 @@ export class ShopReturnFormComponent implements OnInit {
           this.form.patchValue({
             returnDate: new Date(shopReturn.returnDate),
             shopID: shopReturn.shopID,
+            shopSearch: this.shopNameById(shopReturn.shopID),
             supplyID: shopReturn.supplyID ?? null,
             referenceNo: shopReturn.referenceNo,
             remarks: shopReturn.remarks
@@ -119,6 +121,22 @@ export class ShopReturnFormComponent implements OnInit {
     this.shopSupplies.set([]);
     const shopId = this.form.controls.shopID.value;
     if (shopId) this.loadShopSupplies(shopId);
+  }
+
+  shopNameById(shopID: number | null): string {
+    return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
+  }
+
+  filteredShops(search: string | null | undefined): ShopMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.shops();
+    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
+  }
+
+  onShopSelected(event: MatAutocompleteSelectedEvent): void {
+    const shopID = event.option.value as number;
+    this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
+    this.onShopChange();
   }
 
   private loadShopSupplies(shopId: number): void {
@@ -168,7 +186,7 @@ export class ShopReturnFormComponent implements OnInit {
     return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
   }
 
-  filteredFruits(search: string | null): FruitMaster[] {
+  filteredFruits(search: string | null | undefined): FruitMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.fruits();
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));

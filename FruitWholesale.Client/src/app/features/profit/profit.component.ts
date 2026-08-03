@@ -7,6 +7,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
@@ -38,6 +39,7 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatIconModule,
@@ -58,6 +60,7 @@ export class ProfitComponent implements OnInit {
   readonly shops = signal<ShopMaster[]>([]);
   tillToday = false;
   selectedShopId: number | null = null;
+  selectedShopSearch = '';
 
   readonly businessTotal = signal<BusinessProfitTotal | null>(null);
   readonly shopSummary = signal<ShopProfitSummaryRow[]>([]);
@@ -82,6 +85,19 @@ export class ProfitComponent implements OnInit {
 
   onFilterChange(): void {
     this.loadActiveTab();
+  }
+
+  filteredShops(search: string | null | undefined): ShopMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.shops();
+    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
+  }
+
+  onSelectedShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const shopId = event.option.value as number | null;
+    this.selectedShopId = shopId;
+    this.selectedShopSearch = shopId == null ? '' : (this.shops().find((s) => s.shopID === shopId)?.shopName ?? '');
+    this.onFilterChange();
   }
 
   onTillTodayChange(): void {

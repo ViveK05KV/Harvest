@@ -3,11 +3,12 @@
   <mat-dialog-content>
     <mat-form-field class="full-width">
       <mat-label>Supplier</mat-label>
-      <mat-select formControlName="supplierID">
-        @for (supplier of suppliers(); track supplier.supplierID) {
+      <input matInput formControlName="supplierSearch" placeholder="Search supplier" [matAutocomplete]="supplierAuto" />
+      <mat-autocomplete #supplierAuto="matAutocomplete" (optionSelected)="onSupplierSelected($event)">
+        @for (supplier of filteredSuppliers(form.value.supplierSearch); track supplier.supplierID) {
           <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
       @if (form.controls.supplierID.touched && form.controls.supplierID.hasError('required')) {
         <mat-error>Supplier is required</mat-error>
       }

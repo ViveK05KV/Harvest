@@ -3,11 +3,12 @@
   <mat-dialog-content>
     <mat-form-field class="full-width">
       <mat-label>Employee</mat-label>
-      <mat-select formControlName="employeeID">
-        @for (employee of employees(); track employee.employeeID) {
+      <input matInput formControlName="employeeSearch" placeholder="Search employee" [matAutocomplete]="employeeAuto" />
+      <mat-autocomplete #employeeAuto="matAutocomplete" (optionSelected)="onEmployeeSelected($event)">
+        @for (employee of filteredEmployees(form.value.employeeSearch); track employee.employeeID) {
           <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
       @if (form.controls.employeeID.touched && form.controls.employeeID.hasError('required')) {
         <mat-error>Employee is required</mat-error>
       }

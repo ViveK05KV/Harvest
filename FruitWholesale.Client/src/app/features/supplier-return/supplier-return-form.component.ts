@@ -71,6 +71,7 @@ export class SupplierReturnFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     returnDate: [new Date(), Validators.required],
     supplierID: this.fb.control<number | null>(null, Validators.required),
+    supplierSearch: this.fb.nonNullable.control<string>(''),
     purchaseID: this.fb.control<number | null>(null),
     referenceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
@@ -98,6 +99,7 @@ export class SupplierReturnFormComponent implements OnInit {
           this.form.patchValue({
             returnDate: new Date(supplierReturn.returnDate),
             supplierID: supplierReturn.supplierID,
+            supplierSearch: this.supplierNameById(supplierReturn.supplierID),
             purchaseID: supplierReturn.purchaseID ?? null,
             referenceNo: supplierReturn.referenceNo,
             remarks: supplierReturn.remarks
@@ -121,6 +123,22 @@ export class SupplierReturnFormComponent implements OnInit {
     this.supplierPurchases.set([]);
     const supplierId = this.form.controls.supplierID.value;
     if (supplierId) this.loadSupplierPurchases(supplierId);
+  }
+
+  supplierNameById(supplierID: number | null): string {
+    return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
+  }
+
+  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.suppliers();
+    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
+  }
+
+  onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
+    const supplierID = event.option.value as number;
+    this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
+    this.onSupplierChange();
   }
 
   private loadSupplierPurchases(supplierId: number): void {
@@ -169,7 +187,7 @@ export class SupplierReturnFormComponent implements OnInit {
     return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
   }
 
-  filteredFruits(search: string | null): FruitMaster[] {
+  filteredFruits(search: string | null | undefined): FruitMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.fruits();
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));

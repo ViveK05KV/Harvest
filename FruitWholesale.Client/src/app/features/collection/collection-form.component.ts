@@ -4,6 +4,7 @@ import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -22,6 +23,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule
@@ -40,6 +42,7 @@ export class CollectionFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     collectionDate: [this.data ? new Date(this.data.collectionDate) : new Date(), Validators.required],
     shopID: this.fb.control<number | null>(this.data?.shopID ?? null, Validators.required),
+    shopSearch: this.fb.nonNullable.control<string>(''),
     amountReceived: [this.data?.amountReceived ?? 0, [Validators.required, Validators.min(0.01)]],
     discountAmount: [this.data?.discountAmount ?? 0, [Validators.min(0)]],
     paymentMode: [this.data?.paymentMode ?? 'Cash', Validators.required],
@@ -48,7 +51,27 @@ export class CollectionFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.shopService.getAllActive().subscribe((shops) => this.shops.set(shops));
+    this.shopService.getAllActive().subscribe((shops) => {
+      this.shops.set(shops);
+      if (this.data?.shopID) {
+        this.form.controls.shopSearch.setValue(this.shopNameById(this.data.shopID));
+      }
+    });
+  }
+
+  shopNameById(shopID: number | null): string {
+    return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
+  }
+
+  filteredShops(search: string | null | undefined): ShopMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.shops();
+    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
+  }
+
+  onShopSelected(event: MatAutocompleteSelectedEvent): void {
+    const shopID = event.option.value as number;
+    this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
   }
 
   save(): void {
@@ -56,7 +79,7 @@ export class CollectionFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const raw = this.form.getRawValue();
+    const { shopSearch, ...raw } = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
       collectionDate: toIso(raw.collectionDate as unknown as Date)

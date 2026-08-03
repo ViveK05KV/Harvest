@@ -84,6 +84,13 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
     }
   }
 
+  ShopOption? _findShop(int? shopId) {
+    for (final shop in _shops) {
+      if (shop.shopId == shopId) return shop;
+    }
+    return null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedShopId == null) {
@@ -142,13 +149,22 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
           ],
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedShopId,
-            decoration: const InputDecoration(labelText: 'Shop'),
-            items: [
-              for (final shop in _shops) DropdownMenuItem(value: shop.shopId, child: Text(shop.shopName)),
-            ],
-            onChanged: (value) => setState(() => _selectedShopId = value),
+          Autocomplete<ShopOption>(
+            initialValue: TextEditingValue(text: _findShop(_selectedShopId)?.shopName ?? ''),
+            displayStringForOption: (shop) => shop.shopName,
+            optionsBuilder: (value) {
+              final query = value.text.trim().toLowerCase();
+              if (query.isEmpty) return _shops;
+              return _shops.where((shop) => shop.shopName.toLowerCase().contains(query));
+            },
+            onSelected: (shop) => setState(() => _selectedShopId = shop.shopId),
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(labelText: 'Shop'),
+              );
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(

@@ -3,12 +3,13 @@
 
   <mat-form-field subscriptSizing="dynamic" style="width: 220px">
     <mat-label>Filter by Employee</mat-label>
-    <mat-select [(ngModel)]="employeeId" (selectionChange)="onFilterChange()">
+    <input matInput [(ngModel)]="employeeSearch" placeholder="Search employee" [matAutocomplete]="employeeFilterAuto" />
+    <mat-autocomplete #employeeFilterAuto="matAutocomplete" (optionSelected)="onEmployeeFilterSelected($event)">
       <mat-option [value]="null">All Employees</mat-option>
-      @for (employee of employees(); track employee.employeeID) {
+      @for (employee of filteredEmployees(employeeSearch); track employee.employeeID) {
         <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
       }
-    </mat-select>
+    </mat-autocomplete>
   </mat-form-field>
 
   <mat-form-field subscriptSizing="dynamic" style="width: 150px">

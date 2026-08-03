@@ -90,6 +90,13 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
     }
   }
 
+  EmployeeOption? _findEmployee(int? employeeId) {
+    for (final employee in _employees) {
+      if (employee.employeeId == employeeId) return employee;
+    }
+    return null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedEmployeeId == null) {
@@ -149,13 +156,22 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
           ],
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedEmployeeId,
-            decoration: const InputDecoration(labelText: 'Employee'),
-            items: [
-              for (final employee in _employees) DropdownMenuItem(value: employee.employeeId, child: Text(employee.fullName)),
-            ],
-            onChanged: (value) => setState(() => _selectedEmployeeId = value),
+          Autocomplete<EmployeeOption>(
+            initialValue: TextEditingValue(text: _findEmployee(_selectedEmployeeId)?.fullName ?? ''),
+            displayStringForOption: (employee) => employee.fullName,
+            optionsBuilder: (value) {
+              final query = value.text.trim().toLowerCase();
+              if (query.isEmpty) return _employees;
+              return _employees.where((employee) => employee.fullName.toLowerCase().contains(query));
+            },
+            onSelected: (employee) => setState(() => _selectedEmployeeId = employee.employeeId),
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(labelText: 'Employee'),
+              );
+            },
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(

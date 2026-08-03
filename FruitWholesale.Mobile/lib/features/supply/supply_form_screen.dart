@@ -133,6 +133,13 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
     return null;
   }
 
+  ShopOption? _findShop(int? shopId) {
+    for (final shop in _shops) {
+      if (shop.shopId == shopId) return shop;
+    }
+    return null;
+  }
+
   bool _fruitTracksByBox(int? fruitId) => _findFruit(fruitId)?.tracksByBox ?? false;
 
   double? _fruitBoxWeight(int? fruitId) => _findFruit(fruitId)?.boxWeightKg;
@@ -239,13 +246,22 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
           const SizedBox(height: 16),
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedShopId,
-            decoration: const InputDecoration(labelText: 'Customer (Shop)'),
-            items: [
-              for (final shop in _shops) DropdownMenuItem(value: shop.shopId, child: Text(shop.shopName)),
-            ],
-            onChanged: (value) => setState(() => _selectedShopId = value),
+          Autocomplete<ShopOption>(
+            initialValue: TextEditingValue(text: _findShop(_selectedShopId)?.shopName ?? ''),
+            displayStringForOption: (shop) => shop.shopName,
+            optionsBuilder: (value) {
+              final query = value.text.trim().toLowerCase();
+              if (query.isEmpty) return _shops;
+              return _shops.where((shop) => shop.shopName.toLowerCase().contains(query));
+            },
+            onSelected: (shop) => setState(() => _selectedShopId = shop.shopId),
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(labelText: 'Customer (Shop)'),
+              );
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -271,6 +287,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
   Widget _buildItemRow(int index) {
     final item = _items[index];
     return Card(
+      key: ValueKey(item),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -279,14 +296,26 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: item.fruitId,
-                    decoration: const InputDecoration(labelText: 'Fruit'),
-                    items: [
-                      for (final fruit in _fruits)
-                        DropdownMenuItem(value: fruit.fruitId, child: Text('${fruit.fruitName} (${fruit.unit})')),
-                    ],
-                    onChanged: (value) => setState(() => item.fruitId = value),
+                  child: Autocomplete<FruitOption>(
+                    initialValue: TextEditingValue(text: _findFruit(item.fruitId)?.fruitName ?? ''),
+                    displayStringForOption: (fruit) => fruit.fruitName,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      if (query.isEmpty) return _fruits;
+                      return _fruits.where((fruit) => fruit.fruitName.toLowerCase().contains(query));
+                    },
+                    onSelected: (fruit) => setState(() {
+                      item.fruitId = fruit.fruitId;
+                      item.saleType = 'kg';
+                      item.boxCountController.clear();
+                    }),
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(labelText: 'Fruit'),
+                      );
+                    },
                   ),
                 ),
                 IconButton(
@@ -354,7 +383,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹').format(item.amount)}',
+                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(item.amount)}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -378,7 +407,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
           children: [
             Expanded(
               child: Text(
-                'Grand Total: ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹').format(_grandTotal)}',
+                'Grand Total: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(_grandTotal)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),

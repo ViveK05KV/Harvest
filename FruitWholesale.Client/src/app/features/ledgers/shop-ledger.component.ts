@@ -6,6 +6,7 @@ import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/p
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -33,6 +34,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatProgressBarModule,
@@ -58,6 +60,7 @@ export class ShopLedgerComponent implements OnInit {
   readonly loading = signal(false);
 
   shopId: number | null = null;
+  shopSearch = '';
   fromDate: Date | null = null;
   toDate: Date | null = null;
 
@@ -68,6 +71,7 @@ export class ShopLedgerComponent implements OnInit {
       this.shops.set(shops);
       if (shops.length > 0) {
         this.shopId = shops[0].shopID;
+        this.shopSearch = shops[0].shopName;
         this.load();
       }
     });
@@ -93,6 +97,19 @@ export class ShopLedgerComponent implements OnInit {
     if (!this.shopId) return;
     this.request.pageNumber = 1;
     this.load();
+  }
+
+  filteredShops(search: string | null | undefined): ShopMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.shops();
+    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
+  }
+
+  onShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const shopId = event.option.value as number | null;
+    this.shopId = shopId;
+    this.shopSearch = shopId == null ? '' : (this.shops().find((s) => s.shopID === shopId)?.shopName ?? '');
+    this.onFilterChange();
   }
 
   onPage(event: PageEvent): void {

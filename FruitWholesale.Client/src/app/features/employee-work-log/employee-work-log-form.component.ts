@@ -5,6 +5,7 @@ import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -25,6 +26,7 @@ const ROUTE_RELEVANT_JOB_TYPES = ['Supply', 'Collection'];
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule
@@ -46,6 +48,7 @@ export class EmployeeWorkLogFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     workDate: [this.data ? new Date(this.data.workDate) : new Date(), Validators.required],
     employeeID: this.fb.control<number | null>(this.data?.employeeID ?? null, Validators.required),
+    employeeSearch: this.fb.nonNullable.control<string>(''),
     jobType: [this.data?.jobType ?? 'Supply', Validators.required],
     routeID: this.fb.control<number | null>(this.data?.routeID ?? null),
     amount: [this.data?.amount ?? 0, [Validators.required, Validators.min(0)]],
@@ -57,8 +60,28 @@ export class EmployeeWorkLogFormComponent implements OnInit {
   readonly showRoute = computed(() => ROUTE_RELEVANT_JOB_TYPES.includes(this.jobType()));
 
   ngOnInit(): void {
-    this.employeeService.getAllActive().subscribe((employees) => this.employees.set(employees));
+    this.employeeService.getAllActive().subscribe((employees) => {
+      this.employees.set(employees);
+      if (this.data?.employeeID) {
+        this.form.controls.employeeSearch.setValue(this.employeeNameById(this.data.employeeID));
+      }
+    });
     this.routeService.getAllActive().subscribe((routes) => this.routes.set(routes));
+  }
+
+  employeeNameById(employeeID: number | null): string {
+    return this.employees().find((e) => e.employeeID === employeeID)?.fullName ?? '';
+  }
+
+  filteredEmployees(search: string | null | undefined): Employee[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.employees();
+    return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
+  }
+
+  onEmployeeSelected(event: MatAutocompleteSelectedEvent): void {
+    const employeeID = event.option.value as number;
+    this.form.patchValue({ employeeID, employeeSearch: this.employeeNameById(employeeID) });
   }
 
   save(): void {
@@ -66,7 +89,7 @@ export class EmployeeWorkLogFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const raw = this.form.getRawValue();
+    const { employeeSearch, ...raw } = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
       workDate: toIso(raw.workDate as unknown as Date),

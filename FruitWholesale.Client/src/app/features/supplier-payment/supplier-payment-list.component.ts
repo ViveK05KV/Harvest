@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -38,6 +39,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatChipsModule,
     MatTooltipModule,
     MatProgressBarModule,
@@ -62,6 +64,7 @@ export class SupplierPaymentListComponent implements OnInit {
   readonly suppliers = signal<SupplierMaster[]>([]);
 
   supplierId: number | null = null;
+  supplierSearch = '';
   fromDate: Date | null = null;
   toDate: Date | null = null;
 
@@ -75,6 +78,19 @@ export class SupplierPaymentListComponent implements OnInit {
   onFilterChange(): void {
     this.request.pageNumber = 1;
     this.load();
+  }
+
+  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.suppliers();
+    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
+  }
+
+  onSupplierFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const supplierId = event.option.value as number | null;
+    this.supplierId = supplierId;
+    this.supplierSearch = supplierId == null ? '' : (this.suppliers().find((s) => s.supplierID === supplierId)?.supplierName ?? '');
+    this.onFilterChange();
   }
 
   onPage(event: PageEvent): void {

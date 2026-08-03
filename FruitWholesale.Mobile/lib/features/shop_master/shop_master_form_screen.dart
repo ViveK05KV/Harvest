@@ -22,6 +22,12 @@ class ShopMasterFormScreen extends StatefulWidget {
   State<ShopMasterFormScreen> createState() => _ShopMasterFormScreenState();
 }
 
+class _LinkedSupplierOption {
+  final int? id;
+  final String label;
+  const _LinkedSupplierOption(this.id, this.label);
+}
+
 class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
   late final ShopMasterService _service = ShopMasterService(context.read<ApiClient>());
   late final LookupService _lookupService = LookupService(context.read<ApiClient>());
@@ -89,6 +95,13 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  SupplierOption? _findSupplier(int? supplierId) {
+    for (final supplier in _suppliers) {
+      if (supplier.supplierId == supplierId) return supplier;
+    }
+    return null;
   }
 
   Future<void> _save() async {
@@ -172,19 +185,30 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                     onChanged: (value) => setState(() => _routeId = value),
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<int?>(
-                    initialValue: _linkedSupplierId,
-                    decoration: const InputDecoration(
-                      labelText: 'Linked Supplier',
-                      helperText: 'If this shop is also one of your suppliers, link it to see a combined net balance.',
-                      helperMaxLines: 2,
-                    ),
-                    items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Not linked')),
-                      for (final supplier in _suppliers)
-                        DropdownMenuItem(value: supplier.supplierId, child: Text(supplier.supplierName)),
-                    ],
-                    onChanged: (value) => setState(() => _linkedSupplierId = value),
+                  Autocomplete<_LinkedSupplierOption>(
+                    initialValue: TextEditingValue(text: _findSupplier(_linkedSupplierId)?.supplierName ?? ''),
+                    displayStringForOption: (opt) => opt.label,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      final all = [
+                        const _LinkedSupplierOption(null, 'Not linked'),
+                        ..._suppliers.map((s) => _LinkedSupplierOption(s.supplierId, s.supplierName)),
+                      ];
+                      if (query.isEmpty) return all;
+                      return all.where((o) => o.label.toLowerCase().contains(query));
+                    },
+                    onSelected: (opt) => setState(() => _linkedSupplierId = opt.id),
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Linked Supplier',
+                          helperText: 'If this shop is also one of your suppliers, link it to see a combined net balance.',
+                          helperMaxLines: 2,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   if (!widget.isEditing) ...[

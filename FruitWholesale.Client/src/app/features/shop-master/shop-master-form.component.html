@@ -36,12 +36,15 @@
 
     <mat-form-field class="full-width">
       <mat-label>Linked Supplier</mat-label>
-      <mat-select formControlName="linkedSupplierID">
-        <mat-option [value]="null">Not linked</mat-option>
-        @for (supplier of suppliers(); track supplier.supplierID) {
+      <input matInput formControlName="linkedSupplierSearch" placeholder="Search supplier (optional)" [matAutocomplete]="linkedSupplierAuto" />
+      @if (form.controls.linkedSupplierID.value) {
+        <button matSuffix mat-icon-button type="button" (click)="clearLinkedSupplier()" aria-label="Clear linked supplier">&times;</button>
+      }
+      <mat-autocomplete #linkedSupplierAuto="matAutocomplete" (optionSelected)="onLinkedSupplierSelected($event)">
+        @for (supplier of filteredSuppliers(form.value.linkedSupplierSearch); track supplier.supplierID) {
           <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
       <mat-hint>If this shop is also one of your suppliers, link it to see a combined net balance.</mat-hint>
     </mat-form-field>
 

@@ -84,6 +84,13 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
     }
   }
 
+  SupplierOption? _findSupplier(int? supplierId) {
+    for (final supplier in _suppliers) {
+      if (supplier.supplierId == supplierId) return supplier;
+    }
+    return null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSupplierId == null) {
@@ -142,13 +149,22 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
           ],
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedSupplierId,
-            decoration: const InputDecoration(labelText: 'Supplier'),
-            items: [
-              for (final supplier in _suppliers) DropdownMenuItem(value: supplier.supplierId, child: Text(supplier.supplierName)),
-            ],
-            onChanged: (value) => setState(() => _selectedSupplierId = value),
+          Autocomplete<SupplierOption>(
+            initialValue: TextEditingValue(text: _findSupplier(_selectedSupplierId)?.supplierName ?? ''),
+            displayStringForOption: (supplier) => supplier.supplierName,
+            optionsBuilder: (value) {
+              final query = value.text.trim().toLowerCase();
+              if (query.isEmpty) return _suppliers;
+              return _suppliers.where((supplier) => supplier.supplierName.toLowerCase().contains(query));
+            },
+            onSelected: (supplier) => setState(() => _selectedSupplierId = supplier.supplierId),
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(labelText: 'Supplier'),
+              );
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(

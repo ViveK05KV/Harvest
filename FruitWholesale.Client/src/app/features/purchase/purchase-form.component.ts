@@ -64,6 +64,7 @@ export class PurchaseFormComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     purchaseDate: [new Date(), Validators.required],
     supplierID: this.fb.control<number | null>(null, Validators.required),
+    supplierSearch: this.fb.nonNullable.control<string>(''),
     invoiceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
     items: this.fb.array<ReturnType<typeof this.buildItem>>([])
@@ -90,6 +91,7 @@ export class PurchaseFormComponent implements OnInit {
           this.form.patchValue({
             purchaseDate: new Date(purchase.purchaseDate),
             supplierID: purchase.supplierID,
+            supplierSearch: this.supplierNameById(purchase.supplierID),
             invoiceNo: purchase.invoiceNo,
             remarks: purchase.remarks
           });
@@ -106,6 +108,21 @@ export class PurchaseFormComponent implements OnInit {
     });
   }
 
+  supplierNameById(supplierID: number | null): string {
+    return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
+  }
+
+  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.suppliers();
+    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
+  }
+
+  onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
+    const supplierID = event.option.value as number;
+    this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
+  }
+
   buildItem(fruitID: number | null = null, quantity = 0, purchasePrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
@@ -116,7 +133,7 @@ export class PurchaseFormComponent implements OnInit {
     });
   }
 
-  filteredFruits(search: string | null): FruitMaster[] {
+  filteredFruits(search: string | null | undefined): FruitMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.fruits();
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));

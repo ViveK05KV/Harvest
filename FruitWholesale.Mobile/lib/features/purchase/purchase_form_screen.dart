@@ -128,6 +128,13 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     return null;
   }
 
+  SupplierOption? _findSupplier(int? supplierId) {
+    for (final supplier in _suppliers) {
+      if (supplier.supplierId == supplierId) return supplier;
+    }
+    return null;
+  }
+
   bool _fruitTracksByBox(int? fruitId) => _findFruit(fruitId)?.tracksByBox ?? false;
 
   double? _fruitBoxWeight(int? fruitId) => _findFruit(fruitId)?.boxWeightKg;
@@ -234,13 +241,22 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           const SizedBox(height: 16),
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedSupplierId,
-            decoration: const InputDecoration(labelText: 'Supplier'),
-            items: [
-              for (final supplier in _suppliers) DropdownMenuItem(value: supplier.supplierId, child: Text(supplier.supplierName)),
-            ],
-            onChanged: (value) => setState(() => _selectedSupplierId = value),
+          Autocomplete<SupplierOption>(
+            initialValue: TextEditingValue(text: _findSupplier(_selectedSupplierId)?.supplierName ?? ''),
+            displayStringForOption: (supplier) => supplier.supplierName,
+            optionsBuilder: (value) {
+              final query = value.text.trim().toLowerCase();
+              if (query.isEmpty) return _suppliers;
+              return _suppliers.where((supplier) => supplier.supplierName.toLowerCase().contains(query));
+            },
+            onSelected: (supplier) => setState(() => _selectedSupplierId = supplier.supplierId),
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(labelText: 'Supplier'),
+              );
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -266,6 +282,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   Widget _buildItemRow(int index) {
     final item = _items[index];
     return Card(
+      key: ValueKey(item),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -274,14 +291,25 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: item.fruitId,
-                    decoration: const InputDecoration(labelText: 'Fruit'),
-                    items: [
-                      for (final fruit in _fruits)
-                        DropdownMenuItem(value: fruit.fruitId, child: Text('${fruit.fruitName} (${fruit.unit})')),
-                    ],
-                    onChanged: (value) => setState(() => item.fruitId = value),
+                  child: Autocomplete<FruitOption>(
+                    initialValue: TextEditingValue(text: _findFruit(item.fruitId)?.fruitName ?? ''),
+                    displayStringForOption: (fruit) => fruit.fruitName,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      if (query.isEmpty) return _fruits;
+                      return _fruits.where((fruit) => fruit.fruitName.toLowerCase().contains(query));
+                    },
+                    onSelected: (fruit) => setState(() {
+                      item.fruitId = fruit.fruitId;
+                      item.boxCountController.clear();
+                    }),
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(labelText: 'Fruit'),
+                      );
+                    },
                   ),
                 ),
                 IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _removeRow(index)),
@@ -335,7 +363,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹').format(item.amount)}',
+                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(item.amount)}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -356,7 +384,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           children: [
             Expanded(
               child: Text(
-                'Grand Total: ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹').format(_grandTotal)}',
+                'Grand Total: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(_grandTotal)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),

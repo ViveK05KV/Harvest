@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -38,6 +39,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatChipsModule,
     MatTooltipModule,
     MatProgressBarModule,
@@ -62,6 +64,7 @@ export class CollectionListComponent implements OnInit {
   readonly shops = signal<ShopMaster[]>([]);
 
   shopId: number | null = null;
+  shopSearch = '';
   fromDate: Date | null = null;
   toDate: Date | null = null;
 
@@ -75,6 +78,19 @@ export class CollectionListComponent implements OnInit {
   onFilterChange(): void {
     this.request.pageNumber = 1;
     this.load();
+  }
+
+  filteredShops(search: string | null | undefined): ShopMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.shops();
+    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
+  }
+
+  onShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const shopId = event.option.value as number | null;
+    this.shopId = shopId;
+    this.shopSearch = shopId == null ? '' : (this.shops().find((s) => s.shopID === shopId)?.shopName ?? '');
+    this.onFilterChange();
   }
 
   onPage(event: PageEvent): void {

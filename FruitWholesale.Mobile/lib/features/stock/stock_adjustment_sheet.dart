@@ -58,6 +58,13 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
     }
   }
 
+  FruitOption? _findFruit(int? fruitId) {
+    for (final fruit in _fruits) {
+      if (fruit.fruitId == fruitId) return fruit;
+    }
+    return null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedFruitId == null) {
@@ -115,13 +122,22 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    DropdownButtonFormField<int>(
-                      initialValue: _selectedFruitId,
-                      decoration: const InputDecoration(labelText: 'Fruit'),
-                      items: [
-                        for (final fruit in _fruits) DropdownMenuItem(value: fruit.fruitId, child: Text(fruit.fruitName)),
-                      ],
-                      onChanged: (value) => setState(() => _selectedFruitId = value),
+                    Autocomplete<FruitOption>(
+                      initialValue: TextEditingValue(text: _findFruit(_selectedFruitId)?.fruitName ?? ''),
+                      displayStringForOption: (fruit) => fruit.fruitName,
+                      optionsBuilder: (value) {
+                        final query = value.text.trim().toLowerCase();
+                        if (query.isEmpty) return _fruits;
+                        return _fruits.where((fruit) => fruit.fruitName.toLowerCase().contains(query));
+                      },
+                      onSelected: (fruit) => setState(() => _selectedFruitId = fruit.fruitId),
+                      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: const InputDecoration(labelText: 'Fruit'),
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     RadioGroup<bool>(

@@ -7,12 +7,13 @@
 
   <mat-form-field subscriptSizing="dynamic" style="width: 180px">
     <mat-label>Shop</mat-label>
-    <mat-select [(ngModel)]="shopId" (selectionChange)="onFilterChange()">
+    <input matInput [(ngModel)]="shopSearch" placeholder="Search shop" [matAutocomplete]="shopFilterAuto" />
+    <mat-autocomplete #shopFilterAuto="matAutocomplete" (optionSelected)="onShopFilterSelected($event)">
       <mat-option [value]="null">All Shops</mat-option>
-      @for (shop of shops(); track shop.shopID) {
+      @for (shop of filteredShops(shopSearch); track shop.shopID) {
         <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
       }
-    </mat-select>
+    </mat-autocomplete>
   </mat-form-field>
 
   <mat-form-field subscriptSizing="dynamic" style="width: 150px">

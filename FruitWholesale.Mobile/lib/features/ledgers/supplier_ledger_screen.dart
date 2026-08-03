@@ -11,6 +11,12 @@ import '../supplier_master/supplier_master_service.dart';
 import 'ledger_models.dart';
 import 'ledger_service.dart';
 
+class _FilterOption {
+  final int? id;
+  final String label;
+  const _FilterOption(this.id, this.label);
+}
+
 class SupplierLedgerScreen extends StatefulWidget {
   const SupplierLedgerScreen({super.key});
 
@@ -69,14 +75,24 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: _loadingSuppliers
                 ? const LinearProgressIndicator()
-                : DropdownButtonFormField<int>(
-                    initialValue: _selectedSupplierId,
-                    decoration: const InputDecoration(labelText: 'Select Supplier'),
-                    items: [
-                      for (final supplier in _suppliers)
-                        DropdownMenuItem(value: supplier.supplierId, child: Text(supplier.supplierName)),
-                    ],
-                    onChanged: (value) => setState(() => _selectedSupplierId = value),
+                : Autocomplete<_FilterOption>(
+                    initialValue: TextEditingValue(text: _selectedSupplier?.supplierName ?? ''),
+                    displayStringForOption: (opt) => opt.label,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      final all = [
+                        const _FilterOption(null, 'All Suppliers'),
+                        ..._suppliers.map((s) => _FilterOption(s.supplierId, s.supplierName)),
+                      ];
+                      if (query.isEmpty) return all;
+                      return all.where((o) => o.label.toLowerCase().contains(query));
+                    },
+                    onSelected: (opt) => setState(() => _selectedSupplierId = opt.id),
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(labelText: 'Select Supplier'),
+                    ),
                   ),
           ),
           if (_selectedSupplier != null)

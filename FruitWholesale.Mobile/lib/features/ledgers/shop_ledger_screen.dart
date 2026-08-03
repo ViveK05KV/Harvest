@@ -11,6 +11,12 @@ import '../shop_master/shop_master_service.dart';
 import 'ledger_models.dart';
 import 'ledger_service.dart';
 
+class _FilterOption {
+  final int? id;
+  final String label;
+  const _FilterOption(this.id, this.label);
+}
+
 class ShopLedgerScreen extends StatefulWidget {
   const ShopLedgerScreen({super.key});
 
@@ -69,11 +75,24 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: _loadingShops
                 ? const LinearProgressIndicator()
-                : DropdownButtonFormField<int>(
-                    initialValue: _selectedShopId,
-                    decoration: const InputDecoration(labelText: 'Select Shop'),
-                    items: [for (final shop in _shops) DropdownMenuItem(value: shop.shopId, child: Text(shop.shopName))],
-                    onChanged: (value) => setState(() => _selectedShopId = value),
+                : Autocomplete<_FilterOption>(
+                    initialValue: TextEditingValue(text: _selectedShop?.shopName ?? ''),
+                    displayStringForOption: (opt) => opt.label,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      final all = [
+                        const _FilterOption(null, 'All Shops'),
+                        ..._shops.map((s) => _FilterOption(s.shopId, s.shopName)),
+                      ];
+                      if (query.isEmpty) return all;
+                      return all.where((o) => o.label.toLowerCase().contains(query));
+                    },
+                    onSelected: (opt) => setState(() => _selectedShopId = opt.id),
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(labelText: 'Select Shop'),
+                    ),
                   ),
           ),
           if (_selectedShop != null)

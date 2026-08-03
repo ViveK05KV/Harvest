@@ -3,11 +3,12 @@
   <mat-dialog-content>
     <mat-form-field class="full-width">
       <mat-label>Fruit</mat-label>
-      <mat-select formControlName="fruitID">
-        @for (fruit of fruits(); track fruit.fruitID) {
+      <input matInput formControlName="fruitSearch" placeholder="Search fruit" [matAutocomplete]="fruitAuto" />
+      <mat-autocomplete #fruitAuto="matAutocomplete" (optionSelected)="onFruitSelected($event)">
+        @for (fruit of filteredFruits(form.value.fruitSearch); track fruit.fruitID) {
           <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
       @if (form.controls.fruitID.touched && form.controls.fruitID.hasError('required')) {
         <mat-error>Fruit is required</mat-error>
       }

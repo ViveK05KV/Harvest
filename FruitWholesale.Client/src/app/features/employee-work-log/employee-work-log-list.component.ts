@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -37,6 +38,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatChipsModule,
     MatTooltipModule,
     MatProgressBarModule,
@@ -61,6 +63,7 @@ export class EmployeeWorkLogListComponent implements OnInit {
   readonly employees = signal<Employee[]>([]);
 
   employeeId: number | null = null;
+  employeeSearch = '';
   fromDate: Date | null = null;
   toDate: Date | null = null;
 
@@ -74,6 +77,19 @@ export class EmployeeWorkLogListComponent implements OnInit {
   onFilterChange(): void {
     this.request.pageNumber = 1;
     this.load();
+  }
+
+  filteredEmployees(search: string | null | undefined): Employee[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.employees();
+    return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
+  }
+
+  onEmployeeFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const employeeId = event.option.value as number | null;
+    this.employeeId = employeeId;
+    this.employeeSearch = employeeId == null ? '' : (this.employees().find((e) => e.employeeID === employeeId)?.fullName ?? '');
+    this.onFilterChange();
   }
 
   onPage(event: PageEvent): void {

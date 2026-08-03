@@ -30,11 +30,12 @@
 
         <mat-form-field>
           <mat-label>Shop</mat-label>
-          <mat-select formControlName="shopID" (selectionChange)="onShopChange()">
-            @for (shop of shops(); track shop.shopID) {
+          <input matInput formControlName="shopSearch" placeholder="Search shop" [matAutocomplete]="shopAuto" />
+          <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
+            @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
               <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
             }
-          </mat-select>
+          </mat-autocomplete>
         </mat-form-field>
 
         <div class="invoice-field-row">

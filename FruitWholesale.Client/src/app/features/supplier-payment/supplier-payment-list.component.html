@@ -3,12 +3,13 @@
 
   <mat-form-field subscriptSizing="dynamic" style="width: 220px">
     <mat-label>Filter by Supplier</mat-label>
-    <mat-select [(ngModel)]="supplierId" (selectionChange)="onFilterChange()">
+    <input matInput [(ngModel)]="supplierSearch" placeholder="Search supplier" [matAutocomplete]="supplierFilterAuto" />
+    <mat-autocomplete #supplierFilterAuto="matAutocomplete" (optionSelected)="onSupplierFilterSelected($event)">
       <mat-option [value]="null">All Suppliers</mat-option>
-      @for (supplier of suppliers(); track supplier.supplierID) {
+      @for (supplier of filteredSuppliers(supplierSearch); track supplier.supplierID) {
         <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
       }
-    </mat-select>
+    </mat-autocomplete>
   </mat-form-field>
 
   <mat-form-field subscriptSizing="dynamic" style="width: 150px">
