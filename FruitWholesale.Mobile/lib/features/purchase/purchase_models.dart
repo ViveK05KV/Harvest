@@ -1,4 +1,4 @@
-/// Mirrors the backend's Purchase DTOs (PurchaseDtos.cs).
+﻿/// Mirrors the backend's Purchase DTOs (PurchaseDtos.cs).
 class PurchaseListItem {
   final int purchaseId;
   final DateTime purchaseDate;
@@ -33,7 +33,7 @@ class PurchaseItem {
   final double quantity;
   final double purchasePrice;
   final double totalAmount;
-  final int? boxCount;
+  final double? boxCount;
 
   const PurchaseItem({
     this.purchaseItemId = 0,
@@ -55,7 +55,7 @@ class PurchaseItem {
       quantity: (json['quantity'] as num).toDouble(),
       purchasePrice: (json['purchasePrice'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
-      boxCount: json['boxCount'] as int?,
+      boxCount: (json['boxCount'] as num?)?.toDouble(),
     );
   }
 

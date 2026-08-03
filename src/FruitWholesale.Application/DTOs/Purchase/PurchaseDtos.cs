@@ -1,4 +1,4 @@
-namespace FruitWholesale.Application.DTOs.Purchase;
+﻿namespace FruitWholesale.Application.DTOs.Purchase;
 
 public class PurchaseItemDto
 {
@@ -9,7 +9,7 @@ public class PurchaseItemDto
     public decimal Quantity { get; set; }
     public decimal PurchasePrice { get; set; }
     public decimal TotalAmount { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 }
 
 public class PurchaseDto
@@ -38,7 +38,7 @@ public class SavePurchaseItemDto
     public int FruitID { get; set; }
     public decimal Quantity { get; set; }
     public decimal PurchasePrice { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 }
 
 public class CreatePurchaseDto

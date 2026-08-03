@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+﻿import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -6,6 +6,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -34,6 +35,7 @@ import { toIso } from '../../core/utils/date.util';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
@@ -148,9 +150,10 @@ export class SupplierReturnFormComponent implements OnInit {
   buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
+      fruitSearch: this.fb.nonNullable.control<string>(fruitID != null ? this.fruitName(fruitID) : ''),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
       unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
-      boxCount: this.fb.control<number | null>(boxCount, Validators.min(1))
+      boxCount: this.fb.control<number | null>(boxCount, Validators.min(0.01))
     });
   }
 
@@ -160,6 +163,25 @@ export class SupplierReturnFormComponent implements OnInit {
 
   fruitBoxWeight(fruitID: number | null): number | null {
     return this.fruits().find((f) => f.fruitID === fruitID)?.boxWeightKg ?? null;
+  }
+
+  fruitName(fruitID: number | null): string {
+    return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
+  }
+
+  filteredFruits(search: string | null): FruitMaster[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.fruits();
+    return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
+  }
+
+  onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
+    const fruitID = event.option.value as number;
+    this.itemsArray.at(index).patchValue({
+      fruitID,
+      fruitSearch: this.fruitName(fruitID),
+      boxCount: null
+    });
   }
 
   onBoxCountChange(index: number): void {

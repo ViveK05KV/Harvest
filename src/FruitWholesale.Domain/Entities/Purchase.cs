@@ -1,4 +1,4 @@
-namespace FruitWholesale.Domain.Entities;
+﻿namespace FruitWholesale.Domain.Entities;
 
 public class Purchase
 {
@@ -24,7 +24,7 @@ public class PurchaseItem
     public decimal Quantity { get; set; }
     public decimal PurchasePrice { get; set; }
     public decimal TotalAmount { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 
     public string? FruitName { get; set; }
     public string? Unit { get; set; }

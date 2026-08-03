@@ -1,4 +1,4 @@
-namespace FruitWholesale.Application.DTOs.Supply;
+﻿namespace FruitWholesale.Application.DTOs.Supply;
 
 public class SupplyItemDto
 {
@@ -9,7 +9,7 @@ public class SupplyItemDto
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalAmount { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 }
 
 public class SupplyDto
@@ -38,7 +38,7 @@ public class SaveSupplyItemDto
     public int FruitID { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 }
 
 public class CreateSupplyDto

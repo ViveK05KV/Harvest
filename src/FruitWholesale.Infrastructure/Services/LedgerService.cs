@@ -549,10 +549,19 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         {
             if (evt.EventType == "PURCHASE")
             {
+                // BoxCount can be fractional (half a crate, etc.) - split into whole boxes at the
+                // average weight plus one smaller box holding the exact remainder, so the sum of
+                // box weights always matches Quantity exactly regardless of rounding.
                 var perBoxWeight = evt.Quantity / evt.BoxCount!.Value;
-                for (var i = 0; i < evt.BoxCount.Value; i++)
+                var fullBoxCount = (int)Math.Floor(evt.BoxCount.Value);
+                for (var i = 0; i < fullBoxCount; i++)
                 {
                     boxes.Add(new BoxState { InitialWeightKg = perBoxWeight, RemainingWeightKg = perBoxWeight, Status = FruitBoxStatuses.Full, PurchaseID = evt.PurchaseID });
+                }
+                var remainderWeight = evt.Quantity - (fullBoxCount * perBoxWeight);
+                if (remainderWeight > 0)
+                {
+                    boxes.Add(new BoxState { InitialWeightKg = remainderWeight, RemainingWeightKg = remainderWeight, Status = FruitBoxStatuses.Full, PurchaseID = evt.PurchaseID });
                 }
             }
             else // SUPPLY
@@ -599,7 +608,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         public DateTime TransactionDate { get; set; }
         public DateTime ParentCreatedAt { get; set; }
         public decimal Quantity { get; set; }
-        public int? BoxCount { get; set; }
+        public decimal? BoxCount { get; set; }
         public int? PurchaseID { get; set; }
     }
 

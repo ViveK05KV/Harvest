@@ -1,4 +1,4 @@
-namespace FruitWholesale.Domain.Entities;
+﻿namespace FruitWholesale.Domain.Entities;
 
 public class ShopReturn
 {
@@ -36,7 +36,7 @@ public class ShopReturnItem
     /// blend, not something the replay computes.
     /// </summary>
     public decimal CostBasis { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 
     public string? FruitName { get; set; }
     public string? Unit { get; set; }

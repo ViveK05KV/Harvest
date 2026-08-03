@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -35,7 +35,7 @@ class _LineItemForm {
 
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get unitPrice => double.tryParse(unitPriceController.text) ?? 0;
-  int? get boxCount => int.tryParse(boxCountController.text);
+  double? get boxCount => double.tryParse(boxCountController.text);
   double get amount => (saleType == 'box' && boxCount != null) ? boxCount! * unitPrice : quantity * unitPrice;
 
   void dispose() {
@@ -313,7 +313,7 @@ class _ShopReturnFormScreenState extends State<ShopReturnFormScreen> {
                       child: TextFormField(
                         controller: item.boxCountController,
                         decoration: const InputDecoration(labelText: 'Boxes'),
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         onChanged: (_) => _onBoxCountChanged(item),
                       ),
                     ),
@@ -354,7 +354,7 @@ class _ShopReturnFormScreenState extends State<ShopReturnFormScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(item.amount)}',
+                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹').format(item.amount)}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -378,7 +378,7 @@ class _ShopReturnFormScreenState extends State<ShopReturnFormScreen> {
           children: [
             Expanded(
               child: Text(
-                'Grand Total: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(_grandTotal)}',
+                'Grand Total: ${NumberFormat.currency(locale: 'en_IN', symbol: 'â‚¹').format(_grandTotal)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),

@@ -1,4 +1,4 @@
-/// Mirrors the backend's Supply DTOs (SupplyDtos.cs).
+﻿/// Mirrors the backend's Supply DTOs (SupplyDtos.cs).
 class SupplyListItem {
   final int supplyId;
   final DateTime supplyDate;
@@ -33,7 +33,7 @@ class SupplyItem {
   final double quantity;
   final double unitPrice;
   final double totalAmount;
-  final int? boxCount;
+  final double? boxCount;
 
   const SupplyItem({
     this.supplyItemId = 0,
@@ -55,7 +55,7 @@ class SupplyItem {
       quantity: (json['quantity'] as num).toDouble(),
       unitPrice: (json['unitPrice'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
-      boxCount: json['boxCount'] as int?,
+      boxCount: (json['boxCount'] as num?)?.toDouble(),
     );
   }
 

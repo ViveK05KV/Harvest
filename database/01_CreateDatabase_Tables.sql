@@ -247,7 +247,7 @@ CREATE TABLE dbo.SupplyItems
     UnitPrice     DECIMAL(18,2)      NOT NULL,
     TotalAmount   DECIMAL(18,2)      NOT NULL,
     CostBasis     DECIMAL(18,4)      NOT NULL CONSTRAINT DF_SupplyItems_CostBasis DEFAULT (0), -- weighted-avg fruit cost at time of sale; see 08_AddProfitTracking.sql
-    BoxCount      INT                NULL, -- display-only box count for "by box" sales; see 19_AddFruitBoxWeight.sql
+    BoxCount      DECIMAL(18,3)      NULL, -- display-only box count for "by box" sales; see 19_AddFruitBoxWeight.sql, 21_ChangeBoxCountToDecimal.sql
     CONSTRAINT PK_SupplyItems PRIMARY KEY CLUSTERED (SupplyItemID),
     CONSTRAINT FK_SupplyItems_Supply FOREIGN KEY (SupplyID) REFERENCES dbo.Supply(SupplyID) ON DELETE CASCADE,
     CONSTRAINT FK_SupplyItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
@@ -309,7 +309,7 @@ CREATE TABLE dbo.PurchaseItems
     Quantity        DECIMAL(18,3)      NOT NULL,
     PurchasePrice   DECIMAL(18,2)      NOT NULL,
     TotalAmount     DECIMAL(18,2)      NOT NULL,
-    BoxCount        INT                NULL, -- physical box count for TracksByBox fruits; see 18_AddFruitBoxTracking.sql
+    BoxCount        DECIMAL(18,3)      NULL, -- physical box count for TracksByBox fruits; see 18_AddFruitBoxTracking.sql, 21_ChangeBoxCountToDecimal.sql
     CONSTRAINT PK_PurchaseItems PRIMARY KEY CLUSTERED (PurchaseItemID),
     CONSTRAINT FK_PurchaseItems_Purchase FOREIGN KEY (PurchaseID) REFERENCES dbo.Purchase(PurchaseID) ON DELETE CASCADE,
     CONSTRAINT FK_PurchaseItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
@@ -568,7 +568,7 @@ CREATE TABLE dbo.ShopReturnItems
     UnitPrice         DECIMAL(18,2)     NOT NULL,
     TotalAmount       DECIMAL(18,2)     NOT NULL,
     CostBasis         DECIMAL(18,4)     NOT NULL CONSTRAINT DF_ShopReturnItems_CostBasis DEFAULT (0),
-    BoxCount          INT               NULL, -- see 20_AddReturnBoxCount.sql
+    BoxCount          DECIMAL(18,3)     NULL, -- see 20_AddReturnBoxCount.sql, 21_ChangeBoxCountToDecimal.sql
     CONSTRAINT PK_ShopReturnItems PRIMARY KEY CLUSTERED (ShopReturnItemID),
     CONSTRAINT FK_ShopReturnItems_ShopReturns FOREIGN KEY (ShopReturnID) REFERENCES dbo.ShopReturns(ShopReturnID) ON DELETE CASCADE,
     CONSTRAINT FK_ShopReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
@@ -608,7 +608,7 @@ CREATE TABLE dbo.SupplierReturnItems
     UnitPrice              DECIMAL(18,2)     NOT NULL,
     TotalAmount            DECIMAL(18,2)     NOT NULL,
     CostBasis              DECIMAL(18,4)     NOT NULL CONSTRAINT DF_SupplierReturnItems_CostBasis DEFAULT (0),
-    BoxCount               INT               NULL, -- see 20_AddReturnBoxCount.sql
+    BoxCount               DECIMAL(18,3)     NULL, -- see 20_AddReturnBoxCount.sql, 21_ChangeBoxCountToDecimal.sql
     CONSTRAINT PK_SupplierReturnItems PRIMARY KEY CLUSTERED (SupplierReturnItemID),
     CONSTRAINT FK_SupplierReturnItems_SupplierReturns FOREIGN KEY (SupplierReturnID) REFERENCES dbo.SupplierReturns(SupplierReturnID) ON DELETE CASCADE,
     CONSTRAINT FK_SupplierReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)

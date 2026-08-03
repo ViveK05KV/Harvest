@@ -28,3 +28,4 @@
 18_AddFruitBoxTracking.sql
 19_AddFruitBoxWeight.sql
 20_AddReturnBoxCount.sql
+21_ChangeBoxCountToDecimal.sql

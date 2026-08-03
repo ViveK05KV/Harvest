@@ -1,4 +1,4 @@
-namespace FruitWholesale.Domain.Entities;
+﻿namespace FruitWholesale.Domain.Entities;
 
 public class SupplierReturn
 {
@@ -34,7 +34,7 @@ public class SupplierReturnItem
     /// input the caller supplies.
     /// </summary>
     public decimal CostBasis { get; set; }
-    public int? BoxCount { get; set; }
+    public decimal? BoxCount { get; set; }
 
     public string? FruitName { get; set; }
     public string? Unit { get; set; }

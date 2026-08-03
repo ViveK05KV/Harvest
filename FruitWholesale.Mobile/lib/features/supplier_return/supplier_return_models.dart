@@ -1,4 +1,4 @@
-/// Mirrors the backend's Supplier Return DTOs (SupplierReturnDtos.cs).
+﻿/// Mirrors the backend's Supplier Return DTOs (SupplierReturnDtos.cs).
 class SupplierReturnListItem {
   final int supplierReturnId;
   final DateTime returnDate;
@@ -36,7 +36,7 @@ class SupplierReturnItem {
   final double quantity;
   final double unitPrice;
   final double totalAmount;
-  final int? boxCount;
+  final double? boxCount;
 
   const SupplierReturnItem({
     this.supplierReturnItemId = 0,
@@ -58,7 +58,7 @@ class SupplierReturnItem {
       quantity: (json['quantity'] as num).toDouble(),
       unitPrice: (json['unitPrice'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
-      boxCount: json['boxCount'] as int?,
+      boxCount: (json['boxCount'] as num?)?.toDouble(),
     );
   }
 

@@ -1,4 +1,4 @@
-/// Mirrors the backend's Shop Return DTOs (ShopReturnDtos.cs).
+﻿/// Mirrors the backend's Shop Return DTOs (ShopReturnDtos.cs).
 class ShopReturnListItem {
   final int shopReturnId;
   final DateTime returnDate;
@@ -36,7 +36,7 @@ class ShopReturnItem {
   final double quantity;
   final double unitPrice;
   final double totalAmount;
-  final int? boxCount;
+  final double? boxCount;
 
   const ShopReturnItem({
     this.shopReturnItemId = 0,
@@ -58,7 +58,7 @@ class ShopReturnItem {
       quantity: (json['quantity'] as num).toDouble(),
       unitPrice: (json['unitPrice'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
-      boxCount: json['boxCount'] as int?,
+      boxCount: (json['boxCount'] as num?)?.toDouble(),
     );
   }
 
