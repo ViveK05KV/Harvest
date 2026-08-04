@@ -20,6 +20,8 @@ import { ShopLedgerEntry, ledgerParticulars } from '../../core/models/ledger.mod
 import { ShopMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 import { toIso } from '../../core/utils/date.util';
 
 @Component({
@@ -49,10 +51,12 @@ export class ShopLedgerComponent implements OnInit {
   private readonly ledgerService = inject(LedgerService);
   private readonly shopService = inject(ShopMasterService);
   private readonly exportService = inject(ExportService);
+  private readonly notification = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['transactionDate', 'particulars', 'sale', 'received', 'runningBalance'];
+  readonly displayedColumns = ['transactionDate', 'particulars', 'sale', 'received', 'runningBalance', 'actions'];
   readonly particulars = ledgerParticulars;
   readonly shops = signal<ShopMaster[]>([]);
   readonly items = signal<ShopLedgerEntry[]>([]);
@@ -156,6 +160,27 @@ export class ShopLedgerComponent implements OnInit {
       },
       error: () => this.loading.set(false)
     });
+  }
+
+  deleteAdjustment(row: ShopLedgerEntry): void {
+    if (!this.shopId) return;
+    const shopId = this.shopId;
+    this.confirmDialog
+      .confirm({
+        title: 'Delete Adjustment',
+        message: `Delete this adjustment of ${row.debit || row.credit} dated ${new Date(row.transactionDate).toLocaleDateString()}? Balance will be recalculated.`,
+        destructive: true,
+        confirmLabel: 'Delete'
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.shopService.deleteAdjustment(shopId, row.ledgerID).subscribe({
+          next: () => {
+            this.notification.success('Adjustment deleted and ledger recalculated.');
+            this.load();
+          }
+        });
+      });
   }
 
   exportExcel(): void {

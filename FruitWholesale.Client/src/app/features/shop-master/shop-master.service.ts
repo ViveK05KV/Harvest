@@ -19,4 +19,8 @@ export class ShopMasterService extends MasterDataApiService<ShopMaster, SaveShop
   applyBalanceAdjustment(shopId: number, dto: ShopBalanceAdjustment): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${shopId}/balance-adjustment`, dto);
   }
+
+  deleteAdjustment(shopId: number, ledgerId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${shopId}/adjustment/${ledgerId}`);
+  }
 }

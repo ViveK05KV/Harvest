@@ -48,4 +48,9 @@ public class SupplierMasterController(ISupplierMasterService service) : ApiContr
     [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
     public async Task<ActionResult> ApplyBalanceAdjustment(int id, SupplierBalanceAdjustmentDto dto) =>
         FromResult(await service.ApplyBalanceAdjustmentAsync(id, dto));
+
+    [HttpDelete("{id:int}/adjustment/{ledgerId:long}")]
+    [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
+    public async Task<ActionResult> DeleteAdjustment(int id, long ledgerId) =>
+        FromResult(await service.DeleteAdjustmentAsync(id, ledgerId));
 }

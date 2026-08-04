@@ -19,6 +19,8 @@ import { SupplierLedgerEntry, ledgerParticulars } from '../../core/models/ledger
 import { SupplierMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 import { toIso } from '../../core/utils/date.util';
 
 @Component({
@@ -47,10 +49,12 @@ export class SupplierLedgerComponent implements OnInit {
   private readonly ledgerService = inject(LedgerService);
   private readonly supplierService = inject(SupplierMasterService);
   private readonly exportService = inject(ExportService);
+  private readonly notification = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['transactionDate', 'particulars', 'purchase', 'payment', 'runningBalance'];
+  readonly displayedColumns = ['transactionDate', 'particulars', 'purchase', 'payment', 'runningBalance', 'actions'];
   readonly particulars = ledgerParticulars;
   readonly suppliers = signal<SupplierMaster[]>([]);
   readonly items = signal<SupplierLedgerEntry[]>([]);
@@ -150,6 +154,27 @@ export class SupplierLedgerComponent implements OnInit {
       },
       error: () => this.loading.set(false)
     });
+  }
+
+  deleteAdjustment(row: SupplierLedgerEntry): void {
+    if (!this.supplierId) return;
+    const supplierId = this.supplierId;
+    this.confirmDialog
+      .confirm({
+        title: 'Delete Adjustment',
+        message: `Delete this adjustment of ${row.debit || row.credit} dated ${new Date(row.transactionDate).toLocaleDateString()}? Balance will be recalculated.`,
+        destructive: true,
+        confirmLabel: 'Delete'
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.supplierService.deleteAdjustment(supplierId, row.ledgerID).subscribe({
+          next: () => {
+            this.notification.success('Adjustment deleted and ledger recalculated.');
+            this.load();
+          }
+        });
+      });
   }
 
   exportExcel(): void {

@@ -115,6 +115,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             "DELETE FROM dbo.CashLedger WHERE ReferenceTable = @ReferenceTable AND ReferenceID = @ReferenceID",
             new { ReferenceTable = referenceTable, ReferenceID = referenceId }, transaction);
 
+    public Task<int> DeleteShopLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int shopId, long ledgerId) =>
+        connection.ExecuteAsync(
+            "DELETE FROM dbo.ShopLedger WHERE LedgerID = @LedgerID AND ShopID = @ShopID AND TransactionType = 'Adjustment'",
+            new { LedgerID = ledgerId, ShopID = shopId }, transaction);
+
+    public Task<int> DeleteSupplierLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int supplierId, long ledgerId) =>
+        connection.ExecuteAsync(
+            "DELETE FROM dbo.SupplierLedger WHERE LedgerID = @LedgerID AND SupplierID = @SupplierID AND TransactionType = 'Adjustment'",
+            new { LedgerID = ledgerId, SupplierID = supplierId }, transaction);
+
     public Task RecalculateShopLedgerAsync(IDbConnection connection, IDbTransaction transaction, int shopId) =>
         connection.ExecuteAsync("dbo.sp_RecalculateShopLedgerBalance", new { ShopID = shopId },
             transaction, commandType: CommandType.StoredProcedure);
