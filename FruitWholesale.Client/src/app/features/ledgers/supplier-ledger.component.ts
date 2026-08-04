@@ -110,6 +110,27 @@ export class SupplierLedgerComponent implements OnInit {
     this.onFilterChange();
   }
 
+  // Same as ShopLedgerComponent.onShopSearchFocus/Blur: clears on focus/click (or
+  // via the dropdown arrow) so the panel opens showing the full list instead of
+  // narrowed down to the already-selected name, but only when the field is
+  // showing that settled name rather than a query still being typed; restores
+  // the name on blur if nothing new was picked.
+  onSupplierSearchFocus(): void {
+    if (this.supplierSearch !== (this.selectedSupplier()?.supplierName ?? '')) return;
+    this.supplierSearch = '';
+  }
+
+  onSupplierSearchBlur(): void {
+    if (this.supplierSearch) return;
+    this.supplierSearch = this.selectedSupplier()?.supplierName ?? '';
+  }
+
+  // Same as ShopLedgerComponent.showAllShops: the dropdown arrow always shows the
+  // full list regardless of any in-progress query.
+  showAllSuppliers(): void {
+    this.supplierSearch = '';
+  }
+
   onPage(event: PageEvent): void {
     this.request.pageNumber = event.pageIndex + 1;
     this.request.pageSize = event.pageSize;
