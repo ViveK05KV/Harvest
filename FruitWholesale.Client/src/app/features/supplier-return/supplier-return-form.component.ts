@@ -141,6 +141,22 @@ export class SupplierReturnFormComponent implements OnInit {
     this.onSupplierChange();
   }
 
+  onSupplierSearchFocus(): void {
+    if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
+      this.form.controls.supplierSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled supplier name must invalidate the stale supplierID -
+  // otherwise the form stays "valid" with the old supplier while the field shows
+  // different text, and save() would silently post against the wrong supplier. The
+  // "against invoice" list belongs to that stale supplier too, so it's cleared here.
+  onSupplierSearchInput(): void {
+    this.form.controls.supplierID.setValue(null);
+    this.form.controls.purchaseID.setValue(null);
+    this.supplierPurchases.set([]);
+  }
+
   private loadSupplierPurchases(supplierId: number): void {
     this.purchaseService.getPaged({ pageNumber: 1, pageSize: 50, searchTerm: '' }, supplierId).subscribe((result) => {
       this.supplierPurchases.set(result.items);
@@ -200,6 +216,17 @@ export class SupplierReturnFormComponent implements OnInit {
       fruitSearch: this.fruitName(fruitID),
       boxCount: null
     });
+  }
+
+  onFruitSearchFocus(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
+  }
+
+  // Same as onSupplierSearchInput: editing a row's fruit text must invalidate that
+  // row's stale fruitID so save() can't silently post against the wrong fruit.
+  onFruitSearchInput(index: number): void {
+    this.itemsArray.at(index).patchValue({ fruitID: null });
   }
 
   onBoxCountChange(index: number): void {

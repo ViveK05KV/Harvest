@@ -3,7 +3,15 @@
 
   <mat-form-field subscriptSizing="dynamic" style="width: 220px">
     <mat-label>Filter by Employee</mat-label>
-    <input matInput [(ngModel)]="employeeSearch" placeholder="Search employee" [matAutocomplete]="employeeFilterAuto" />
+    <input
+      matInput
+      [(ngModel)]="employeeSearch"
+      placeholder="Search employee"
+      [matAutocomplete]="employeeFilterAuto"
+      (focus)="onEmployeeSearchFocus()"
+      (click)="onEmployeeSearchFocus()"
+      (input)="onEmployeeSearchInput()"
+    />
     <mat-autocomplete #employeeFilterAuto="matAutocomplete" (optionSelected)="onEmployeeFilterSelected($event)">
       <mat-option [value]="null">All Employees</mat-option>
       @for (employee of filteredEmployees(employeeSearch); track employee.employeeID) {

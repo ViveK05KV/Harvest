@@ -123,6 +123,19 @@ export class PurchaseFormComponent implements OnInit {
     this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
   }
 
+  onSupplierSearchFocus(): void {
+    if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
+      this.form.controls.supplierSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled supplier name must invalidate the stale supplierID -
+  // otherwise the form stays "valid" with the old supplier while the field shows
+  // different text, and save() would silently post against the wrong supplier.
+  onSupplierSearchInput(): void {
+    this.form.controls.supplierID.setValue(null);
+  }
+
   buildItem(fruitID: number | null = null, quantity = 0, purchasePrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
@@ -147,6 +160,17 @@ export class PurchaseFormComponent implements OnInit {
       fruitSearch: fruit?.fruitName ?? '',
       boxCount: null
     });
+  }
+
+  onFruitSearchFocus(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
+  }
+
+  // Same as onSupplierSearchInput: editing a row's fruit text must invalidate that
+  // row's stale fruitID so save() can't silently post against the wrong fruit.
+  onFruitSearchInput(index: number): void {
+    this.itemsArray.at(index).patchValue({ fruitID: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {

@@ -72,8 +72,21 @@ export class ShopMasterFormComponent implements OnInit {
     this.form.patchValue({ linkedSupplierID, linkedSupplierSearch: this.supplierNameById(linkedSupplierID) });
   }
 
+  onLinkedSupplierSearchFocus(): void {
+    if (this.form.controls.linkedSupplierSearch.value === this.supplierNameById(this.form.controls.linkedSupplierID.value)) {
+      this.form.controls.linkedSupplierSearch.setValue('');
+    }
+  }
+
   clearLinkedSupplier(): void {
     this.form.patchValue({ linkedSupplierID: null, linkedSupplierSearch: '' });
+  }
+
+  // Typing away from the settled supplier name must invalidate the stale
+  // linkedSupplierID - otherwise save() would silently keep the old link while
+  // the field shows different text.
+  onLinkedSupplierSearchInput(): void {
+    this.form.controls.linkedSupplierID.setValue(null);
   }
 
   save(): void {

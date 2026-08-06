@@ -5,24 +5,13 @@
     <mat-label>Supplier</mat-label>
     <input
       matInput
-      #supplierSearchInput="matAutocompleteTrigger"
       [(ngModel)]="supplierSearch"
       placeholder="Search supplier"
       [matAutocomplete]="supplierFilterAuto"
       (focus)="onSupplierSearchFocus()"
       (click)="onSupplierSearchFocus()"
-      (blur)="onSupplierSearchBlur()"
+      (input)="onSupplierSearchInput()"
     />
-    <button
-      matSuffix
-      mat-icon-button
-      type="button"
-      tabindex="-1"
-      matTooltip="Show all suppliers"
-      (click)="showAllSuppliers(); supplierSearchInput.openPanel()"
-    >
-      <mat-icon>arrow_drop_down</mat-icon>
-    </button>
     <mat-autocomplete #supplierFilterAuto="matAutocomplete" (optionSelected)="onSupplierFilterSelected($event)">
       @for (supplier of filteredSuppliers(supplierSearch); track supplier.supplierID) {
         <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>

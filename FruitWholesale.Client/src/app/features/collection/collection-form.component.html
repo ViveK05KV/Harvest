@@ -3,7 +3,15 @@
   <mat-dialog-content>
     <mat-form-field class="full-width">
       <mat-label>Customer (Shop)</mat-label>
-      <input matInput formControlName="shopSearch" placeholder="Search shop" [matAutocomplete]="shopAuto" />
+      <input
+        matInput
+        formControlName="shopSearch"
+        placeholder="Search shop"
+        [matAutocomplete]="shopAuto"
+        (focus)="onShopSearchFocus()"
+        (click)="onShopSearchFocus()"
+        (input)="onShopSearchInput()"
+      />
       <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
         @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
           <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>

@@ -92,6 +92,18 @@ export class EmployeeWorkLogListComponent implements OnInit {
     this.onFilterChange();
   }
 
+  onEmployeeSearchFocus(): void {
+    if (this.employeeSearch === (this.employees().find((e) => e.employeeID === this.employeeId)?.fullName ?? '')) this.employeeSearch = '';
+  }
+
+  // Typing away from the settled employee name must clear the stale filter and
+  // reload - otherwise the field shows different text while the table silently
+  // stays filtered by whatever employee was previously selected.
+  onEmployeeSearchInput(): void {
+    this.employeeId = null;
+    this.onFilterChange();
+  }
+
   onPage(event: PageEvent): void {
     this.request.pageNumber = event.pageIndex + 1;
     this.request.pageSize = event.pageSize;

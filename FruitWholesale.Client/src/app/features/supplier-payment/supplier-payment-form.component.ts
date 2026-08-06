@@ -74,6 +74,19 @@ export class SupplierPaymentFormComponent implements OnInit {
     this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
   }
 
+  onSupplierSearchFocus(): void {
+    if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
+      this.form.controls.supplierSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled supplier name must invalidate the stale supplierID -
+  // otherwise the form stays "valid" with the old supplier while the field shows
+  // different text, and save() would silently post against the wrong supplier.
+  onSupplierSearchInput(): void {
+    this.form.controls.supplierID.setValue(null);
+  }
+
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

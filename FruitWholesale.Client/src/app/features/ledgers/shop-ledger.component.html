@@ -5,24 +5,12 @@
     <mat-label>Shop</mat-label>
     <input
       matInput
-      #shopSearchInput="matAutocompleteTrigger"
       [(ngModel)]="shopSearch"
       placeholder="Search shop"
       [matAutocomplete]="shopFilterAuto"
       (focus)="onShopSearchFocus()"
       (click)="onShopSearchFocus()"
-      (blur)="onShopSearchBlur()"
     />
-    <button
-      matSuffix
-      mat-icon-button
-      type="button"
-      tabindex="-1"
-      matTooltip="Show all shops"
-      (click)="showAllShops(); shopSearchInput.openPanel()"
-    >
-      <mat-icon>arrow_drop_down</mat-icon>
-    </button>
     <mat-autocomplete #shopFilterAuto="matAutocomplete" (optionSelected)="onShopFilterSelected($event)">
       @for (shop of filteredShops(shopSearch); track shop.shopID) {
         <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>

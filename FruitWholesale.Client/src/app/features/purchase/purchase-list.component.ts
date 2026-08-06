@@ -110,6 +110,20 @@ export class PurchaseListComponent implements OnInit {
     this.onFilterChange();
   }
 
+  onSupplierSearchFocus(): void {
+    if (this.supplierSearch === (this.suppliers().find((s) => s.supplierID === this.supplierId)?.supplierName ?? '')) {
+      this.supplierSearch = '';
+    }
+  }
+
+  // Typing away from the settled supplier name must clear the stale filter and
+  // reload - otherwise the field shows different text while the table silently
+  // stays filtered by whatever supplier was previously selected.
+  onSupplierSearchInput(): void {
+    this.supplierId = null;
+    this.onFilterChange();
+  }
+
   onPage(event: PageEvent): void {
     this.request.pageNumber = event.pageIndex + 1;
     this.request.pageSize = event.pageSize;

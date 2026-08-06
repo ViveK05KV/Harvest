@@ -474,9 +474,17 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             if (evt.EventType is "PURCHASE" or "SHOP_RETURN")
             {
                 var newQuantity = quantityOnHand + evt.Quantity;
-                averageCost = newQuantity > 0
-                    ? (quantityOnHand * averageCost + evt.Quantity * (evt.UnitCost ?? 0m)) / newQuantity
-                    : 0m;
+                // When on-hand is zero or negative (oversold - Supply/SupplierReturn allowed to
+                // exceed stock elsewhere in the app), there's no real inventory value behind
+                // quantityOnHand to blend: e.g. sell 10 with none in stock (quantityOnHand=-10,
+                // averageCost=0), then buy 20 @ ₹5 - blending would compute
+                // (-10*0 + 20*5)/10 = ₹10/unit instead of the ₹5 actually paid. Treat the
+                // incoming UnitCost as the new average outright in that case.
+                averageCost = quantityOnHand <= 0
+                    ? evt.UnitCost ?? 0m
+                    : newQuantity > 0
+                        ? (quantityOnHand * averageCost + evt.Quantity * (evt.UnitCost ?? 0m)) / newQuantity
+                        : 0m;
                 quantityOnHand = newQuantity;
             }
             else if (evt.EventType == "SUPPLY")

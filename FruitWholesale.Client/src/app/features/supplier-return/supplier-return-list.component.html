@@ -7,7 +7,15 @@
 
   <mat-form-field subscriptSizing="dynamic" style="width: 180px">
     <mat-label>Supplier</mat-label>
-    <input matInput [(ngModel)]="supplierSearch" placeholder="Search supplier" [matAutocomplete]="supplierFilterAuto" />
+    <input
+      matInput
+      [(ngModel)]="supplierSearch"
+      placeholder="Search supplier"
+      [matAutocomplete]="supplierFilterAuto"
+      (focus)="onSupplierSearchFocus()"
+      (click)="onSupplierSearchFocus()"
+      (input)="onSupplierSearchInput()"
+    />
     <mat-autocomplete #supplierFilterAuto="matAutocomplete" (optionSelected)="onSupplierFilterSelected($event)">
       <mat-option [value]="null">All Suppliers</mat-option>
       @for (supplier of filteredSuppliers(supplierSearch); track supplier.supplierID) {

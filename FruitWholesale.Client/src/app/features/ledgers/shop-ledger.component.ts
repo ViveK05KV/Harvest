@@ -116,28 +116,15 @@ export class ShopLedgerComponent implements OnInit {
     this.onFilterChange();
   }
 
-  // The field always displays the currently selected shop's name. Clicking the
-  // dropdown arrow (or focusing/clicking the text directly) clears it so the panel
-  // opens showing the full list to browse or type-filter, instead of being
-  // narrowed down to just the already-selected name. Only clears when the field
+  // The field always displays the currently selected shop's name. Clicking/focusing
+  // it clears the text so it's ready to type a fresh search, instead of requiring
+  // the user to manually delete the existing name first. Only clears when the field
   // is showing that settled name (not a query the user is still mid-typing), so
-  // clicking to reposition the cursor while typing doesn't wipe it out - and
-  // fires on both focus and click since the field stays focused after a
-  // selection, so a second click there wouldn't otherwise re-trigger (focus).
+  // clicking to reposition the cursor while typing doesn't wipe it out - and fires
+  // on both focus and click since the field stays focused after a selection, so a
+  // second click there wouldn't otherwise re-trigger (focus).
   onShopSearchFocus(): void {
     if (this.shopSearch !== (this.selectedShop()?.shopName ?? '')) return;
-    this.shopSearch = '';
-  }
-
-  onShopSearchBlur(): void {
-    if (this.shopSearch) return;
-    this.shopSearch = this.selectedShop()?.shopName ?? '';
-  }
-
-  // The dropdown arrow always shows the full list, regardless of whatever partial
-  // query might currently be mid-typed - unlike onShopSearchFocus, which leaves an
-  // in-progress query alone.
-  showAllShops(): void {
     this.shopSearch = '';
   }
 

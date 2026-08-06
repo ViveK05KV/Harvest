@@ -106,6 +106,20 @@ export class ProfitComponent implements OnInit {
     this.onFilterChange();
   }
 
+  onSelectedShopSearchFocus(): void {
+    if (this.selectedShopSearch === (this.shops().find((s) => s.shopID === this.selectedShopId)?.shopName ?? '')) {
+      this.selectedShopSearch = '';
+    }
+  }
+
+  // Typing away from the settled shop name must clear the stale filter and
+  // reload - otherwise the field shows different text while the table silently
+  // stays filtered by whatever shop was previously selected.
+  onSelectedShopSearchInput(): void {
+    this.selectedShopId = null;
+    this.onFilterChange();
+  }
+
   onTillTodayChange(): void {
     this.loadActiveTab();
   }
