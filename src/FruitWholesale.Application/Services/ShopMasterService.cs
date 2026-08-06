@@ -18,6 +18,7 @@ public interface IShopMasterService
     Task<Result<ShopMasterDto>> UpdateAsync(UpdateShopMasterDto dto);
     Task SetActiveAsync(int shopId, bool isActive);
     Task<Result> ApplyBalanceAdjustmentAsync(int shopId, ShopBalanceAdjustmentDto dto);
+    Task<Result> DeleteAdjustmentAsync(int shopId, long ledgerId);
 }
 
 public class ShopMasterService(
@@ -117,6 +118,34 @@ public class ShopMasterService(
 
             await ledgerService.AddShopLedgerEntryAsync(connection, transaction, shopId, DateTime.UtcNow,
                 LedgerTransactionTypes.Adjustment, null, debit, credit, dto.Narration);
+            await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
+
+            transaction.Commit();
+            return Result.Success();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<Result> DeleteAdjustmentAsync(int shopId, long ledgerId)
+    {
+        _ = await repository.GetByIdAsync(shopId) ?? throw new NotFoundException(nameof(ShopMaster), shopId);
+
+        using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            var deleted = await ledgerService.DeleteShopLedgerAdjustmentAsync(connection, transaction, shopId, ledgerId);
+            if (deleted == 0)
+            {
+                transaction.Rollback();
+                return Result.Failure("Adjustment entry not found.");
+            }
+
             await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
 
             transaction.Commit();

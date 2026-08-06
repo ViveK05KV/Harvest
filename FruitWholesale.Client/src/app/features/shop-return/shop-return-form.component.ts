@@ -139,6 +139,22 @@ export class ShopReturnFormComponent implements OnInit {
     this.onShopChange();
   }
 
+  onShopSearchFocus(): void {
+    if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
+      this.form.controls.shopSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled shop name must invalidate the stale shopID -
+  // otherwise the form stays "valid" with the old shop while the field shows
+  // different text, and save() would silently post against the wrong shop. The
+  // "against invoice" list belongs to that stale shop too, so it's cleared here.
+  onShopSearchInput(): void {
+    this.form.controls.shopID.setValue(null);
+    this.form.controls.supplyID.setValue(null);
+    this.shopSupplies.set([]);
+  }
+
   private loadShopSupplies(shopId: number): void {
     this.supplyService.getPaged({ pageNumber: 1, pageSize: 50, searchTerm: '' }, shopId).subscribe((result) => {
       this.shopSupplies.set(result.items);
@@ -200,6 +216,17 @@ export class ShopReturnFormComponent implements OnInit {
       saleType: 'kg',
       boxCount: null
     });
+  }
+
+  onFruitSearchFocus(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
+  }
+
+  // Same as onShopSearchInput: editing a row's fruit text must invalidate that
+  // row's stale fruitID so save() can't silently post against the wrong fruit.
+  onFruitSearchInput(index: number): void {
+    this.itemsArray.at(index).patchValue({ fruitID: null });
   }
 
   onSaleTypeChange(index: number): void {

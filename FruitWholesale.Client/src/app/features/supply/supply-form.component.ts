@@ -89,6 +89,19 @@ export class SupplyFormComponent implements OnInit {
     this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
   }
 
+  onShopSearchFocus(): void {
+    if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
+      this.form.controls.shopSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled shop name must invalidate the stale shopID -
+  // otherwise the form stays "valid" with the old shop while the field shows
+  // different text, and save() would silently post against the wrong shop.
+  onShopSearchInput(): void {
+    this.form.controls.shopID.setValue(null);
+  }
+
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
     const id = idParam ? Number(idParam) : null;
@@ -149,6 +162,17 @@ export class SupplyFormComponent implements OnInit {
       saleType: 'kg',
       boxCount: null
     });
+  }
+
+  onFruitSearchFocus(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
+  }
+
+  // Same as onShopSearchInput: editing a row's fruit text must invalidate that
+  // row's stale fruitID so save() can't silently post against the wrong fruit.
+  onFruitSearchInput(index: number): void {
+    this.itemsArray.at(index).patchValue({ fruitID: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {

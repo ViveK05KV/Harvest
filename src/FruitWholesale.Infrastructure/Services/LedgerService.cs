@@ -115,6 +115,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             "DELETE FROM dbo.CashLedger WHERE ReferenceTable = @ReferenceTable AND ReferenceID = @ReferenceID",
             new { ReferenceTable = referenceTable, ReferenceID = referenceId }, transaction);
 
+    public Task<int> DeleteShopLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int shopId, long ledgerId) =>
+        connection.ExecuteAsync(
+            "DELETE FROM dbo.ShopLedger WHERE LedgerID = @LedgerID AND ShopID = @ShopID AND TransactionType = 'Adjustment'",
+            new { LedgerID = ledgerId, ShopID = shopId }, transaction);
+
+    public Task<int> DeleteSupplierLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int supplierId, long ledgerId) =>
+        connection.ExecuteAsync(
+            "DELETE FROM dbo.SupplierLedger WHERE LedgerID = @LedgerID AND SupplierID = @SupplierID AND TransactionType = 'Adjustment'",
+            new { LedgerID = ledgerId, SupplierID = supplierId }, transaction);
+
     public Task RecalculateShopLedgerAsync(IDbConnection connection, IDbTransaction transaction, int shopId) =>
         connection.ExecuteAsync("dbo.sp_RecalculateShopLedgerBalance", new { ShopID = shopId },
             transaction, commandType: CommandType.StoredProcedure);
@@ -464,9 +474,17 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             if (evt.EventType is "PURCHASE" or "SHOP_RETURN")
             {
                 var newQuantity = quantityOnHand + evt.Quantity;
-                averageCost = newQuantity > 0
-                    ? (quantityOnHand * averageCost + evt.Quantity * (evt.UnitCost ?? 0m)) / newQuantity
-                    : 0m;
+                // When on-hand is zero or negative (oversold - Supply/SupplierReturn allowed to
+                // exceed stock elsewhere in the app), there's no real inventory value behind
+                // quantityOnHand to blend: e.g. sell 10 with none in stock (quantityOnHand=-10,
+                // averageCost=0), then buy 20 @ ₹5 - blending would compute
+                // (-10*0 + 20*5)/10 = ₹10/unit instead of the ₹5 actually paid. Treat the
+                // incoming UnitCost as the new average outright in that case.
+                averageCost = quantityOnHand <= 0
+                    ? evt.UnitCost ?? 0m
+                    : newQuantity > 0
+                        ? (quantityOnHand * averageCost + evt.Quantity * (evt.UnitCost ?? 0m)) / newQuantity
+                        : 0m;
                 quantityOnHand = newQuantity;
             }
             else if (evt.EventType == "SUPPLY")

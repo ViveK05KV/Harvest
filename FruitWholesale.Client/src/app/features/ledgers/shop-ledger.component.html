@@ -5,24 +5,12 @@
     <mat-label>Shop</mat-label>
     <input
       matInput
-      #shopSearchInput="matAutocompleteTrigger"
       [(ngModel)]="shopSearch"
       placeholder="Search shop"
       [matAutocomplete]="shopFilterAuto"
       (focus)="onShopSearchFocus()"
       (click)="onShopSearchFocus()"
-      (blur)="onShopSearchBlur()"
     />
-    <button
-      matSuffix
-      mat-icon-button
-      type="button"
-      tabindex="-1"
-      matTooltip="Show all shops"
-      (click)="showAllShops(); shopSearchInput.openPanel()"
-    >
-      <mat-icon>arrow_drop_down</mat-icon>
-    </button>
     <mat-autocomplete #shopFilterAuto="matAutocomplete" (optionSelected)="onShopFilterSelected($event)">
       @for (shop of filteredShops(shopSearch); track shop.shopID) {
         <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
@@ -97,6 +85,17 @@
     <ng-container matColumnDef="runningBalance">
       <th mat-header-cell *matHeaderCellDef>Balance</th>
       <td mat-cell *matCellDef="let row"><strong>{{ row.runningBalance | currency: 'INR' : 'symbol' : '1.2-2' }}</strong></td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row">
+        @if (row.transactionType === 'Adjustment') {
+          <button mat-icon-button matTooltip="Delete adjustment" (click)="deleteAdjustment(row)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+      </td>
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

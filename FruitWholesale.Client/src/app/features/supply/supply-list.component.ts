@@ -110,6 +110,18 @@ export class SupplyListComponent implements OnInit {
     this.onFilterChange();
   }
 
+  onShopSearchFocus(): void {
+    if (this.shopSearch === (this.shops().find((s) => s.shopID === this.shopId)?.shopName ?? '')) this.shopSearch = '';
+  }
+
+  // Typing away from the settled shop name must clear the stale filter and
+  // reload - otherwise the field shows different text while the table silently
+  // stays filtered by whatever shop was previously selected.
+  onShopSearchInput(): void {
+    this.shopId = null;
+    this.onFilterChange();
+  }
+
   onPage(event: PageEvent): void {
     this.request.pageNumber = event.pageIndex + 1;
     this.request.pageSize = event.pageSize;

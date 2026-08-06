@@ -74,6 +74,19 @@ export class CollectionFormComponent implements OnInit {
     this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
   }
 
+  onShopSearchFocus(): void {
+    if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
+      this.form.controls.shopSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled shop name must invalidate the stale shopID -
+  // otherwise the form stays "valid" with the old shop while the field shows
+  // different text, and save() would silently post against the wrong shop.
+  onShopSearchInput(): void {
+    this.form.controls.shopID.setValue(null);
+  }
+
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

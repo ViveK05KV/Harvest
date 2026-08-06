@@ -27,6 +27,12 @@ public interface ILedgerService
 
     Task RemoveCashLedgerEntriesForReferenceAsync(IDbConnection connection, IDbTransaction transaction, string referenceTable, int referenceId);
 
+    /// <summary>Deletes a single Adjustment-type ShopLedger row. Refuses to delete any other TransactionType. Returns the affected row count.</summary>
+    Task<int> DeleteShopLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int shopId, long ledgerId);
+
+    /// <summary>Deletes a single Adjustment-type SupplierLedger row. Refuses to delete any other TransactionType. Returns the affected row count.</summary>
+    Task<int> DeleteSupplierLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int supplierId, long ledgerId);
+
     Task RecalculateShopLedgerAsync(IDbConnection connection, IDbTransaction transaction, int shopId);
 
     Task RecalculateSupplierLedgerAsync(IDbConnection connection, IDbTransaction transaction, int supplierId);

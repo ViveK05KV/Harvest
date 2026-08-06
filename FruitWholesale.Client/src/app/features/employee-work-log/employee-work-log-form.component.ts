@@ -84,6 +84,19 @@ export class EmployeeWorkLogFormComponent implements OnInit {
     this.form.patchValue({ employeeID, employeeSearch: this.employeeNameById(employeeID) });
   }
 
+  onEmployeeSearchFocus(): void {
+    if (this.form.controls.employeeSearch.value === this.employeeNameById(this.form.controls.employeeID.value)) {
+      this.form.controls.employeeSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled employee name must invalidate the stale employeeID -
+  // otherwise the form stays "valid" with the old employee while the field shows
+  // different text, and save() would silently post against the wrong employee.
+  onEmployeeSearchInput(): void {
+    this.form.controls.employeeID.setValue(null);
+  }
+
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

@@ -30,7 +30,15 @@
 
         <mat-form-field>
           <mat-label>Shop</mat-label>
-          <input matInput formControlName="shopSearch" placeholder="Search shop" [matAutocomplete]="shopAuto" />
+          <input
+            matInput
+            formControlName="shopSearch"
+            placeholder="Search shop"
+            [matAutocomplete]="shopAuto"
+            (focus)="onShopSearchFocus()"
+            (click)="onShopSearchFocus()"
+            (input)="onShopSearchInput()"
+          />
           <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
             @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
               <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
@@ -93,7 +101,15 @@
               <tr [formGroupName]="i">
                 <td>
                   <mat-form-field subscriptSizing="dynamic" class="full-width">
-                    <input matInput formControlName="fruitSearch" placeholder="Search fruit" [matAutocomplete]="fruitAuto" />
+                    <input
+                      matInput
+                      formControlName="fruitSearch"
+                      placeholder="Search fruit"
+                      [matAutocomplete]="fruitAuto"
+                      (focus)="onFruitSearchFocus(i)"
+                      (click)="onFruitSearchFocus(i)"
+                      (input)="onFruitSearchInput(i)"
+                    />
                   </mat-form-field>
                   <mat-autocomplete #fruitAuto="matAutocomplete" (optionSelected)="onFruitSelected(i, $event)">
                     @for (fruit of filteredFruits(item.value.fruitSearch); track fruit.fruitID) {

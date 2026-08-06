@@ -59,6 +59,19 @@ export class StockAdjustmentFormComponent implements OnInit {
     this.form.patchValue({ fruitID, fruitSearch: this.fruitNameById(fruitID) });
   }
 
+  onFruitSearchFocus(): void {
+    if (this.form.controls.fruitSearch.value === this.fruitNameById(this.form.controls.fruitID.value)) {
+      this.form.controls.fruitSearch.setValue('');
+    }
+  }
+
+  // Typing away from the settled fruit name must invalidate the stale fruitID -
+  // otherwise the form stays "valid" with the old fruit while the field shows
+  // different text, and save() would silently post against the wrong fruit.
+  onFruitSearchInput(): void {
+    this.form.controls.fruitID.setValue(null);
+  }
+
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

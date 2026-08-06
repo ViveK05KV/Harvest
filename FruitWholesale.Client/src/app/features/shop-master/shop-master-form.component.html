@@ -36,7 +36,15 @@
 
     <mat-form-field class="full-width">
       <mat-label>Linked Supplier</mat-label>
-      <input matInput formControlName="linkedSupplierSearch" placeholder="Search supplier (optional)" [matAutocomplete]="linkedSupplierAuto" />
+      <input
+        matInput
+        formControlName="linkedSupplierSearch"
+        placeholder="Search supplier (optional)"
+            [matAutocomplete]="linkedSupplierAuto"
+            (focus)="onLinkedSupplierSearchFocus()"
+            (click)="onLinkedSupplierSearchFocus()"
+            (input)="onLinkedSupplierSearchInput()"
+      />
       @if (form.controls.linkedSupplierID.value) {
         <button matSuffix mat-icon-button type="button" (click)="clearLinkedSupplier()" aria-label="Clear linked supplier">&times;</button>
       }

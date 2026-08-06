@@ -19,6 +19,8 @@ import { SupplierLedgerEntry, ledgerParticulars } from '../../core/models/ledger
 import { SupplierMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 import { toIso } from '../../core/utils/date.util';
 
 @Component({
@@ -47,10 +49,12 @@ export class SupplierLedgerComponent implements OnInit {
   private readonly ledgerService = inject(LedgerService);
   private readonly supplierService = inject(SupplierMasterService);
   private readonly exportService = inject(ExportService);
+  private readonly notification = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['transactionDate', 'particulars', 'purchase', 'payment', 'runningBalance'];
+  readonly displayedColumns = ['transactionDate', 'particulars', 'purchase', 'payment', 'runningBalance', 'actions'];
   readonly particulars = ledgerParticulars;
   readonly suppliers = signal<SupplierMaster[]>([]);
   readonly items = signal<SupplierLedgerEntry[]>([]);
@@ -110,25 +114,20 @@ export class SupplierLedgerComponent implements OnInit {
     this.onFilterChange();
   }
 
-  // Same as ShopLedgerComponent.onShopSearchFocus/Blur: clears on focus/click (or
-  // via the dropdown arrow) so the panel opens showing the full list instead of
-  // narrowed down to the already-selected name, but only when the field is
-  // showing that settled name rather than a query still being typed; restores
-  // the name on blur if nothing new was picked.
+  // Match the Shop Ledger interaction: clicking/focusing a settled selection
+  // clears its text so the full supplier list is immediately available.
   onSupplierSearchFocus(): void {
     if (this.supplierSearch !== (this.selectedSupplier()?.supplierName ?? '')) return;
     this.supplierSearch = '';
   }
 
-  onSupplierSearchBlur(): void {
-    if (this.supplierSearch) return;
-    this.supplierSearch = this.selectedSupplier()?.supplierName ?? '';
-  }
-
-  // Same as ShopLedgerComponent.showAllShops: the dropdown arrow always shows the
-  // full list regardless of any in-progress query.
-  showAllSuppliers(): void {
-    this.supplierSearch = '';
+  // Typing away from the settled supplier name must clear the stale supplierId
+  // and the table - otherwise the field shows different text while the ledger
+  // below silently stays on whatever supplier was previously selected.
+  onSupplierSearchInput(): void {
+    this.supplierId = null;
+    this.items.set([]);
+    this.totalCount.set(0);
   }
 
   onPage(event: PageEvent): void {
@@ -150,6 +149,27 @@ export class SupplierLedgerComponent implements OnInit {
       },
       error: () => this.loading.set(false)
     });
+  }
+
+  deleteAdjustment(row: SupplierLedgerEntry): void {
+    if (!this.supplierId) return;
+    const supplierId = this.supplierId;
+    this.confirmDialog
+      .confirm({
+        title: 'Delete Adjustment',
+        message: `Delete this adjustment of ${row.debit || row.credit} dated ${new Date(row.transactionDate).toLocaleDateString()}? Balance will be recalculated.`,
+        destructive: true,
+        confirmLabel: 'Delete'
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.supplierService.deleteAdjustment(supplierId, row.ledgerID).subscribe({
+          next: () => {
+            this.notification.success('Adjustment deleted and ledger recalculated.');
+            this.load();
+          }
+        });
+      });
   }
 
   exportExcel(): void {

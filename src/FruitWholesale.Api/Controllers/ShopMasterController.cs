@@ -56,4 +56,9 @@ public class ShopMasterController(IShopMasterService service) : ApiControllerBas
     [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
     public async Task<ActionResult> ApplyBalanceAdjustment(int id, ShopBalanceAdjustmentDto dto) =>
         FromResult(await service.ApplyBalanceAdjustmentAsync(id, dto));
+
+    [HttpDelete("{id:int}/adjustment/{ledgerId:long}")]
+    [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
+    public async Task<ActionResult> DeleteAdjustment(int id, long ledgerId) =>
+        FromResult(await service.DeleteAdjustmentAsync(id, ledgerId));
 }

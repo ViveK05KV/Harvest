@@ -13,4 +13,8 @@ export class SupplierMasterService extends MasterDataApiService<SupplierMaster, 
   applyBalanceAdjustment(supplierId: number, dto: SupplierBalanceAdjustment): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${supplierId}/balance-adjustment`, dto);
   }
+
+  deleteAdjustment(supplierId: number, ledgerId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${supplierId}/adjustment/${ledgerId}`);
+  }
 }
