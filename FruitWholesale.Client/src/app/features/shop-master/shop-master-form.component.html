@@ -48,7 +48,7 @@
       @if (form.controls.linkedSupplierID.value) {
         <button matSuffix mat-icon-button type="button" (click)="clearLinkedSupplier()" aria-label="Clear linked supplier">&times;</button>
       }
-      <mat-autocomplete #linkedSupplierAuto="matAutocomplete" (optionSelected)="onLinkedSupplierSelected($event)">
+        <mat-autocomplete #linkedSupplierAuto="matAutocomplete" [displayWith]="displaySupplier" (optionSelected)="onLinkedSupplierSelected($event)">
         @for (supplier of filteredSuppliers(form.value.linkedSupplierSearch); track supplier.supplierID) {
           <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
         }

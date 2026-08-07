@@ -12,7 +12,7 @@
       (click)="onEmployeeSearchFocus()"
       (input)="onEmployeeSearchInput()"
     />
-    <mat-autocomplete #employeeFilterAuto="matAutocomplete" (optionSelected)="onEmployeeFilterSelected($event)">
+      <mat-autocomplete #employeeFilterAuto="matAutocomplete" [displayWith]="displayEmployee" (optionSelected)="onEmployeeFilterSelected($event)">
       <mat-option [value]="null">All Employees</mat-option>
       @for (employee of filteredEmployees(employeeSearch); track employee.employeeID) {
         <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>

@@ -29,6 +29,7 @@ class SupplyFormScreen extends StatefulWidget {
 class _LineItemForm {
   int? fruitId;
   String saleType = 'kg';
+  final TextEditingController fruitController = TextEditingController();
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController unitPriceController = TextEditingController();
   final TextEditingController boxCountController = TextEditingController();
@@ -39,6 +40,7 @@ class _LineItemForm {
   double get amount => (saleType == 'box' && boxCount != null) ? boxCount! * unitPrice : quantity * unitPrice;
 
   void dispose() {
+    fruitController.dispose();
     quantityController.dispose();
     unitPriceController.dispose();
     boxCountController.dispose();
@@ -52,6 +54,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _invoiceNoController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _shopController = TextEditingController();
 
   List<ShopOption> _shops = [];
   List<FruitOption> _fruits = [];
@@ -73,6 +76,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
   void dispose() {
     _invoiceNoController.dispose();
     _remarksController.dispose();
+    _shopController.dispose();
     for (final item in _items) {
       item.dispose();
     }
@@ -116,6 +120,10 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
       setState(() {
         _shops = shops;
         _fruits = fruits;
+        _shopController.text = _findShop(_selectedShopId)?.shopName ?? '';
+        for (final item in _items) {
+          item.fruitController.text = _findFruit(item.fruitId)?.fruitName ?? '';
+        }
       });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -247,14 +255,17 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           Autocomplete<ShopOption>(
-            initialValue: TextEditingValue(text: _findShop(_selectedShopId)?.shopName ?? ''),
+            textEditingController: _shopController,
             displayStringForOption: (shop) => shop.shopName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
               if (query.isEmpty) return _shops;
               return _shops.where((shop) => shop.shopName.toLowerCase().contains(query));
             },
-            onSelected: (shop) => setState(() => _selectedShopId = shop.shopId),
+            onSelected: (shop) => setState(() {
+              _selectedShopId = shop.shopId;
+              _shopController.text = shop.shopName;
+            }),
             fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
               return TextFormField(
                 controller: controller,
@@ -297,7 +308,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
               children: [
                 Expanded(
                   child: Autocomplete<FruitOption>(
-                    initialValue: TextEditingValue(text: _findFruit(item.fruitId)?.fruitName ?? ''),
+                    textEditingController: item.fruitController,
                     displayStringForOption: (fruit) => fruit.fruitName,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -306,6 +317,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
                     },
                     onSelected: (fruit) => setState(() {
                       item.fruitId = fruit.fruitId;
+                      item.fruitController.text = fruit.fruitName;
                       item.saleType = 'kg';
                       item.boxCountController.clear();
                     }),

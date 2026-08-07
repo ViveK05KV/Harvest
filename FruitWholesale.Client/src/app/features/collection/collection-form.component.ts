@@ -78,6 +78,9 @@ export class CollectionFormComponent implements OnInit {
     return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
   }
 
+  readonly displayShop = (value: unknown): string =>
+    typeof value === 'number' ? this.shopNameById(value) : typeof value === 'string' ? value : '';
+
   filteredShops(search: string | null | undefined): ShopMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.shops();

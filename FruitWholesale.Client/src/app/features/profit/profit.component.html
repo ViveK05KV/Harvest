@@ -36,7 +36,7 @@
         (click)="onSelectedShopSearchFocus()"
         (input)="onSelectedShopSearchInput()"
       />
-      <mat-autocomplete #selectedShopFilterAuto="matAutocomplete" (optionSelected)="onSelectedShopFilterSelected($event)">
+      <mat-autocomplete #selectedShopFilterAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onSelectedShopFilterSelected($event)">
         <mat-option [value]="null">All Shops</mat-option>
         @for (shop of filteredShops(selectedShopSearch); track shop.shopID) {
           <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>

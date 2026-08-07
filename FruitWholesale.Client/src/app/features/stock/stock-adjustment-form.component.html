@@ -12,7 +12,7 @@
         (click)="onFruitSearchFocus()"
         (input)="onFruitSearchInput()"
       />
-      <mat-autocomplete #fruitAuto="matAutocomplete" (optionSelected)="onFruitSelected($event)">
+      <mat-autocomplete #fruitAuto="matAutocomplete" [displayWith]="displayFruit" (optionSelected)="onFruitSelected($event)">
         @for (fruit of filteredFruits(form.value.fruitSearch); track fruit.fruitID) {
           <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
         }

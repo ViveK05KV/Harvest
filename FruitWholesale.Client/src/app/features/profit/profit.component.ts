@@ -99,6 +99,9 @@ export class ProfitComponent implements OnInit {
     return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
   }
 
+  readonly displayShop = (value: unknown): string =>
+    typeof value === 'number' ? (this.shops().find((s) => s.shopID === value)?.shopName ?? '') : typeof value === 'string' ? value : '';
+
   onSelectedShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
     const shopId = event.option.value as number | null;
     this.selectedShopId = shopId;

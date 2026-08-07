@@ -127,6 +127,9 @@ export class ShopReturnFormComponent implements OnInit {
     return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
   }
 
+  readonly displayShop = (value: unknown): string =>
+    typeof value === 'number' ? this.shopNameById(value) : typeof value === 'string' ? value : '';
+
   filteredShops(search: string | null | undefined): ShopMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.shops();
@@ -201,6 +204,9 @@ export class ShopReturnFormComponent implements OnInit {
   fruitName(fruitID: number | null): string {
     return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
   }
+
+  readonly displayFruit = (value: unknown): string =>
+    typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
 
   filteredFruits(search: string | null | undefined): FruitMaster[] {
     const term = (search ?? '').trim().toLowerCase();

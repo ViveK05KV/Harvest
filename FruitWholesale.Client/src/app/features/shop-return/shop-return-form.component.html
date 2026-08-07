@@ -39,7 +39,7 @@
             (click)="onShopSearchFocus()"
             (input)="onShopSearchInput()"
           />
-          <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
+          <mat-autocomplete #shopAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
             @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
               <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
             }
@@ -111,7 +111,7 @@
                       (input)="onFruitSearchInput(i)"
                     />
                   </mat-form-field>
-                  <mat-autocomplete #fruitAuto="matAutocomplete" (optionSelected)="onFruitSelected(i, $event)">
+                  <mat-autocomplete #fruitAuto="matAutocomplete" [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">
                     @for (fruit of filteredFruits(item.value.fruitSearch); track fruit.fruitID) {
                       <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
                     }

@@ -32,6 +32,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
   final _discountController = TextEditingController(text: '0');
   final _referenceController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _shopController = TextEditingController();
 
   List<ShopOption> _shops = [];
   int? _selectedShopId;
@@ -54,6 +55,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
     _discountController.dispose();
     _referenceController.dispose();
     _remarksController.dispose();
+    _shopController.dispose();
     super.dispose();
   }
 
@@ -76,7 +78,10 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
         _remarksController.text = collection.remarks ?? '';
       }
 
-      setState(() => _shops = shops);
+      setState(() {
+        _shops = shops;
+        _shopController.text = _findShop(_selectedShopId)?.shopName ?? '';
+      });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -150,14 +155,17 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           Autocomplete<ShopOption>(
-            initialValue: TextEditingValue(text: _findShop(_selectedShopId)?.shopName ?? ''),
+            textEditingController: _shopController,
             displayStringForOption: (shop) => shop.shopName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
               if (query.isEmpty) return _shops;
               return _shops.where((shop) => shop.shopName.toLowerCase().contains(query));
             },
-            onSelected: (shop) => setState(() => _selectedShopId = shop.shopId),
+            onSelected: (shop) => setState(() {
+              _selectedShopId = shop.shopId;
+              _shopController.text = shop.shopName;
+            }),
             fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
               return TextFormField(
                 controller: controller,

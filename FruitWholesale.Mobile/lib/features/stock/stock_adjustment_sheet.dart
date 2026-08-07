@@ -21,6 +21,7 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _narrationController = TextEditingController();
+  final _fruitController = TextEditingController();
 
   List<FruitOption> _fruits = [];
   int? _selectedFruitId;
@@ -40,6 +41,7 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
   void dispose() {
     _quantityController.dispose();
     _narrationController.dispose();
+    _fruitController.dispose();
     super.dispose();
   }
 
@@ -123,14 +125,17 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
                       const SizedBox(height: 16),
                     ],
                     Autocomplete<FruitOption>(
-                      initialValue: TextEditingValue(text: _findFruit(_selectedFruitId)?.fruitName ?? ''),
+                      textEditingController: _fruitController,
                       displayStringForOption: (fruit) => fruit.fruitName,
                       optionsBuilder: (value) {
                         final query = value.text.trim().toLowerCase();
                         if (query.isEmpty) return _fruits;
                         return _fruits.where((fruit) => fruit.fruitName.toLowerCase().contains(query));
                       },
-                      onSelected: (fruit) => setState(() => _selectedFruitId = fruit.fruitId),
+                      onSelected: (fruit) => setState(() {
+                        _selectedFruitId = fruit.fruitId;
+                        _fruitController.text = fruit.fruitName;
+                      }),
                       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                         return TextFormField(
                           controller: controller,

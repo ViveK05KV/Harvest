@@ -48,6 +48,9 @@ export class StockAdjustmentFormComponent implements OnInit {
     return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
   }
 
+  readonly displayFruit = (value: unknown): string =>
+    typeof value === 'number' ? this.fruitNameById(value) : typeof value === 'string' ? value : '';
+
   filteredFruits(search: string | null | undefined): FruitMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.fruits();

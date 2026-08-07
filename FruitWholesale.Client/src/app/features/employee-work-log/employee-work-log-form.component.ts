@@ -73,6 +73,9 @@ export class EmployeeWorkLogFormComponent implements OnInit {
     return this.employees().find((e) => e.employeeID === employeeID)?.fullName ?? '';
   }
 
+  readonly displayEmployee = (value: unknown): string =>
+    typeof value === 'number' ? this.employeeNameById(value) : typeof value === 'string' ? value : '';
+
   filteredEmployees(search: string | null | undefined): Employee[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.employees();

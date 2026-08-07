@@ -85,6 +85,9 @@ export class EmployeeWorkLogListComponent implements OnInit {
     return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
   }
 
+  readonly displayEmployee = (value: unknown): string =>
+    typeof value === 'number' ? (this.employees().find((e) => e.employeeID === value)?.fullName ?? '') : typeof value === 'string' ? value : '';
+
   onEmployeeFilterSelected(event: MatAutocompleteSelectedEvent): void {
     const employeeId = event.option.value as number | null;
     this.employeeId = employeeId;

@@ -39,7 +39,7 @@
             (click)="onSupplierSearchFocus()"
             (input)="onSupplierSearchInput()"
           />
-          <mat-autocomplete #supplierAuto="matAutocomplete" (optionSelected)="onSupplierSelected($event)">
+          <mat-autocomplete #supplierAuto="matAutocomplete" [displayWith]="displaySupplier" (optionSelected)="onSupplierSelected($event)">
             @for (supplier of filteredSuppliers(form.value.supplierSearch); track supplier.supplierID) {
               <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
             }
@@ -111,7 +111,7 @@
                       (input)="onFruitSearchInput(i)"
                     />
                   </mat-form-field>
-                  <mat-autocomplete #fruitAuto="matAutocomplete" (optionSelected)="onFruitSelected(i, $event)">
+                  <mat-autocomplete #fruitAuto="matAutocomplete" [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">
                     @for (fruit of filteredFruits(item.value.fruitSearch); track fruit.fruitID) {
                       <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
                     }

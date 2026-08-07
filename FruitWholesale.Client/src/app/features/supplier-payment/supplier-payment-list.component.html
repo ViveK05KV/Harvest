@@ -12,7 +12,7 @@
       (click)="onSupplierSearchFocus()"
       (input)="onSupplierSearchInput()"
     />
-    <mat-autocomplete #supplierFilterAuto="matAutocomplete" (optionSelected)="onSupplierFilterSelected($event)">
+      <mat-autocomplete #supplierFilterAuto="matAutocomplete" [displayWith]="displaySupplier" (optionSelected)="onSupplierFilterSelected($event)">
       <mat-option [value]="null">All Suppliers</mat-option>
       @for (supplier of filteredSuppliers(supplierSearch); track supplier.supplierID) {
         <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>

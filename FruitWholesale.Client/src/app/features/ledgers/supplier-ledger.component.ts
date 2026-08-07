@@ -107,6 +107,9 @@ export class SupplierLedgerComponent implements OnInit {
     return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
   }
 
+  readonly displaySupplier = (value: unknown): string =>
+    typeof value === 'number' ? (this.suppliers().find((s) => s.supplierID === value)?.supplierName ?? '') : typeof value === 'string' ? value : '';
+
   onSupplierFilterSelected(event: MatAutocompleteSelectedEvent): void {
     const supplierId = event.option.value as number | null;
     this.supplierId = supplierId;

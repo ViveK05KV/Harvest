@@ -112,6 +112,9 @@ export class PurchaseFormComponent implements OnInit {
     return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
   }
 
+  readonly displaySupplier = (value: unknown): string =>
+    typeof value === 'number' ? this.supplierNameById(value) : typeof value === 'string' ? value : '';
+
   filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.suppliers();
@@ -151,6 +154,9 @@ export class PurchaseFormComponent implements OnInit {
     if (!term) return this.fruits();
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
   }
+
+  readonly displayFruit = (value: unknown): string =>
+    typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
 
   onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
     const fruitID = event.option.value as number;

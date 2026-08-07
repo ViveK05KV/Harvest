@@ -87,6 +87,9 @@ export class CollectionListComponent implements OnInit {
     return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
   }
 
+  readonly displayShop = (value: unknown): string =>
+    typeof value === 'number' ? (this.shops().find((s) => s.shopID === value)?.shopName ?? '') : typeof value === 'string' ? value : '';
+
   onShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
     const shopId = event.option.value as number | null;
     this.shopId = shopId;

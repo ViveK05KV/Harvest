@@ -78,6 +78,9 @@ export class SupplyFormComponent implements OnInit {
     return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
   }
 
+  readonly displayShop = (value: unknown): string =>
+    typeof value === 'number' ? this.shopNameById(value) : typeof value === 'string' ? value : '';
+
   filteredShops(search: string | null | undefined): ShopMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.shops();
@@ -152,6 +155,9 @@ export class SupplyFormComponent implements OnInit {
     if (!term) return this.fruits();
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
   }
+
+  readonly displayFruit = (value: unknown): string =>
+    typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
 
   onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
     const fruitID = event.option.value as number;

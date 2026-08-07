@@ -61,6 +61,9 @@ export class ShopMasterFormComponent implements OnInit {
     return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
   }
 
+  readonly displaySupplier = (value: unknown): string =>
+    typeof value === 'number' ? this.supplierNameById(value) : typeof value === 'string' ? value : '';
+
   filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
     const term = (search ?? '').trim().toLowerCase();
     if (!term) return this.suppliers();

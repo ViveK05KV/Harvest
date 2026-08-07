@@ -12,7 +12,7 @@
         (input)="onShopSearchInput()"
         [attr.autocomplete]="'off'"
       />
-      <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
+        <mat-autocomplete #shopAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
         @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
           <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
         }
