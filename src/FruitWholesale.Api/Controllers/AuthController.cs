@@ -10,7 +10,7 @@ public class AuthController(IAuthService authService, ICurrentUserService curren
 {
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto request)
+    public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto request)
     {
         var result = await authService.LoginAsync(request);
         return result.IsSuccess ? Ok(result.Value) : Unauthorized(new { errors = result.Errors });

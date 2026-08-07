@@ -192,6 +192,9 @@ export interface SaveSupplierReturn {
   items: SaveSupplierReturnItem[];
 }
 
+export type CollectionType = 'Normal' | 'Temporary';
+export type TemporaryCollectionStatus = 'None' | 'Pending' | 'Settled';
+
 export interface Collection {
   collectionID: number;
   collectionDate: string;
@@ -202,6 +205,9 @@ export interface Collection {
   paymentMode: PaymentMode;
   referenceNumber?: string;
   remarks?: string;
+  collectionType: CollectionType;
+  temporaryStatus: TemporaryCollectionStatus;
+  settlementID?: number | null;
 }
 
 export interface SaveCollection {
@@ -213,6 +219,8 @@ export interface SaveCollection {
   paymentMode: PaymentMode;
   referenceNumber?: string;
   remarks?: string;
+  collectionType: CollectionType;
+  temporaryStatus: TemporaryCollectionStatus;
 }
 
 export interface SupplierPayment {

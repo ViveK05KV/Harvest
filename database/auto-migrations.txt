@@ -32,3 +32,4 @@
 22_FixDashboardCashBalanceOrder.sql
 23_FixBoxPurchaseCostBasis.sql
 24_FixShopSupplierStockLedgerOpeningOrder.sql
+25_AddTemporaryCollections.sql

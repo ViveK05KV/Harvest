@@ -6,6 +6,21 @@ import { PaginatedList, PaginationRequest } from '../../core/models/common.model
 import { Collection, SaveCollection } from '../../core/models/transactions.model';
 import { toHttpParams } from '../../core/utils/http-params.util';
 
+export interface PendingSettlementPreview {
+  shopID: number;
+  shopName?: string;
+  pendingCount: number;
+  pendingTotal: number;
+}
+
+export interface SettlementResult {
+  settlementID: number;
+  shopID: number;
+  settlementDate: string;
+  totalAmount: number;
+  pendingCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CollectionService {
   private readonly baseUrl = `${environment.apiUrl}/collection`;
@@ -28,5 +43,15 @@ export class CollectionService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  getPendingSettlementPreview(shopId: number): Observable<PendingSettlementPreview> {
+    return this.http.get<PendingSettlementPreview>(`${this.baseUrl}/pending-settle/preview`, {
+      params: toHttpParams({ shopId })
+    });
+  }
+
+  settle(dto: { shopID: number; settlementDate: string }): Observable<SettlementResult> {
+    return this.http.post<SettlementResult>(`${this.baseUrl}/settle`, dto);
   }
 }

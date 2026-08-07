@@ -15,6 +15,8 @@ public class CreateCollectionValidator : AbstractValidator<CreateCollectionDto>
         RuleFor(x => x.AmountReceived).GreaterThan(0);
         RuleFor(x => x.DiscountAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.PaymentMode).NotEmpty().Must(m => PaymentModes.All.Contains(m)).WithMessage("Invalid payment mode.");
+        RuleFor(x => x.CollectionType).NotEmpty().Must(m => CollectionTypes.All.Contains(m)).WithMessage("Invalid collection type.");
+        RuleFor(x => x.TemporaryStatus).Must(m => TemporaryCollectionStatuses.All.Contains(m)).WithMessage("Invalid temporary status.");
         RuleFor(x => x.ReferenceNumber).MaximumLength(100);
         RuleFor(x => x.Remarks).MaximumLength(500);
     }
@@ -30,8 +32,19 @@ public class UpdateCollectionValidator : AbstractValidator<UpdateCollectionDto>
         RuleFor(x => x.AmountReceived).GreaterThan(0);
         RuleFor(x => x.DiscountAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.PaymentMode).NotEmpty().Must(m => PaymentModes.All.Contains(m)).WithMessage("Invalid payment mode.");
+        RuleFor(x => x.CollectionType).NotEmpty().Must(m => CollectionTypes.All.Contains(m)).WithMessage("Invalid collection type.");
+        RuleFor(x => x.TemporaryStatus).Must(m => TemporaryCollectionStatuses.All.Contains(m)).WithMessage("Invalid temporary status.");
         RuleFor(x => x.ReferenceNumber).MaximumLength(100);
         RuleFor(x => x.Remarks).MaximumLength(500);
+    }
+}
+
+public class SettleCollectionsRequestValidator : AbstractValidator<SettleCollectionsRequestDto>
+{
+    public SettleCollectionsRequestValidator()
+    {
+        RuleFor(x => x.ShopID).GreaterThan(0);
+        RuleFor(x => x.SettlementDate).NotEmpty();
     }
 }
 

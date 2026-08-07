@@ -25,6 +25,7 @@ public static class LedgerTransactionTypes
     public const string OpeningBalance = "OpeningBalance";
     public const string Supply = "Supply";
     public const string Collection = "Collection";
+    public const string TemporaryCollectionSettlement = "TemporaryCollectionSettlement";
     public const string Purchase = "Purchase";
     public const string SupplierPayment = "SupplierPayment";
     public const string DailyExpense = "DailyExpense";
@@ -32,6 +33,23 @@ public static class LedgerTransactionTypes
     public const string Adjustment = "Adjustment";
     public const string ShopReturn = "ShopReturn";
     public const string SupplierReturn = "SupplierReturn";
+}
+
+public static class CollectionTypes
+{
+    public const string Normal = "Normal";
+    public const string Temporary = "Temporary";
+
+    public static readonly string[] All = [Normal, Temporary];
+}
+
+public static class TemporaryCollectionStatuses
+{
+    public const string None = "None";
+    public const string Pending = "Pending";
+    public const string Settled = "Settled";
+
+    public static readonly string[] All = [None, Pending, Settled];
 }
 
 public static class ReferenceTables

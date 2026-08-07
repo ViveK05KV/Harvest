@@ -1,3 +1,4 @@
+using FruitWholesale.Application.DTOs.Collection;
 using FruitWholesale.Domain.Entities;
 using FruitWholesale.Shared.Pagination;
 
@@ -54,6 +55,8 @@ public interface ICollectionRepository
     Task<int> CreateAsync(Collection collection);
     Task UpdateAsync(Collection collection);
     Task DeleteAsync(int collectionId);
+    Task<CollectionSettlementPreviewDto> GetPendingSettlementPreviewAsync(int shopId);
+    Task<CollectionSettlementResultDto> SettlePendingAsync(int shopId, DateTime settlementDate, int? createdBy);
 }
 
 public interface ISupplierPaymentRepository

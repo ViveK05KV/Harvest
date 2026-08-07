@@ -13,8 +13,13 @@ public interface IAuthService
 
 public class AuthService(IUserRepository userRepository, IJwtTokenService jwtTokenService) : IAuthService
 {
-    public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto request)
+    public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto? request)
     {
+        if (request is null || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return Result.Failure<LoginResponseDto>("Invalid username or password.");
+        }
+
         var user = await userRepository.GetByUsernameAsync(request.Username);
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {

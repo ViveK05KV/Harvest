@@ -16,6 +16,8 @@ public interface ICollectionService
     Task<Result<CollectionDto>> CreateAsync(CreateCollectionDto dto, int? userId);
     Task<Result<CollectionDto>> UpdateAsync(UpdateCollectionDto dto);
     Task DeleteAsync(int collectionId);
+    Task<CollectionSettlementPreviewDto> GetPendingSettlementPreviewAsync(int shopId);
+    Task<Result<CollectionSettlementResultDto>> SettlePendingAsync(SettleCollectionsRequestDto dto, int? userId);
 }
 
 public class CollectionService(ICollectionRepository repository, IMapper mapper) : ICollectionService
@@ -49,6 +51,11 @@ public class CollectionService(ICollectionRepository repository, IMapper mapper)
             return Result.Failure<CollectionDto>("Discount cannot be negative.");
         }
 
+        if (!CollectionTypes.All.Contains(dto.CollectionType))
+        {
+            return Result.Failure<CollectionDto>("Invalid collection type.");
+        }
+
         var collection = new Collection
         {
             CollectionDate = dto.CollectionDate,
@@ -58,6 +65,8 @@ public class CollectionService(ICollectionRepository repository, IMapper mapper)
             PaymentMode = dto.PaymentMode,
             ReferenceNumber = dto.ReferenceNumber,
             Remarks = dto.Remarks,
+            CollectionType = dto.CollectionType,
+            TemporaryStatus = dto.CollectionType == CollectionTypes.Temporary ? TemporaryCollectionStatuses.Pending : TemporaryCollectionStatuses.None,
             CreatedBy = userId
         };
 
@@ -78,6 +87,11 @@ public class CollectionService(ICollectionRepository repository, IMapper mapper)
             return Result.Failure<CollectionDto>("Discount cannot be negative.");
         }
 
+        if (!CollectionTypes.All.Contains(dto.CollectionType))
+        {
+            return Result.Failure<CollectionDto>("Invalid collection type.");
+        }
+
         _ = await repository.GetByIdAsync(dto.CollectionID) ?? throw new NotFoundException(nameof(Collection), dto.CollectionID);
 
         var collection = new Collection
@@ -89,7 +103,9 @@ public class CollectionService(ICollectionRepository repository, IMapper mapper)
             DiscountAmount = dto.DiscountAmount,
             PaymentMode = dto.PaymentMode,
             ReferenceNumber = dto.ReferenceNumber,
-            Remarks = dto.Remarks
+            Remarks = dto.Remarks,
+            CollectionType = dto.CollectionType,
+            TemporaryStatus = dto.CollectionType == CollectionTypes.Temporary ? TemporaryCollectionStatuses.Pending : TemporaryCollectionStatuses.None
         };
 
         await repository.UpdateAsync(collection);
@@ -101,5 +117,23 @@ public class CollectionService(ICollectionRepository repository, IMapper mapper)
     {
         _ = await repository.GetByIdAsync(collectionId) ?? throw new NotFoundException(nameof(Collection), collectionId);
         await repository.DeleteAsync(collectionId);
+    }
+
+    public Task<CollectionSettlementPreviewDto> GetPendingSettlementPreviewAsync(int shopId) => repository.GetPendingSettlementPreviewAsync(shopId);
+
+    public async Task<Result<CollectionSettlementResultDto>> SettlePendingAsync(SettleCollectionsRequestDto dto, int? userId)
+    {
+        if (dto.ShopID <= 0)
+        {
+            return Result.Failure<CollectionSettlementResultDto>("Shop is required.");
+        }
+
+        if (dto.SettlementDate == default)
+        {
+            return Result.Failure<CollectionSettlementResultDto>("Settlement date is required.");
+        }
+
+        var result = await repository.SettlePendingAsync(dto.ShopID, dto.SettlementDate, userId);
+        return Result.Success(result);
     }
 }

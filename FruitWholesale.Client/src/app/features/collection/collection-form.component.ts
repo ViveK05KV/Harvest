@@ -8,6 +8,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopMaster } from '../../core/models/master-data.model';
 import { Collection } from '../../core/models/transactions.model';
@@ -26,7 +27,8 @@ import { toIso } from '../../core/utils/date.util';
     MatAutocompleteModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatButtonToggleModule
   ],
   templateUrl: './collection-form.component.html'
 })
@@ -46,11 +48,17 @@ export class CollectionFormComponent implements OnInit {
     amountReceived: [this.data?.amountReceived ?? 0, [Validators.required, Validators.min(0.01)]],
     discountAmount: [this.data?.discountAmount ?? 0, [Validators.min(0)]],
     paymentMode: [this.data?.paymentMode ?? 'Cash', Validators.required],
+    collectionType: [this.data?.collectionType ?? 'Normal', Validators.required],
+    temporaryStatus: [this.data?.temporaryStatus ?? 'None'],
     referenceNumber: [this.data?.referenceNumber ?? ''],
     remarks: [this.data?.remarks ?? '']
   });
 
   ngOnInit(): void {
+    if (this.data?.temporaryStatus === 'Settled') {
+      this.form.controls.collectionType.disable();
+    }
+
     this.shopService.getAllActive().subscribe((shops) => {
       this.shops.set(shops);
       if (this.data?.shopID) {
@@ -95,7 +103,8 @@ export class CollectionFormComponent implements OnInit {
     const { shopSearch, ...raw } = this.form.getRawValue();
     this.dialogRef.close({
       ...raw,
-      collectionDate: toIso(raw.collectionDate as unknown as Date)
+      collectionDate: toIso(raw.collectionDate as unknown as Date),
+      temporaryStatus: raw.collectionType === 'Temporary' ? 'Pending' : 'None'
     });
   }
 }

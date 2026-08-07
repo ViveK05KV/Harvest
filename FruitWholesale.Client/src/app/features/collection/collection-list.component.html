@@ -36,6 +36,11 @@
 
   <span class="spacer"></span>
 
+  <button mat-stroked-button color="accent" (click)="settleDeposits()" style="margin-right: 8px;">
+    <mat-icon>account_balance_wallet</mat-icon>
+    Settle Deposits
+  </button>
+
   <button mat-flat-button color="primary" (click)="openCreate()">
     <mat-icon>add</mat-icon>
     New Collection
@@ -58,6 +63,20 @@
       <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
     </ng-container>
 
+    <ng-container matColumnDef="collectionType">
+      <th mat-header-cell *matHeaderCellDef>Type</th>
+      <td mat-cell *matCellDef="let row">
+        <mat-chip>{{ row.collectionType }}</mat-chip>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="temporaryStatus">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let row">
+        <mat-chip>{{ row.temporaryStatus }}</mat-chip>
+      </td>
+    </ng-container>
+
     <ng-container matColumnDef="amountReceived">
       <th mat-header-cell *matHeaderCellDef>Amount</th>
       <td mat-cell *matCellDef="let row">{{ row.amountReceived | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
@@ -76,10 +95,10 @@
     <ng-container matColumnDef="actions">
       <th mat-header-cell *matHeaderCellDef></th>
       <td mat-cell *matCellDef="let row">
-        <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
+        <button mat-icon-button [matTooltip]="row.temporaryStatus === 'Settled' ? 'Settled temporary collections are read-only.' : 'Edit'" (click)="openEdit(row)" [disabled]="row.temporaryStatus === 'Settled'">
           <mat-icon>edit</mat-icon>
         </button>
-        <button mat-icon-button matTooltip="Delete" (click)="deleteItem(row)">
+        <button mat-icon-button [matTooltip]="row.temporaryStatus === 'Settled' ? 'Settled temporary collections are read-only.' : 'Delete'" (click)="deleteItem(row)" [disabled]="row.temporaryStatus === 'Settled'">
           <mat-icon>delete</mat-icon>
         </button>
       </td>

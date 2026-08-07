@@ -17,6 +17,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { CollectionService } from './collection.service';
 import { CollectionFormComponent } from './collection-form.component';
+import { SettleCollectionsDialogComponent } from './settle-collections-dialog.component';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { Collection } from '../../core/models/transactions.model';
 import { ShopMaster } from '../../core/models/master-data.model';
@@ -57,7 +58,7 @@ export class CollectionListComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['collectionDate', 'shopName', 'amountReceived', 'discountAmount', 'paymentMode', 'actions'];
+  readonly displayedColumns = ['collectionDate', 'shopName', 'collectionType', 'temporaryStatus', 'amountReceived', 'discountAmount', 'paymentMode', 'actions'];
   readonly items = signal<Collection[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
@@ -141,6 +142,11 @@ export class CollectionListComponent implements OnInit {
   }
 
   openEdit(item: Collection): void {
+    if (item.temporaryStatus === 'Settled') {
+      this.notification.error('Settled temporary collections cannot be edited.');
+      return;
+    }
+
     this.dialog
       .open(CollectionFormComponent, { width: '480px', data: item })
       .afterClosed()
@@ -156,6 +162,10 @@ export class CollectionListComponent implements OnInit {
   }
 
   deleteItem(item: Collection): void {
+    if (item.temporaryStatus === 'Settled') {
+      this.notification.error('Settled temporary collections cannot be deleted.');
+      return;
+    }
     this.confirmDialog
       .confirm({
         title: 'Delete Collection',
@@ -168,6 +178,21 @@ export class CollectionListComponent implements OnInit {
         this.service.delete(item.collectionID).subscribe({
           next: () => {
             this.notification.success('Collection deleted and ledgers updated.');
+            this.load();
+          }
+        });
+      });
+  }
+
+  settleDeposits(): void {
+    this.dialog
+      .open(SettleCollectionsDialogComponent, { width: '480px' })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.service.settle(result).subscribe({
+          next: () => {
+            this.notification.success('Temporary collections settled.');
             this.load();
           }
         });
