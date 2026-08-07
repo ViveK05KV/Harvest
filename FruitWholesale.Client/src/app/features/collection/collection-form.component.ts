@@ -48,12 +48,20 @@ export class CollectionFormComponent implements OnInit {
     amountReceived: [this.data?.amountReceived ?? 0, [Validators.required, Validators.min(0.01)]],
     discountAmount: [this.data?.discountAmount ?? 0, [Validators.min(0)]],
     paymentMode: [this.data?.paymentMode ?? 'Cash', Validators.required],
-    isTemporary: [this.data ? this.data.collectionType === 'Temporary' : false],
+    isTemporary: [this.getInitialIsTemporary()],
     referenceNumber: [this.data?.referenceNumber ?? ''],
     remarks: [this.data?.remarks ?? '']
   });
 
+  private getInitialIsTemporary(): boolean {
+    const collectionType = this.data?.collectionType?.toLowerCase();
+    const temporaryStatus = this.data?.temporaryStatus?.toLowerCase();
+    return collectionType === 'temporary' || temporaryStatus === 'pending' || temporaryStatus === 'settled';
+  }
+
   ngOnInit(): void {
+    this.form.patchValue({ isTemporary: this.getInitialIsTemporary() });
+
     if (this.data?.temporaryStatus === 'Settled') {
       this.form.controls.isTemporary.disable();
     }
@@ -61,7 +69,7 @@ export class CollectionFormComponent implements OnInit {
     this.shopService.getAllActive().subscribe((shops) => {
       this.shops.set(shops);
       if (this.data?.shopID) {
-        this.form.controls.shopSearch.setValue(this.shopNameById(this.data.shopID));
+        this.form.patchValue({ shopSearch: this.shopNameById(this.data.shopID) });
       }
     });
   }
@@ -82,8 +90,11 @@ export class CollectionFormComponent implements OnInit {
   }
 
   onShopSearchFocus(): void {
-    if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
-      this.form.controls.shopSearch.setValue('');
+    const selectedShopName = this.shopNameById(this.form.controls.shopID.value);
+    const currentValue = this.form.controls.shopSearch.value;
+
+    if (selectedShopName && currentValue === selectedShopName) {
+      this.form.controls.shopSearch.setValue(selectedShopName);
     }
   }
 

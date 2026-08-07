@@ -9,8 +9,8 @@
         placeholder="Search shop"
         [matAutocomplete]="shopAuto"
         (focus)="onShopSearchFocus()"
-        (click)="onShopSearchFocus()"
         (input)="onShopSearchInput()"
+        [attr.autocomplete]="'off'"
       />
       <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
         @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {

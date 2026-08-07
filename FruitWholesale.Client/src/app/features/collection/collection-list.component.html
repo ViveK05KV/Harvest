@@ -60,20 +60,13 @@
 
     <ng-container matColumnDef="shopName">
       <th mat-header-cell *matHeaderCellDef>Shop</th>
-      <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="collectionType">
-      <th mat-header-cell *matHeaderCellDef>Type</th>
       <td mat-cell *matCellDef="let row">
-        <mat-chip>{{ row.collectionType }}</mat-chip>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="temporaryStatus">
-      <th mat-header-cell *matHeaderCellDef>Status</th>
-      <td mat-cell *matCellDef="let row">
-        <mat-chip>{{ row.temporaryStatus }}</mat-chip>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>{{ row.shopName }}</span>
+          @if (row.collectionType === 'Temporary') {
+            <mat-icon color="accent" [matTooltip]="row.temporaryStatus === 'Pending' ? 'Pending temporary deposit' : 'Temporary deposit'">account_balance_wallet</mat-icon>
+          }
+        </div>
       </td>
     </ng-container>
 

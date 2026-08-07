@@ -58,7 +58,7 @@ export class CollectionListComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  readonly displayedColumns = ['collectionDate', 'shopName', 'collectionType', 'temporaryStatus', 'amountReceived', 'discountAmount', 'paymentMode', 'actions'];
+  readonly displayedColumns = ['collectionDate', 'shopName', 'amountReceived', 'discountAmount', 'paymentMode', 'actions'];
   readonly items = signal<Collection[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
