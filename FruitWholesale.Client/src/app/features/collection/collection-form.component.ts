@@ -8,7 +8,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopMaster } from '../../core/models/master-data.model';
 import { Collection } from '../../core/models/transactions.model';
@@ -28,7 +28,7 @@ import { toIso } from '../../core/utils/date.util';
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatButtonToggleModule
+    MatCheckboxModule
   ],
   templateUrl: './collection-form.component.html'
 })
@@ -48,15 +48,14 @@ export class CollectionFormComponent implements OnInit {
     amountReceived: [this.data?.amountReceived ?? 0, [Validators.required, Validators.min(0.01)]],
     discountAmount: [this.data?.discountAmount ?? 0, [Validators.min(0)]],
     paymentMode: [this.data?.paymentMode ?? 'Cash', Validators.required],
-    collectionType: [this.data?.collectionType ?? 'Normal', Validators.required],
-    temporaryStatus: [this.data?.temporaryStatus ?? 'None'],
+    isTemporary: [this.data ? this.data.collectionType === 'Temporary' : false],
     referenceNumber: [this.data?.referenceNumber ?? ''],
     remarks: [this.data?.remarks ?? '']
   });
 
   ngOnInit(): void {
     if (this.data?.temporaryStatus === 'Settled') {
-      this.form.controls.collectionType.disable();
+      this.form.controls.isTemporary.disable();
     }
 
     this.shopService.getAllActive().subscribe((shops) => {
@@ -100,11 +99,13 @@ export class CollectionFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const { shopSearch, ...raw } = this.form.getRawValue();
+    const { shopSearch, isTemporary, ...raw } = this.form.getRawValue();
+    const isTemporaryDeposit = Boolean(isTemporary);
     this.dialogRef.close({
       ...raw,
       collectionDate: toIso(raw.collectionDate as unknown as Date),
-      temporaryStatus: raw.collectionType === 'Temporary' ? 'Pending' : 'None'
+      collectionType: isTemporaryDeposit ? 'Temporary' : 'Normal',
+      temporaryStatus: isTemporaryDeposit ? 'Pending' : 'None'
     });
   }
 }

@@ -47,12 +47,10 @@
     </mat-form-field>
 
     <div class="full-width" style="margin-bottom: 12px;">
-      <mat-label>Collection Type</mat-label>
-      <mat-button-toggle-group formControlName="collectionType" style="display:flex; margin-top: 8px;">
-        <mat-button-toggle value="Normal">Normal</mat-button-toggle>
-        <mat-button-toggle value="Temporary">Temporary Deposit</mat-button-toggle>
-      </mat-button-toggle-group>
-      @if (form.controls.collectionType.value === 'Temporary') {
+      <mat-checkbox formControlName="isTemporary">
+        Temporary deposit
+      </mat-checkbox>
+      @if (form.controls.isTemporary.value) {
         <div style="margin-top: 8px; color: #7c4dff; font-size: 0.95rem;">
           This adds cash today but does not reduce the shop balance until you settle the deposit.
         </div>
