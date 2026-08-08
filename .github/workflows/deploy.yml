@@ -46,7 +46,7 @@ jobs:
         run: |
           az containerapp update \
             --resource-group harvest-erp-rg \
-            --name harvest-erp-api \
+            --name harvest-erp-api-in \
             --image ${{ env.IMAGE }}:${{ github.sha }}
 
   deploy-web:
