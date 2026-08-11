@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -87,13 +87,25 @@ export class SupplyFormComponent implements OnInit {
     return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onShopSelected just wrote.
+  private shopJustSelected = false;
+
   onShopSelected(event: MatAutocompleteSelectedEvent): void {
     const shopID = event.option.value as number;
     this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
+    this.shopJustSelected = true;
   }
 
   onShopSearchFocus(): void {
+    if (this.shopJustSelected) {
+      this.shopJustSelected = false;
+      return;
+    }
     if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
+      this.form.controls.shopSearch.setValue('');
+    } else if (this.form.controls.shopID.value === null) {
       this.form.controls.shopSearch.setValue('');
     }
   }
@@ -103,6 +115,13 @@ export class SupplyFormComponent implements OnInit {
   // different text, and save() would silently post against the wrong shop.
   onShopSearchInput(): void {
     this.form.controls.shopID.setValue(null);
+  }
+
+  onShopSearchBlur(): void {
+    // If user hasn't selected a valid shop from dropdown, clear the search field
+    if (this.form.controls.shopID.value === null) {
+      this.form.controls.shopSearch.setValue('');
+    }
   }
 
   ngOnInit(): void {
@@ -159,6 +178,9 @@ export class SupplyFormComponent implements OnInit {
   readonly displayFruit = (value: unknown): string =>
     typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
 
+  // Same refocus quirk as onShopSelected/onShopSearchFocus, per row.
+  private fruitJustSelectedIndex: number | null = null;
+
   onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
     const fruitID = event.option.value as number;
     const fruit = this.fruits().find((f) => f.fruitID === fruitID);
@@ -168,17 +190,34 @@ export class SupplyFormComponent implements OnInit {
       saleType: 'kg',
       boxCount: null
     });
+    this.fruitJustSelectedIndex = index;
   }
 
   onFruitSearchFocus(index: number): void {
+    if (this.fruitJustSelectedIndex === index) {
+      this.fruitJustSelectedIndex = null;
+      return;
+    }
     const item = this.itemsArray.at(index);
-    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
+    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) {
+      item.patchValue({ fruitSearch: '' });
+    } else if (item.value.fruitID === null) {
+      item.patchValue({ fruitSearch: '' });
+    }
   }
 
   // Same as onShopSearchInput: editing a row's fruit text must invalidate that
   // row's stale fruitID so save() can't silently post against the wrong fruit.
   onFruitSearchInput(index: number): void {
     this.itemsArray.at(index).patchValue({ fruitID: null });
+  }
+
+  onFruitSearchBlur(index: number): void {
+    const item = this.itemsArray.at(index);
+    // If user hasn't selected a valid fruit from dropdown, clear the search field
+    if (item.value.fruitID === null) {
+      item.patchValue({ fruitSearch: '' });
+    }
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {

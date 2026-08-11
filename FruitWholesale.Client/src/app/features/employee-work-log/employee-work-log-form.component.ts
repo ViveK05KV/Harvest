@@ -82,12 +82,22 @@ export class EmployeeWorkLogFormComponent implements OnInit {
     return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onEmployeeSelected just wrote.
+  private employeeJustSelected = false;
+
   onEmployeeSelected(event: MatAutocompleteSelectedEvent): void {
     const employeeID = event.option.value as number;
     this.form.patchValue({ employeeID, employeeSearch: this.employeeNameById(employeeID) });
+    this.employeeJustSelected = true;
   }
 
   onEmployeeSearchFocus(): void {
+    if (this.employeeJustSelected) {
+      this.employeeJustSelected = false;
+      return;
+    }
     if (this.form.controls.employeeSearch.value === this.employeeNameById(this.form.controls.employeeID.value)) {
       this.form.controls.employeeSearch.setValue('');
     }
@@ -98,6 +108,12 @@ export class EmployeeWorkLogFormComponent implements OnInit {
   // different text, and save() would silently post against the wrong employee.
   onEmployeeSearchInput(): void {
     this.form.controls.employeeID.setValue(null);
+  }
+
+  onEmployeeSearchBlur(): void {
+    if (this.form.controls.employeeID.value === null) {
+      this.form.controls.employeeSearch.setValue('');
+    }
   }
 
   save(): void {

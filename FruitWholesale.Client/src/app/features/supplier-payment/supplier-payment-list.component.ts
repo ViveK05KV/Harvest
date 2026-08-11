@@ -132,7 +132,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
   openCreate(): void {
     this.dialog
-      .open(SupplierPaymentFormComponent, { width: '480px', data: null })
+      .open(SupplierPaymentFormComponent, { width: '480px', data: null, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -147,7 +147,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
   openEdit(item: SupplierPayment): void {
     this.dialog
-      .open(SupplierPaymentFormComponent, { width: '480px', data: item })
+      .open(SupplierPaymentFormComponent, { width: '480px', data: item, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

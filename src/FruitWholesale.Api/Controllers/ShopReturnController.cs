@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
+// Deliberately open to all authenticated roles (including Staff) - see
+// backOfficeGuard comment in the Angular app.routes.ts: Staff can record Shop Returns.
 public class ShopReturnController(IShopReturnService service, ICurrentUserService currentUserService) : ApiControllerBase
 {
     [HttpGet]

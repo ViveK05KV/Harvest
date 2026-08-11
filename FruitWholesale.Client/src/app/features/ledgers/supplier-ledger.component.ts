@@ -98,6 +98,7 @@ export class SupplierLedgerComponent implements OnInit {
   onFilterChange(): void {
     if (!this.supplierId) return;
     this.request.pageNumber = 1;
+    this.paginator?.firstPage();
     this.load();
   }
 

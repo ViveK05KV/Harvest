@@ -92,6 +92,7 @@ export class DashboardComponent implements OnInit {
   readonly svpLoading = signal(true);
   readonly svpSales = signal<TrendPoint[]>([]);
   readonly svpPurchases = signal<TrendPoint[]>([]);
+  private svpRequestId = 0;
 
   readonly cashTrend = signal<TrendPoint[]>([]);
   readonly profitTrend = signal<TrendPoint[]>([]);
@@ -228,13 +229,20 @@ export class DashboardComponent implements OnInit {
 
   private loadSalesVsPurchases(): void {
     this.svpLoading.set(true);
+    // Guard against a slower, stale-period response landing after a newer one -
+    // switching the period dropdown quickly must not let an older response overwrite it.
+    const requestId = ++this.svpRequestId;
     this.dashboardService.getSalesVsPurchases(this.svpPeriod()).subscribe({
       next: (result) => {
+        if (requestId !== this.svpRequestId) return;
         this.svpSales.set(result.sales);
         this.svpPurchases.set(result.purchases);
         this.svpLoading.set(false);
       },
-      error: () => this.svpLoading.set(false)
+      error: () => {
+        if (requestId !== this.svpRequestId) return;
+        this.svpLoading.set(false);
+      }
     });
   }
 

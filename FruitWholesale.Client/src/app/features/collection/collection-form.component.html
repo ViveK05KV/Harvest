@@ -10,6 +10,7 @@
         [matAutocomplete]="shopAuto"
         (focus)="onShopSearchFocus()"
         (input)="onShopSearchInput()"
+        (blur)="onShopSearchBlur()"
         [attr.autocomplete]="'off'"
       />
         <mat-autocomplete #shopAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">

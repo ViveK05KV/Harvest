@@ -44,6 +44,7 @@
             (focus)="onSupplierSearchFocus()"
             (click)="onSupplierSearchFocus()"
             (input)="onSupplierSearchInput()"
+            (blur)="onSupplierSearchBlur()"
           />
           <mat-autocomplete #supplierAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displaySupplier" (optionSelected)="onSupplierSelected($event)">
             @for (supplier of filteredSuppliers(form.value.supplierSearch); track supplier.supplierID) {
@@ -91,6 +92,7 @@
                       (focus)="onFruitSearchFocus(i)"
                       (click)="onFruitSearchFocus(i)"
                       (input)="onFruitSearchInput(i)"
+                      (blur)="onFruitSearchBlur(i)"
                     />
                   </mat-form-field>
                   <mat-autocomplete #fruitAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">

@@ -138,13 +138,23 @@ export class SupplierReturnFormComponent implements OnInit {
     return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onSupplierSelected just wrote.
+  private supplierJustSelected = false;
+
   onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
     const supplierID = event.option.value as number;
     this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
+    this.supplierJustSelected = true;
     this.onSupplierChange();
   }
 
   onSupplierSearchFocus(): void {
+    if (this.supplierJustSelected) {
+      this.supplierJustSelected = false;
+      return;
+    }
     if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
       this.form.controls.supplierSearch.setValue('');
     }
@@ -158,6 +168,12 @@ export class SupplierReturnFormComponent implements OnInit {
     this.form.controls.supplierID.setValue(null);
     this.form.controls.purchaseID.setValue(null);
     this.supplierPurchases.set([]);
+  }
+
+  onSupplierSearchBlur(): void {
+    if (this.form.controls.supplierID.value === null) {
+      this.form.controls.supplierSearch.setValue('');
+    }
   }
 
   private loadSupplierPurchases(supplierId: number): void {
@@ -215,6 +231,9 @@ export class SupplierReturnFormComponent implements OnInit {
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
   }
 
+  // Same refocus quirk as onSupplierSelected/onSupplierSearchFocus, per row.
+  private fruitJustSelectedIndex: number | null = null;
+
   onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
     const fruitID = event.option.value as number;
     this.itemsArray.at(index).patchValue({
@@ -222,9 +241,14 @@ export class SupplierReturnFormComponent implements OnInit {
       fruitSearch: this.fruitName(fruitID),
       boxCount: null
     });
+    this.fruitJustSelectedIndex = index;
   }
 
   onFruitSearchFocus(index: number): void {
+    if (this.fruitJustSelectedIndex === index) {
+      this.fruitJustSelectedIndex = null;
+      return;
+    }
     const item = this.itemsArray.at(index);
     if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
   }
@@ -233,6 +257,13 @@ export class SupplierReturnFormComponent implements OnInit {
   // row's stale fruitID so save() can't silently post against the wrong fruit.
   onFruitSearchInput(index: number): void {
     this.itemsArray.at(index).patchValue({ fruitID: null });
+  }
+
+  onFruitSearchBlur(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.fruitID === null) {
+      item.patchValue({ fruitSearch: '' });
+    }
   }
 
   onBoxCountChange(index: number): void {

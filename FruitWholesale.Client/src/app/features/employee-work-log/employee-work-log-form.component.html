@@ -11,6 +11,7 @@
         (focus)="onEmployeeSearchFocus()"
         (click)="onEmployeeSearchFocus()"
         (input)="onEmployeeSearchInput()"
+        (blur)="onEmployeeSearchBlur()"
       />
       <mat-autocomplete #employeeAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayEmployee" (optionSelected)="onEmployeeSelected($event)">
         @for (employee of filteredEmployees(form.value.employeeSearch); track employee.employeeID) {

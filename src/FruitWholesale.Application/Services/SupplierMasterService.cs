@@ -67,6 +67,7 @@ public class SupplierMasterService(
         supplier.SupplierID = await repository.CreateAsync(supplier);
         var result = mapper.Map<SupplierMasterDto>(supplier);
         result.CurrentOutstanding = supplier.OpeningBalance;
+        result.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - result.CurrentOutstanding;
         return Result.Success(result);
     }
 

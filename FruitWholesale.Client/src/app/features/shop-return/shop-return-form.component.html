@@ -38,6 +38,7 @@
             (focus)="onShopSearchFocus()"
             (click)="onShopSearchFocus()"
             (input)="onShopSearchInput()"
+            (blur)="onShopSearchBlur()"
           />
           <mat-autocomplete #shopAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
             @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
@@ -109,6 +110,7 @@
                       (focus)="onFruitSearchFocus(i)"
                       (click)="onFruitSearchFocus(i)"
                       (input)="onFruitSearchInput(i)"
+                      (blur)="onFruitSearchBlur(i)"
                     />
                   </mat-form-field>
                   <mat-autocomplete #fruitAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">

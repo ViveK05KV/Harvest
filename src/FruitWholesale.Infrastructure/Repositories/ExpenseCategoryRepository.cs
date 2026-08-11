@@ -30,13 +30,18 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
 
             SELECT * FROM dbo.ExpenseCategory
             WHERE (@SearchTerm IS NULL OR CategoryName LIKE @SearchPattern)
-            ORDER BY CategoryName ASC
+            ORDER BY
+                CASE WHEN @SortBy = 'categoryName' AND @SortDescending = 0 THEN CategoryName END ASC,
+                CASE WHEN @SortBy = 'categoryName' AND @SortDescending = 1 THEN CategoryName END DESC,
+                CASE WHEN @SortBy IS NULL OR @SortBy <> 'categoryName' THEN CategoryName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
         {
             SearchTerm = request.SearchTerm,
             SearchPattern = $"%{request.SearchTerm}%",
+            request.SortBy,
+            request.SortDescending,
             request.Offset,
             request.PageSize
         });

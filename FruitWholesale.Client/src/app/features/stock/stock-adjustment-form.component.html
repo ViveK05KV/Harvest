@@ -11,6 +11,7 @@
         (focus)="onFruitSearchFocus()"
         (click)="onFruitSearchFocus()"
         (input)="onFruitSearchInput()"
+        (blur)="onFruitSearchBlur()"
       />
       <mat-autocomplete #fruitAuto="matAutocomplete" [displayWith]="displayFruit" (optionSelected)="onFruitSelected($event)">
         @for (fruit of filteredFruits(form.value.fruitSearch); track fruit.fruitID) {

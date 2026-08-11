@@ -47,7 +47,10 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
             LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
             WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
                 AND (@RouteID IS NULL OR s.RouteID = @RouteID)
-            ORDER BY s.ShopName ASC
+            ORDER BY
+                CASE WHEN @SortBy = 'shopName' AND @SortDescending = 0 THEN s.ShopName END ASC,
+                CASE WHEN @SortBy = 'shopName' AND @SortDescending = 1 THEN s.ShopName END DESC,
+                CASE WHEN @SortBy IS NULL OR @SortBy <> 'shopName' THEN s.ShopName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
@@ -55,6 +58,8 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
             SearchTerm = request.SearchTerm,
             SearchPattern = $"%{request.SearchTerm}%",
             RouteID = routeId,
+            request.SortBy,
+            request.SortDescending,
             request.Offset,
             request.PageSize
         });

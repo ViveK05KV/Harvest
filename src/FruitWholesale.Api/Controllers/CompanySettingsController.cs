@@ -36,9 +36,9 @@ public class CompanySettingsController(ICompanySettingsService service) : ApiCon
     [HttpPost("logo")]
     [Authorize(Roles = UserRoles.Admin)]
     [RequestSizeLimit(MaxLogoSizeBytes)]
-    public async Task<ActionResult<CompanySettingsDto>> UploadLogo(IFormFile file)
+    public async Task<ActionResult<CompanySettingsDto>> UploadLogo(IFormFile? file)
     {
-        if (file.Length == 0)
+        if (file is null || file.Length == 0)
         {
             return BadRequest(new { detail = "No file was uploaded." });
         }

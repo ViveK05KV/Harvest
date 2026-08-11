@@ -121,12 +121,22 @@ export class PurchaseFormComponent implements OnInit {
     return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onSupplierSelected just wrote.
+  private supplierJustSelected = false;
+
   onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
     const supplierID = event.option.value as number;
     this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
+    this.supplierJustSelected = true;
   }
 
   onSupplierSearchFocus(): void {
+    if (this.supplierJustSelected) {
+      this.supplierJustSelected = false;
+      return;
+    }
     if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
       this.form.controls.supplierSearch.setValue('');
     }
@@ -137,6 +147,12 @@ export class PurchaseFormComponent implements OnInit {
   // different text, and save() would silently post against the wrong supplier.
   onSupplierSearchInput(): void {
     this.form.controls.supplierID.setValue(null);
+  }
+
+  onSupplierSearchBlur(): void {
+    if (this.form.controls.supplierID.value === null) {
+      this.form.controls.supplierSearch.setValue('');
+    }
   }
 
   buildItem(fruitID: number | null = null, quantity = 0, purchasePrice = 0, boxCount: number | null = null) {
@@ -158,6 +174,9 @@ export class PurchaseFormComponent implements OnInit {
   readonly displayFruit = (value: unknown): string =>
     typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
 
+  // Same refocus quirk as onSupplierSelected/onSupplierSearchFocus, per row.
+  private fruitJustSelectedIndex: number | null = null;
+
   onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
     const fruitID = event.option.value as number;
     const fruit = this.fruits().find((f) => f.fruitID === fruitID);
@@ -166,9 +185,14 @@ export class PurchaseFormComponent implements OnInit {
       fruitSearch: fruit?.fruitName ?? '',
       boxCount: null
     });
+    this.fruitJustSelectedIndex = index;
   }
 
   onFruitSearchFocus(index: number): void {
+    if (this.fruitJustSelectedIndex === index) {
+      this.fruitJustSelectedIndex = null;
+      return;
+    }
     const item = this.itemsArray.at(index);
     if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
   }
@@ -177,6 +201,13 @@ export class PurchaseFormComponent implements OnInit {
   // row's stale fruitID so save() can't silently post against the wrong fruit.
   onFruitSearchInput(index: number): void {
     this.itemsArray.at(index).patchValue({ fruitID: null });
+  }
+
+  onFruitSearchBlur(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.fruitID === null) {
+      item.patchValue({ fruitSearch: '' });
+    }
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {

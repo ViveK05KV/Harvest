@@ -70,12 +70,22 @@ export class ShopMasterFormComponent implements OnInit {
     return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onLinkedSupplierSelected just wrote.
+  private linkedSupplierJustSelected = false;
+
   onLinkedSupplierSelected(event: MatAutocompleteSelectedEvent): void {
     const linkedSupplierID = event.option.value as number;
     this.form.patchValue({ linkedSupplierID, linkedSupplierSearch: this.supplierNameById(linkedSupplierID) });
+    this.linkedSupplierJustSelected = true;
   }
 
   onLinkedSupplierSearchFocus(): void {
+    if (this.linkedSupplierJustSelected) {
+      this.linkedSupplierJustSelected = false;
+      return;
+    }
     if (this.form.controls.linkedSupplierSearch.value === this.supplierNameById(this.form.controls.linkedSupplierID.value)) {
       this.form.controls.linkedSupplierSearch.setValue('');
     }
@@ -90,6 +100,12 @@ export class ShopMasterFormComponent implements OnInit {
   // the field shows different text.
   onLinkedSupplierSearchInput(): void {
     this.form.controls.linkedSupplierID.setValue(null);
+  }
+
+  onLinkedSupplierSearchBlur(): void {
+    if (this.form.controls.linkedSupplierID.value === null) {
+      this.form.controls.linkedSupplierSearch.setValue('');
+    }
   }
 
   save(): void {

@@ -67,6 +67,7 @@ export class ReportsComponent implements OnInit {
   readonly fruitSalesColumns = ['fruitName', 'unit', 'totalQuantity', 'totalAmount'];
   readonly outstandingColumns = ['type', 'name', 'outstandingAmount'];
   readonly profitColumns = ['month', 'totalSales', 'totalPurchases', 'totalExpenses', 'netProfit'];
+  private loadRequestId = 0;
 
   ngOnInit(): void {
     this.loadActiveTab();
@@ -86,12 +87,19 @@ export class ReportsComponent implements OnInit {
     const to = toIso(this.toDate);
     this.loading.set(true);
 
-    const finish = () => this.loading.set(false);
+    // A stale response from a previous tab/filter must not overwrite a newer
+    // one's data or flip loading false while a newer request is still pending.
+    const requestId = ++this.loadRequestId;
+    const isStale = () => requestId !== this.loadRequestId;
+    const finish = () => {
+      if (!isStale()) this.loading.set(false);
+    };
 
     switch (this.activeTab()) {
       case 0:
         this.reportService.getDailySales(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.dailySales.set(r);
             finish();
           },
@@ -101,6 +109,7 @@ export class ReportsComponent implements OnInit {
       case 1:
         this.reportService.getDailyCollection(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.dailyCollection.set(r);
             finish();
           },
@@ -110,6 +119,7 @@ export class ReportsComponent implements OnInit {
       case 2:
         this.reportService.getDailyExpense(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.dailyExpense.set(r);
             finish();
           },
@@ -119,6 +129,7 @@ export class ReportsComponent implements OnInit {
       case 3:
         this.reportService.getPurchaseReport(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.purchaseReport.set(r);
             finish();
           },
@@ -128,6 +139,7 @@ export class ReportsComponent implements OnInit {
       case 4:
         this.reportService.getFruitSales(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.fruitSales.set(r);
             finish();
           },
@@ -137,6 +149,7 @@ export class ReportsComponent implements OnInit {
       case 5:
         this.reportService.getOutstanding().subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.outstanding.set(r);
             finish();
           },
@@ -146,6 +159,7 @@ export class ReportsComponent implements OnInit {
       case 6:
         this.reportService.getProfitSummary(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.profitSummary.set(r);
             finish();
           },

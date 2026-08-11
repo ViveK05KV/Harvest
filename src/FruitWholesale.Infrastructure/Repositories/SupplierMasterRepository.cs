@@ -55,13 +55,18 @@ public class SupplierMasterRepository(IDbConnectionFactory connectionFactory, IL
             FROM dbo.SupplierMaster s
             {LinkedShopJoin}
             WHERE (@SearchTerm IS NULL OR s.SupplierName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
-            ORDER BY s.SupplierName ASC
+            ORDER BY
+                CASE WHEN @SortBy = 'supplierName' AND @SortDescending = 0 THEN s.SupplierName END ASC,
+                CASE WHEN @SortBy = 'supplierName' AND @SortDescending = 1 THEN s.SupplierName END DESC,
+                CASE WHEN @SortBy IS NULL OR @SortBy <> 'supplierName' THEN s.SupplierName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
         {
             SearchTerm = request.SearchTerm,
             SearchPattern = $"%{request.SearchTerm}%",
+            request.SortBy,
+            request.SortDescending,
             request.Offset,
             request.PageSize
         });

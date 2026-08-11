@@ -30,13 +30,18 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
 
             SELECT * FROM dbo.RouteMaster
             WHERE (@SearchTerm IS NULL OR RouteName LIKE @SearchPattern)
-            ORDER BY RouteName ASC
+            ORDER BY
+                CASE WHEN @SortBy = 'routeName' AND @SortDescending = 0 THEN RouteName END ASC,
+                CASE WHEN @SortBy = 'routeName' AND @SortDescending = 1 THEN RouteName END DESC,
+                CASE WHEN @SortBy IS NULL OR @SortBy <> 'routeName' THEN RouteName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
         {
             SearchTerm = request.SearchTerm,
             SearchPattern = $"%{request.SearchTerm}%",
+            request.SortBy,
+            request.SortDescending,
             request.Offset,
             request.PageSize
         });

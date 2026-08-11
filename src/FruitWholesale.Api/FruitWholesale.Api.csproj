@@ -20,4 +20,12 @@
     <ProjectReference Include="..\FruitWholesale.Shared\FruitWholesale.Shared.csproj" />
   </ItemGroup>
 
+  <!-- Copy database migration scripts and manifest into the app output so MigrationRunner can find them at runtime -->
+  <ItemGroup>
+    <Content Include="..\..\database\**\*">
+      <Link>database\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -131,7 +131,7 @@ export class CollectionListComponent implements OnInit {
 
   openCreate(): void {
     this.dialog
-      .open(CollectionFormComponent, { width: '480px', data: null })
+      .open(CollectionFormComponent, { width: '480px', data: null, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -151,7 +151,7 @@ export class CollectionListComponent implements OnInit {
     }
 
     this.dialog
-      .open(CollectionFormComponent, { width: '480px', data: item })
+      .open(CollectionFormComponent, { width: '480px', data: item, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

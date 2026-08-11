@@ -669,14 +669,20 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
         if (boxes.Count == 0) return;
 
+        // Single set-based INSERT via OPENJSON instead of one round trip per box -
+        // a box-tracked fruit's full replay can produce hundreds of rows per write.
+        var json = JsonSerializer.Serialize(boxes.Select(b => new { b.PurchaseID, b.InitialWeightKg, b.RemainingWeightKg, b.Status }));
         const string insertSql = """
             INSERT INTO dbo.FruitBoxes (FruitID, PurchaseID, InitialWeightKg, RemainingWeightKg, Status)
-            VALUES (@FruitID, @PurchaseID, @InitialWeightKg, @RemainingWeightKg, @Status);
+            SELECT @FruitID, PurchaseID, InitialWeightKg, RemainingWeightKg, Status
+            FROM OPENJSON(@Json) WITH (
+                PurchaseID INT '$.PurchaseID',
+                InitialWeightKg DECIMAL(18,4) '$.InitialWeightKg',
+                RemainingWeightKg DECIMAL(18,4) '$.RemainingWeightKg',
+                Status NVARCHAR(10) '$.Status'
+            );
             """;
-        foreach (var box in boxes)
-        {
-            await connection.ExecuteAsync(insertSql, new { FruitID = fruitId, box.PurchaseID, box.InitialWeightKg, box.RemainingWeightKg, box.Status }, transaction);
-        }
+        await connection.ExecuteAsync(insertSql, new { FruitID = fruitId, Json = json }, transaction);
     }
 
     private sealed class BoxEvent

@@ -44,6 +44,7 @@
             (focus)="onLinkedSupplierSearchFocus()"
             (click)="onLinkedSupplierSearchFocus()"
             (input)="onLinkedSupplierSearchInput()"
+            (blur)="onLinkedSupplierSearchBlur()"
       />
       @if (form.controls.linkedSupplierID.value) {
         <button matSuffix mat-icon-button type="button" (click)="clearLinkedSupplier()" aria-label="Clear linked supplier">&times;</button>

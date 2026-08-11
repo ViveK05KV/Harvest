@@ -72,12 +72,22 @@ export class SupplierPaymentFormComponent implements OnInit {
     return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onSupplierSelected just wrote.
+  private supplierJustSelected = false;
+
   onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
     const supplierID = event.option.value as number;
     this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
+    this.supplierJustSelected = true;
   }
 
   onSupplierSearchFocus(): void {
+    if (this.supplierJustSelected) {
+      this.supplierJustSelected = false;
+      return;
+    }
     if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
       this.form.controls.supplierSearch.setValue('');
     }
@@ -88,6 +98,12 @@ export class SupplierPaymentFormComponent implements OnInit {
   // different text, and save() would silently post against the wrong supplier.
   onSupplierSearchInput(): void {
     this.form.controls.supplierID.setValue(null);
+  }
+
+  onSupplierSearchBlur(): void {
+    if (this.form.controls.supplierID.value === null) {
+      this.form.controls.supplierSearch.setValue('');
+    }
   }
 
   save(): void {

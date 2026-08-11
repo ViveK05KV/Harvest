@@ -129,7 +129,7 @@ export class EmployeeWorkLogListComponent implements OnInit {
 
   openCreate(): void {
     this.dialog
-      .open(EmployeeWorkLogFormComponent, { width: '480px', data: null })
+      .open(EmployeeWorkLogFormComponent, { width: '480px', data: null, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -144,7 +144,7 @@ export class EmployeeWorkLogListComponent implements OnInit {
 
   openEdit(item: EmployeeWorkLog): void {
     this.dialog
-      .open(EmployeeWorkLogFormComponent, { width: '480px', data: item })
+      .open(EmployeeWorkLogFormComponent, { width: '480px', data: item, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

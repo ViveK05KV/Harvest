@@ -34,7 +34,13 @@ import { signal } from '@angular/core';
       <mat-dialog-content>
         <mat-form-field class="full-width">
           <mat-label>Shop</mat-label>
-          <input matInput formControlName="shopSearch" [matAutocomplete]="shopAuto" />
+          <input
+            matInput
+            formControlName="shopSearch"
+            [matAutocomplete]="shopAuto"
+            (input)="onShopSearchInput()"
+            (blur)="onShopSearchBlur()"
+          />
           <mat-autocomplete #shopAuto="matAutocomplete" (optionSelected)="onShopSelected($event)">
             @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
               <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
@@ -93,6 +99,21 @@ export class SettleCollectionsDialogComponent {
   onShopSelected(event: MatAutocompleteSelectedEvent): void {
     const shopID = event.option.value as number;
     this.form.patchValue({ shopID, shopSearch: this.shops().find((s) => s.shopID === shopID)?.shopName ?? '' });
+    this.previewData.set(null);
+  }
+
+  // Typing away from the selected shop must invalidate the stale shopID -
+  // otherwise Confirm stays enabled against a preview that no longer matches
+  // the visible shop, and submit() would settle deposits for the wrong shop.
+  onShopSearchInput(): void {
+    this.form.controls.shopID.setValue(null);
+    this.previewData.set(null);
+  }
+
+  onShopSearchBlur(): void {
+    if (this.form.controls.shopID.value === null) {
+      this.form.controls.shopSearch.setValue('');
+    }
   }
 
   preview(): void {

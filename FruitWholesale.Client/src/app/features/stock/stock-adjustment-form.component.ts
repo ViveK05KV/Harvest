@@ -57,12 +57,22 @@ export class StockAdjustmentFormComponent implements OnInit {
     return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onFruitSelected just wrote.
+  private fruitJustSelected = false;
+
   onFruitSelected(event: MatAutocompleteSelectedEvent): void {
     const fruitID = event.option.value as number;
     this.form.patchValue({ fruitID, fruitSearch: this.fruitNameById(fruitID) });
+    this.fruitJustSelected = true;
   }
 
   onFruitSearchFocus(): void {
+    if (this.fruitJustSelected) {
+      this.fruitJustSelected = false;
+      return;
+    }
     if (this.form.controls.fruitSearch.value === this.fruitNameById(this.form.controls.fruitID.value)) {
       this.form.controls.fruitSearch.setValue('');
     }
@@ -73,6 +83,12 @@ export class StockAdjustmentFormComponent implements OnInit {
   // different text, and save() would silently post against the wrong fruit.
   onFruitSearchInput(): void {
     this.form.controls.fruitID.setValue(null);
+  }
+
+  onFruitSearchBlur(): void {
+    if (this.form.controls.fruitID.value === null) {
+      this.form.controls.fruitSearch.setValue('');
+    }
   }
 
   save(): void {

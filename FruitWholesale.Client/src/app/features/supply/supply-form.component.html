@@ -1,4 +1,4 @@
-﻿@if (loading()) {
+@if (loading()) {
   <div class="loading-state no-print">
     <mat-spinner diameter="40" />
   </div>
@@ -44,8 +44,9 @@
             (focus)="onShopSearchFocus()"
             (click)="onShopSearchFocus()"
             (input)="onShopSearchInput()"
+            (blur)="onShopSearchBlur()"
           />
-          <mat-autocomplete #shopAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
+<mat-autocomplete #shopAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
             @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
               <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
             }
@@ -91,9 +92,10 @@
                       (focus)="onFruitSearchFocus(i)"
                       (click)="onFruitSearchFocus(i)"
                       (input)="onFruitSearchInput(i)"
+                      (blur)="onFruitSearchBlur(i)"
                     />
                   </mat-form-field>
-                  <mat-autocomplete #fruitAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">
+<mat-autocomplete #fruitAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">
                     @for (fruit of filteredFruits(item.value.fruitSearch); track fruit.fruitID) {
                       <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
                     }

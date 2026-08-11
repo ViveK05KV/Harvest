@@ -78,6 +78,7 @@ export class ProfitComponent implements OnInit {
   readonly shopDailyColumns = ['date', 'revenue', 'cost', 'profit', 'marginPercent'];
   readonly fruitSummaryColumns = ['fruitName', 'quantitySold', 'revenue', 'cost', 'profit', 'marginPercent'];
   readonly shopFruitColumns = ['shopName', 'fruitName', 'quantitySold', 'revenue', 'cost', 'profit', 'marginPercent'];
+  private loadRequestId = 0;
 
   ngOnInit(): void {
     this.shopService.getAllActive().subscribe((shops) => this.shops.set(shops));
@@ -133,12 +134,19 @@ export class ProfitComponent implements OnInit {
     const to = useAllTime ? undefined : toIso(this.toDate);
     this.loading.set(true);
 
-    const finish = () => this.loading.set(false);
+    // A stale response from a previous tab/filter must not overwrite a newer
+    // one's data or flip loading false while a newer request is still pending.
+    const requestId = ++this.loadRequestId;
+    const isStale = () => requestId !== this.loadRequestId;
+    const finish = () => {
+      if (!isStale()) this.loading.set(false);
+    };
 
     switch (this.activeTab()) {
       case 0:
         this.profitService.getBusinessTotalProfit().subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.businessTotal.set(r);
             finish();
           },
@@ -151,6 +159,7 @@ export class ProfitComponent implements OnInit {
           : of<ShopDailyProfitRow[]>([]);
         forkJoin({ summary: this.profitService.getShopProfitSummary(from, to), daily: shopDaily$ }).subscribe({
           next: ({ summary, daily }) => {
+            if (isStale()) return;
             this.shopSummary.set(summary);
             this.shopDaily.set(daily);
             finish();
@@ -162,6 +171,7 @@ export class ProfitComponent implements OnInit {
       case 2:
         this.profitService.getFruitProfitSummary(from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.fruitSummary.set(r);
             finish();
           },
@@ -171,6 +181,7 @@ export class ProfitComponent implements OnInit {
       case 3:
         this.profitService.getShopFruitProfit(this.selectedShopId, from, to).subscribe({
           next: (r) => {
+            if (isStale()) return;
             this.shopFruit.set(r);
             finish();
           },

@@ -1,11 +1,14 @@
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.SupplierReturn;
 using FruitWholesale.Application.Services;
+using FruitWholesale.Domain.Enums;
 using FruitWholesale.Shared.Pagination;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
+[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager},{UserRoles.Accountant}")]
 public class SupplierReturnController(ISupplierReturnService service, ICurrentUserService currentUserService) : ApiControllerBase
 {
     [HttpGet]

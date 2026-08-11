@@ -87,17 +87,27 @@ export class CollectionFormComponent implements OnInit {
     return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
   }
 
+  // MatAutocomplete refocuses the trigger input right after an option is
+  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
+  // can't immediately clear the name onShopSelected just wrote.
+  private shopJustSelected = false;
+
   onShopSelected(event: MatAutocompleteSelectedEvent): void {
     const shopID = event.option.value as number;
     this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
+    this.shopJustSelected = true;
   }
 
   onShopSearchFocus(): void {
+    if (this.shopJustSelected) {
+      this.shopJustSelected = false;
+      return;
+    }
     const selectedShopName = this.shopNameById(this.form.controls.shopID.value);
     const currentValue = this.form.controls.shopSearch.value;
 
     if (selectedShopName && currentValue === selectedShopName) {
-      this.form.controls.shopSearch.setValue(selectedShopName);
+      this.form.controls.shopSearch.setValue('');
     }
   }
 
@@ -106,6 +116,12 @@ export class CollectionFormComponent implements OnInit {
   // different text, and save() would silently post against the wrong shop.
   onShopSearchInput(): void {
     this.form.controls.shopID.setValue(null);
+  }
+
+  onShopSearchBlur(): void {
+    if (this.form.controls.shopID.value === null) {
+      this.form.controls.shopSearch.setValue('');
+    }
   }
 
   save(): void {

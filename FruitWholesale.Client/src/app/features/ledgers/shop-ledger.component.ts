@@ -100,6 +100,7 @@ export class ShopLedgerComponent implements OnInit {
   onFilterChange(): void {
     if (!this.shopId) return;
     this.request.pageNumber = 1;
+    this.paginator?.firstPage();
     this.load();
   }
 

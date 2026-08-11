@@ -30,13 +30,20 @@ public class FruitMasterRepository(IDbConnectionFactory connectionFactory) : IFr
 
             SELECT * FROM dbo.FruitMaster
             WHERE (@SearchTerm IS NULL OR FruitName LIKE @SearchPattern)
-            ORDER BY FruitName ASC
+            ORDER BY
+                CASE WHEN @SortBy = 'fruitName' AND @SortDescending = 0 THEN FruitName END ASC,
+                CASE WHEN @SortBy = 'fruitName' AND @SortDescending = 1 THEN FruitName END DESC,
+                CASE WHEN @SortBy = 'unit' AND @SortDescending = 0 THEN Unit END ASC,
+                CASE WHEN @SortBy = 'unit' AND @SortDescending = 1 THEN Unit END DESC,
+                CASE WHEN @SortBy IS NULL OR (@SortBy <> 'fruitName' AND @SortBy <> 'unit') THEN FruitName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
         {
             SearchTerm = request.SearchTerm,
             SearchPattern = $"%{request.SearchTerm}%",
+            request.SortBy,
+            request.SortDescending,
             request.Offset,
             request.PageSize
         });
