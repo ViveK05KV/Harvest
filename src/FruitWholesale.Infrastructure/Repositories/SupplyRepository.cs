@@ -92,6 +92,18 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
                 LedgerTransactionTypes.Supply, supplyId, supply.TotalAmount, 0, $"Supply Invoice #{supply.InvoiceNo}");
             await ledgerService.RecalculateShopLedgerAsync(connection, transaction, supply.ShopID);
 
+            var linkedSupplierId = await connection.ExecuteScalarAsync<int?>(
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+            if (linkedSupplierId is not null)
+            {
+                var shopName = await connection.ExecuteScalarAsync<string>(
+                    "SELECT ShopName FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+                await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, linkedSupplierId.Value, supply.SupplyDate,
+                    LedgerTransactionTypes.LinkedShopSale, supplyId, 0, supply.TotalAmount,
+                    $"Sale to linked shop {shopName} (Invoice #{supply.InvoiceNo})");
+                await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, linkedSupplierId.Value);
+            }
+
             foreach (var item in supply.Items)
             {
                 await ledgerService.AddStockLedgerEntryAsync(connection, transaction, item.FruitID, supply.SupplyDate,
@@ -125,6 +137,8 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
                 "SELECT ShopID FROM dbo.Supply WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction);
             var oldFruitIds = (await connection.QueryAsync<int>(
                 "SELECT DISTINCT FruitID FROM dbo.SupplyItems WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction)).ToList();
+            var oldLinkedSupplierId = await connection.ExecuteScalarAsync<int?>(
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { ShopID = oldShopId }, transaction);
 
             supply.TotalAmount = supply.Items.Sum(i => i.TotalAmount);
 
@@ -156,6 +170,22 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             if (oldShopId != supply.ShopID)
             {
                 await ledgerService.RecalculateShopLedgerAsync(connection, transaction, oldShopId);
+            }
+
+            await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.LinkedShopSale, supply.SupplyID);
+            var newLinkedSupplierId = await connection.ExecuteScalarAsync<int?>(
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+            if (newLinkedSupplierId is not null)
+            {
+                var shopName = await connection.ExecuteScalarAsync<string>(
+                    "SELECT ShopName FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+                await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, newLinkedSupplierId.Value, supply.SupplyDate,
+                    LedgerTransactionTypes.LinkedShopSale, supply.SupplyID, 0, supply.TotalAmount,
+                    $"Sale to linked shop {shopName} (Invoice #{supply.InvoiceNo})");
+            }
+            foreach (var supplierId in new[] { oldLinkedSupplierId, newLinkedSupplierId }.Where(id => id is not null).Select(id => id!.Value).Distinct())
+            {
+                await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, supplierId);
             }
 
             await ledgerService.RemoveStockLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Supply, supply.SupplyID);
@@ -192,11 +222,18 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
                 "SELECT ShopID FROM dbo.Supply WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction);
             var fruitIds = (await connection.QueryAsync<int>(
                 "SELECT DISTINCT FruitID FROM dbo.SupplyItems WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction)).ToList();
+            var linkedSupplierId = await connection.ExecuteScalarAsync<int?>(
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction);
 
             await ledgerService.RemoveShopLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.Supply, supplyId);
+            await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.LinkedShopSale, supplyId);
             await ledgerService.RemoveStockLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Supply, supplyId);
             await connection.ExecuteAsync("DELETE FROM dbo.Supply WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction);
             await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
+            if (linkedSupplierId is not null)
+            {
+                await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, linkedSupplierId.Value);
+            }
             foreach (var fruitId in fruitIds)
             {
                 await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
