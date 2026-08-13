@@ -33,3 +33,4 @@
 23_FixBoxPurchaseCostBasis.sql
 24_FixShopSupplierStockLedgerOpeningOrder.sql
 25_AddTemporaryCollections.sql
+26_AddRefreshTokens.sql

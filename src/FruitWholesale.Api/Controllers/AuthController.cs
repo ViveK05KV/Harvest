@@ -16,6 +16,22 @@ public class AuthController(IAuthService authService, ICurrentUserService curren
         return result.IsSuccess ? Ok(result.Value) : Unauthorized(new { errors = result.Errors });
     }
 
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponseDto>> Refresh([FromBody] RefreshRequestDto request)
+    {
+        var result = await authService.RefreshAsync(request.RefreshToken);
+        return result.IsSuccess ? Ok(result.Value) : Unauthorized(new { errors = result.Errors });
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<ActionResult> Logout([FromBody] RefreshRequestDto request)
+    {
+        await authService.LogoutAsync(request.RefreshToken);
+        return NoContent();
+    }
+
     [HttpPost("change-password")]
     public async Task<ActionResult> ChangePassword(ChangePasswordRequestDto request)
     {

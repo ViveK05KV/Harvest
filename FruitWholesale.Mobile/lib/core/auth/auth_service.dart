@@ -7,6 +7,13 @@ import 'token_storage.dart';
 
 /// Holds the logged-in user as observable state (via [ChangeNotifier]/Provider)
 /// and drives login/logout against the backend's JWT auth endpoint.
+///
+/// Sessions persist like a typical mobile app (Instagram etc): the JWT access
+/// token is short-lived, but a long-lived refresh token (backend default: 60
+/// days) is exchanged for a new one silently, both proactively on cold start
+/// and reactively whenever a request 401s mid-session. The user only ever
+/// sees the login screen again once the refresh token itself has expired or
+/// been revoked.
 class AuthService extends ChangeNotifier {
   final ApiClient _api;
   final TokenStorage _storage;
@@ -14,8 +21,14 @@ class AuthService extends ChangeNotifier {
   CurrentUser? _user;
   bool _restoring = true;
 
+  // Concurrent requests can all 401 at once when the access token expires;
+  // without this they'd each kick off their own refresh call, racing to
+  // rotate the same refresh token and invalidating each other's attempt.
+  Future<bool>? _refreshing;
+
   AuthService(this._api, this._storage) {
     _api.onUnauthorized = _handleUnauthorized;
+    _api.onRefreshNeeded = _tryRefresh;
   }
 
   CurrentUser? get user => _user;
@@ -29,13 +42,18 @@ class AuthService extends ChangeNotifier {
     _api.updateToken(user?.token);
   }
 
-  /// Restores a previously saved session, if any and not expired.
+  /// Restores a previously saved session, if any. An expired access token is
+  /// not treated as a dead session - it's refreshed silently using the saved
+  /// refresh token before giving up, so reopening the app days later still
+  /// lands on the home screen instead of the login screen.
   Future<void> restoreSession() async {
     final stored = await _storage.read();
-    if (stored != null && !stored.isExpired) {
+    if (stored != null) {
       _setUser(stored);
-    } else if (stored != null) {
-      await _storage.clear();
+      if (stored.isExpired && !await _tryRefresh()) {
+        _setUser(null);
+        await _storage.clear();
+      }
     }
     _restoring = false;
     notifyListeners();
@@ -44,10 +62,11 @@ class AuthService extends ChangeNotifier {
   /// Returns null on success, or an error message on failure.
   Future<String?> login(String username, String password) async {
     try {
-      final json = await _api.post('/auth/login', body: {
-        'username': username,
-        'password': password,
-      });
+      final json = await _api.post(
+        '/auth/login',
+        body: {'username': username, 'password': password},
+        attemptRefresh: false,
+      );
       final user = CurrentUser.fromJson(json as Map<String, dynamic>);
       _setUser(user);
       await _storage.save(user);
@@ -59,9 +78,34 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    final refreshToken = _user?.refreshToken;
     _setUser(null);
     await _storage.clear();
     notifyListeners();
+    if (refreshToken != null) {
+      try {
+        await _api.post('/auth/logout', body: {'refreshToken': refreshToken}, attemptRefresh: false);
+      } on ApiException {
+        // Best-effort server-side revoke; local session is already cleared either way.
+      }
+    }
+  }
+
+  Future<bool> _tryRefresh() => _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+
+  Future<bool> _doRefresh() async {
+    final refreshToken = _user?.refreshToken;
+    if (refreshToken == null) return false;
+    try {
+      final json = await _api.post('/auth/refresh', body: {'refreshToken': refreshToken}, attemptRefresh: false);
+      final refreshed = CurrentUser.fromJson(json as Map<String, dynamic>);
+      _setUser(refreshed);
+      await _storage.save(refreshed);
+      notifyListeners();
+      return true;
+    } on ApiException {
+      return false;
+    }
   }
 
   void _handleUnauthorized() {

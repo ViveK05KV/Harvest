@@ -18,8 +18,16 @@ class ApiClient {
   String? _token;
 
   /// Set by the auth layer; invoked whenever a request comes back 401 so the
-  /// app can drop the stale session and return to the login screen.
+  /// app can drop the stale session and return to the login screen. Only
+  /// fires once a refresh attempt (below) has already failed or wasn't
+  /// applicable, so it stays the "give up, go to login" signal.
   void Function()? onUnauthorized;
+
+  /// Set by the auth layer. Called on a 401 to silently exchange the refresh
+  /// token for a new access token; returns true if the caller should retry
+  /// the request that just failed. Concurrency (many in-flight requests
+  /// hitting 401 at once) is coalesced by the auth layer, not here.
+  Future<bool> Function()? onRefreshNeeded;
 
   ApiClient({http.Client? client}) : _http = client ?? http.Client();
 
@@ -56,29 +64,52 @@ class ApiClient {
     throw ApiException(response.statusCode, ApiException.extractMessage(response.statusCode, decoded));
   }
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {
-    final response = await _http.get(_uri(path, query), headers: _headers(json: false));
+  /// Sends via [sender], and on a 401 tries exactly one silent refresh-and-
+  /// retry before falling through to [_handle]'s normal 401 handling. Pass
+  /// `attemptRefresh: false` for calls that must not recurse into refresh
+  /// themselves (the refresh call, the login call).
+  Future<dynamic> _send(Future<http.Response> Function() sender, {bool attemptRefresh = true}) async {
+    var response = await sender();
+    if (response.statusCode == 401 && attemptRefresh && onRefreshNeeded != null) {
+      final refreshed = await onRefreshNeeded!();
+      if (refreshed) response = await sender();
+    }
     return _handle(response);
   }
 
-  Future<dynamic> post(String path, {Object? body}) async {
-    final response = await _http.post(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body));
-    return _handle(response);
+  Future<dynamic> get(String path, {Map<String, dynamic>? query, bool attemptRefresh = true}) {
+    return _send(
+      () => _http.get(_uri(path, query), headers: _headers(json: false)),
+      attemptRefresh: attemptRefresh,
+    );
   }
 
-  Future<dynamic> put(String path, {Object? body}) async {
-    final response = await _http.put(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body));
-    return _handle(response);
+  Future<dynamic> post(String path, {Object? body, bool attemptRefresh = true}) {
+    return _send(
+      () => _http.post(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+      attemptRefresh: attemptRefresh,
+    );
   }
 
-  Future<dynamic> patch(String path, {Object? body}) async {
-    final response = await _http.patch(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body));
-    return _handle(response);
+  Future<dynamic> put(String path, {Object? body, bool attemptRefresh = true}) {
+    return _send(
+      () => _http.put(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+      attemptRefresh: attemptRefresh,
+    );
   }
 
-  Future<dynamic> delete(String path) async {
-    final response = await _http.delete(_uri(path), headers: _headers(json: false));
-    return _handle(response);
+  Future<dynamic> patch(String path, {Object? body, bool attemptRefresh = true}) {
+    return _send(
+      () => _http.patch(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+      attemptRefresh: attemptRefresh,
+    );
+  }
+
+  Future<dynamic> delete(String path, {bool attemptRefresh = true}) {
+    return _send(
+      () => _http.delete(_uri(path), headers: _headers(json: false)),
+      attemptRefresh: attemptRefresh,
+    );
   }
 
   /// Uploads a single file as `multipart/form-data` under the given field name.

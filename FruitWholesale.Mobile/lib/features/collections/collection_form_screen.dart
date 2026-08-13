@@ -38,6 +38,8 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
   int? _selectedShopId;
   DateTime _date = DateTime.now();
   String _paymentMode = paymentModes.first;
+  bool _isTemporary = false;
+  bool _isSettled = false;
 
   bool _loading = true;
   bool _saving = false;
@@ -76,6 +78,8 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
         _paymentMode = collection.paymentMode;
         _referenceController.text = collection.referenceNumber ?? '';
         _remarksController.text = collection.remarks ?? '';
+        _isTemporary = collection.isTemporary;
+        _isSettled = collection.isSettled;
       }
 
       setState(() {
@@ -116,6 +120,8 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
       paymentMode: _paymentMode,
       referenceNumber: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
       remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+      collectionType: _isTemporary ? 'Temporary' : 'Normal',
+      temporaryStatus: _isTemporary ? 'Pending' : 'None',
     );
 
     try {
@@ -194,6 +200,19 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
               helperMaxLines: 2,
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text('Temporary deposit'),
+            subtitle: _isTemporary
+                ? const Text(
+                    "Adds cash today but does not reduce the shop balance until you settle the deposit.",
+                    style: TextStyle(color: Color(0xFF7C4DFF)),
+                  )
+                : null,
+            value: _isTemporary,
+            onChanged: _isSettled ? null : (value) => setState(() => _isTemporary = value ?? false),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(

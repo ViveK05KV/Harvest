@@ -17,6 +17,7 @@ public static class DependencyInjection
 
         services.AddScoped<ICompanySettingsRepository, CompanySettingsRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IFruitMasterRepository, FruitMasterRepository>();
         services.AddScoped<IShopMasterRepository, ShopMasterRepository>();
         services.AddScoped<ISupplierMasterRepository, SupplierMasterRepository>();

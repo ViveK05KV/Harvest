@@ -8,6 +8,7 @@ import '../../core/widgets/paginated_list_view.dart';
 import 'collection_form_screen.dart';
 import 'collection_models.dart';
 import 'collection_service.dart';
+import 'settle_collections_dialog.dart';
 
 class CollectionsListScreen extends StatefulWidget {
   const CollectionsListScreen({super.key});
@@ -42,6 +43,28 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
     if (created == true) _reload();
   }
 
+  Future<void> _openSettleDeposits() async {
+    final settled = await showSettleCollectionsDialog(context);
+    if (settled == true) {
+      _reload();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Temporary collections settled.')));
+      }
+    }
+  }
+
+  void _openItem(Collection item) async {
+    if (item.isSettled) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Settled temporary collections cannot be edited.')));
+      return;
+    }
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => CollectionFormScreen(collectionId: item.collectionId)),
+    );
+    if (updated == true) _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd-MMM-yyyy');
@@ -74,8 +97,23 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
                 ],
               ),
               itemBuilder: (context, item) => ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.payments_outlined)),
-                title: Text(item.shopName ?? ''),
+                leading: CircleAvatar(
+                  child: Icon(item.isTemporary ? Icons.account_balance_wallet_outlined : Icons.payments_outlined),
+                ),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(item.shopName ?? '', overflow: TextOverflow.ellipsis)),
+                    if (item.isTemporary) ...[
+                      const SizedBox(width: 6),
+                      Chip(
+                        label: Text(item.temporaryStatus, style: const TextStyle(fontSize: 11)),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ],
+                ),
                 subtitle: Text(
                   '${dateFormat.format(item.collectionDate)} · ${item.paymentMode}'
                   '${item.discountAmount > 0 ? ' · Discount ${currencyFormat.format(item.discountAmount)}' : ''}',
@@ -84,21 +122,31 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
                   currencyFormat.format(item.amountReceived),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                onTap: () async {
-                  final updated = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(builder: (_) => CollectionFormScreen(collectionId: item.collectionId)),
-                  );
-                  if (updated == true) _reload();
-                },
+                onTap: () => _openItem(item),
               ),
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openNewCollection,
-        icon: const Icon(Icons.add),
-        label: const Text('New Collection'),
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'settleDeposits',
+            onPressed: _openSettleDeposits,
+            tooltip: 'Settle Deposits',
+            backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+            foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+            child: const Icon(Icons.account_balance_wallet_outlined),
+          ),
+          const SizedBox(width: 12),
+          FloatingActionButton.extended(
+            heroTag: 'newCollection',
+            onPressed: _openNewCollection,
+            icon: const Icon(Icons.add),
+            label: const Text('New Collection'),
+          ),
+        ],
       ),
     );
   }

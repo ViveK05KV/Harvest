@@ -38,6 +38,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<Widget>? _rows;
   String? _error;
   bool _loading = false;
+  int _loadRequestId = 0;
 
   @override
   void initState() {
@@ -57,6 +58,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _run() async {
+    // A stale response from a previous tab/filter must not overwrite a newer
+    // one's data or flip loading false while a newer request is still pending.
+    final requestId = ++_loadRequestId;
     setState(() {
       _loading = true;
       _error = null;
@@ -144,11 +148,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
           ];
       }
+      if (!mounted || requestId != _loadRequestId) return;
       setState(() => _rows = rows);
     } on ApiException catch (e) {
+      if (!mounted || requestId != _loadRequestId) return;
       setState(() => _error = e.message);
     } finally {
-      setState(() => _loading = false);
+      if (mounted && requestId == _loadRequestId) setState(() => _loading = false);
     }
   }
 

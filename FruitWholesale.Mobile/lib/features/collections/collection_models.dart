@@ -12,6 +12,9 @@ class Collection {
   final String paymentMode;
   final String? referenceNumber;
   final String? remarks;
+  final String collectionType;
+  final String temporaryStatus;
+  final int? settlementId;
 
   const Collection({
     this.collectionId = 0,
@@ -23,7 +26,13 @@ class Collection {
     required this.paymentMode,
     this.referenceNumber,
     this.remarks,
+    this.collectionType = 'Normal',
+    this.temporaryStatus = 'None',
+    this.settlementId,
   });
+
+  bool get isTemporary => collectionType == 'Temporary';
+  bool get isSettled => temporaryStatus == 'Settled';
 
   factory Collection.fromJson(Map<String, dynamic> json) {
     return Collection(
@@ -36,6 +45,9 @@ class Collection {
       paymentMode: json['paymentMode'] as String,
       referenceNumber: json['referenceNumber'] as String?,
       remarks: json['remarks'] as String?,
+      collectionType: json['collectionType'] as String? ?? 'Normal',
+      temporaryStatus: json['temporaryStatus'] as String? ?? 'None',
+      settlementId: json['settlementID'] as int?,
     );
   }
 
@@ -47,5 +59,58 @@ class Collection {
         'paymentMode': paymentMode,
         'referenceNumber': referenceNumber,
         'remarks': remarks,
+        'collectionType': collectionType,
+        'temporaryStatus': temporaryStatus,
       };
+}
+
+/// Mirrors CollectionSettlementPreviewDto.
+class CollectionSettlementPreview {
+  final int shopId;
+  final String? shopName;
+  final int pendingCount;
+  final double pendingTotal;
+
+  const CollectionSettlementPreview({
+    required this.shopId,
+    this.shopName,
+    required this.pendingCount,
+    required this.pendingTotal,
+  });
+
+  factory CollectionSettlementPreview.fromJson(Map<String, dynamic> json) {
+    return CollectionSettlementPreview(
+      shopId: json['shopID'] as int,
+      shopName: json['shopName'] as String?,
+      pendingCount: json['pendingCount'] as int,
+      pendingTotal: (json['pendingTotal'] as num).toDouble(),
+    );
+  }
+}
+
+/// Mirrors CollectionSettlementResultDto.
+class CollectionSettlementResult {
+  final int settlementId;
+  final int shopId;
+  final DateTime settlementDate;
+  final double totalAmount;
+  final int pendingCount;
+
+  const CollectionSettlementResult({
+    required this.settlementId,
+    required this.shopId,
+    required this.settlementDate,
+    required this.totalAmount,
+    required this.pendingCount,
+  });
+
+  factory CollectionSettlementResult.fromJson(Map<String, dynamic> json) {
+    return CollectionSettlementResult(
+      settlementId: json['settlementID'] as int,
+      shopId: json['shopID'] as int,
+      settlementDate: DateTime.parse(json['settlementDate'] as String),
+      totalAmount: (json['totalAmount'] as num).toDouble(),
+      pendingCount: json['pendingCount'] as int,
+    );
+  }
 }

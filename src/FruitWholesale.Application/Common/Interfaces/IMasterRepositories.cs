@@ -23,6 +23,14 @@ public interface IUserRepository
     Task ChangePasswordAsync(int userId, string newPasswordHash);
 }
 
+public interface IRefreshTokenRepository
+{
+    Task<int> CreateAsync(RefreshToken token);
+    Task<RefreshToken?> GetByHashAsync(string tokenHash);
+    Task RevokeAsync(int refreshTokenId, string? replacedByTokenHash);
+    Task RevokeAllActiveForUserAsync(int userId);
+}
+
 public interface IFruitMasterRepository
 {
     Task<FruitMaster?> GetByIdAsync(int fruitId);

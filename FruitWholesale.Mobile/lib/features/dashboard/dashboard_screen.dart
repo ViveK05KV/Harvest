@@ -69,6 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DashboardPeriod _svpPeriod = DashboardPeriod.thisWeek;
   bool _svpLoading = true;
   SalesVsPurchases? _svp;
+  int _svpRequestId = 0;
 
   List<TrendPoint> _cashTrend = [];
   List<TrendPoint> _profitTrend = [];
@@ -117,14 +118,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadSalesVsPurchases() async {
+    // Guard against a slower, stale-period response landing after a newer one -
+    // switching the period dropdown quickly must not let an older response overwrite it.
+    final requestId = ++_svpRequestId;
     setState(() => _svpLoading = true);
     try {
       final result = await _service.getSalesVsPurchases(_svpPeriod);
+      if (!mounted || requestId != _svpRequestId) return;
       setState(() => _svp = result);
     } on ApiException {
       // Leave whatever was there; the period selector can be retried.
     } finally {
-      if (mounted) setState(() => _svpLoading = false);
+      if (mounted && requestId == _svpRequestId) setState(() => _svpLoading = false);
     }
   }
 

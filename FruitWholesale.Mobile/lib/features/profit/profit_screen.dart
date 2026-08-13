@@ -51,6 +51,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
   List<Widget>? _rows;
   String? _error;
   bool _loading = false;
+  int _loadRequestId = 0;
 
   @override
   void initState() {
@@ -83,6 +84,9 @@ class _ProfitScreenState extends State<ProfitScreen> {
   bool get _usesShopFilter => _view == _ProfitView.byShop || _view == _ProfitView.byShopFruit;
 
   Future<void> _run() async {
+    // A stale response from a previous tab/filter must not overwrite a newer
+    // one's data or flip loading false while a newer request is still pending.
+    final requestId = ++_loadRequestId;
     setState(() {
       _loading = true;
       _error = null;
@@ -104,7 +108,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
       switch (_view) {
         case _ProfitView.businessTotal:
           final data = await _service.businessTotal();
-          if (!mounted) return;
+          if (!mounted || requestId != _loadRequestId) return;
           rows = [
             Card(
               margin: const EdgeInsets.only(top: 8),
@@ -183,11 +187,13 @@ class _ProfitScreenState extends State<ProfitScreen> {
               ),
           ];
       }
+      if (!mounted || requestId != _loadRequestId) return;
       setState(() => _rows = rows);
     } on ApiException catch (e) {
+      if (!mounted || requestId != _loadRequestId) return;
       setState(() => _error = e.message);
     } finally {
-      setState(() => _loading = false);
+      if (mounted && requestId == _loadRequestId) setState(() => _loading = false);
     }
   }
 
