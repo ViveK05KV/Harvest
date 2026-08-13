@@ -137,7 +137,7 @@ flowchart TB
 
     subgraph azure["Azure — resource group: harvest-erp-rg"]
         swa["Static Web App\nharvest-erp-web\n(Angular SPA, Free tier)"]
-        aca["Container App\nharvest-erp-api\n(.NET 10 API, Consumption plan,\nscale-to-zero, 0.25 vCPU / 0.5Gi)"]
+        aca["Container App\nharvest-erp-api-in\n(.NET 10 API, Consumption plan,\nscale-to-zero, 0.25 vCPU / 0.5Gi)"]
         sql["SQL Database\nFruitWholesaleDB\n(Serverless, Free-limit tier,\nauto-pause after 60 min idle)"]
     end
 
@@ -215,13 +215,15 @@ On 2026-07-25 the API moved from Azure App Service to Azure Container Apps. Reco
 
 **Where things are now**
 
+> The table below described the state right after the July 2026 App Service → Container Apps move. The API has since moved again, to a Central India Container App (`harvest-erp-api-in`) — that second move was never written up here. `deploy.yml`'s `deploy-api` job and `FruitWholesale.Client/src/environments/environment.prod.ts` are the source of truth for where the live API actually is; both point at `harvest-erp-api-in`. The `westus2` app below is no longer deployed to, same as the App Service before it.
+
 | Resource | Location |
 |---|---|
-| Live API | `https://harvest-erp-api.whitepond-a6b90641.westus2.azurecontainerapps.io` |
+| Live API | `https://harvest-erp-api-in.ambitiousdune-330fdd60.centralindia.azurecontainerapps.io` |
 | Live web app | `https://icy-bay-03b2ce010.7.azurestaticapps.net` |
 | Container image | `ghcr.io/vivek05kv/harvest-erp-api` (private; view at `github.com/ViveK05KV/Harvest` → **Packages** in the sidebar) |
-| Container App resource | `harvest-erp-api` (Microsoft.App/containerApps) in `harvest-erp-rg`, `westus2` |
-| Old App Service (orphaned) | `harvest-erp-api` (Microsoft.Web/sites) + `harvest-erp-plan` in `harvest-erp-rg`, `centralindia` — no longer deployed to |
+| Container App resource | `harvest-erp-api-in` (Microsoft.App/containerApps) in `harvest-erp-rg`, `centralindia` |
+| Orphaned, no longer deployed to | `harvest-erp-api` Container App in `harvest-erp-rg`, `westus2` (this migration's original target) and the earlier `harvest-erp-api` App Service + `harvest-erp-plan` in `harvest-erp-rg`, `centralindia` |
 
 **Why**
 Portability and cost-shape, not urgency — nothing was broken on App Service. A Docker image runs identically on Container Apps, AKS, another cloud, or a plain VM, whereas the App Service zip-deploy path is Azure-specific. Container Apps' consumption billing is also usage-based (per-second) rather than App Service's flat monthly tier, which matters more if this app ever outgrows the free allowances.
@@ -236,7 +238,7 @@ No change at current usage — both the old App Service F1 and the new Container
 
 **Access — try it yourself**
 - Web app: **https://icy-bay-03b2ce010.7.azurestaticapps.net**
-- API directly: **https://harvest-erp-api.whitepond-a6b90641.westus2.azurecontainerapps.io/api**
+- API directly: **https://harvest-erp-api-in.ambitiousdune-330fdd60.centralindia.azurecontainerapps.io/api**
 - Login: `admin` / `Admin@123` (the seeded default — use whatever the current password actually is if it's been changed since)
 - First request after idle may take 10-30s while the Container App and/or database wake up from scale-to-zero/auto-pause — that's expected, not a bug.
 
