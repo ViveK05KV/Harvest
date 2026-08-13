@@ -20,17 +20,17 @@
 # 09_AddReturns.sql
 # 10_FixReturnForeignKeys.sql
 # 12_WidenCompanyLogoColumn.sql
+# 14_AddShopSupplierLink.sql
+# 15_OptimizationIndexes.sql
+# 16_FixCashLedgerOpeningBalanceOrder.sql
+# 17_BackfillCashLedgerNarration.sql
+# 18_AddFruitBoxTracking.sql
+# 19_AddFruitBoxWeight.sql
+# 20_AddReturnBoxCount.sql
+# 21_ChangeBoxCountToDecimal.sql
+# 22_FixDashboardCashBalanceOrder.sql
+# 23_FixBoxPurchaseCostBasis.sql
+# 24_FixShopSupplierStockLedgerOpeningOrder.sql
+# 25_AddTemporaryCollections.sql
 
-14_AddShopSupplierLink.sql
-15_OptimizationIndexes.sql
-16_FixCashLedgerOpeningBalanceOrder.sql
-17_BackfillCashLedgerNarration.sql
-18_AddFruitBoxTracking.sql
-19_AddFruitBoxWeight.sql
-20_AddReturnBoxCount.sql
-21_ChangeBoxCountToDecimal.sql
-22_FixDashboardCashBalanceOrder.sql
-23_FixBoxPurchaseCostBasis.sql
-24_FixShopSupplierStockLedgerOpeningOrder.sql
-25_AddTemporaryCollections.sql
 26_AddRefreshTokens.sql

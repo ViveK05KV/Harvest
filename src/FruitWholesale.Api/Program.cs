@@ -96,14 +96,12 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Automatic database migrations disabled - comment/uncomment as needed.
-// To re-enable run-on-startup, restore the block below.
-//using (var migrationScope = app.Services.CreateScope())
-//{
-//    var migrationRunner = migrationScope.ServiceProvider.GetRequiredService<FruitWholesale.Infrastructure.Persistence.MigrationRunner>();
-//    var migrationsDirectory = Path.Combine(AppContext.BaseDirectory, "database");
-//    await migrationRunner.RunAsync(migrationsDirectory);
-//}
+using (var migrationScope = app.Services.CreateScope())
+{
+    var migrationRunner = migrationScope.ServiceProvider.GetRequiredService<FruitWholesale.Infrastructure.Persistence.MigrationRunner>();
+    var migrationsDirectory = Path.Combine(AppContext.BaseDirectory, "database");
+    await migrationRunner.RunAsync(migrationsDirectory);
+}
 
 app.UseExceptionHandler();
 
