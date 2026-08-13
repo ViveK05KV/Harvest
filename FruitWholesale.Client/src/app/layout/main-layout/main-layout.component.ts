@@ -107,8 +107,8 @@ export class MainLayoutComponent {
     {
       label: 'Reports',
       items: [
-        { label: 'Reports', icon: 'assessment', route: '/reports', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: ['Admin', 'Accountant'] }
+        { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['Admin'] },
+        { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: ['Admin'] }
       ]
     },
     {
@@ -125,8 +125,8 @@ export class MainLayoutComponent {
     {
       label: 'Administration',
       items: [
-        { label: 'Users', icon: 'manage_accounts', route: '/users', roles: ['Admin', 'Accountant'] },
-        { label: 'Settings', icon: 'settings', route: '/settings', roles: ['Admin', 'Accountant'] }
+        { label: 'Users', icon: 'manage_accounts', route: '/users', roles: ['Admin'] },
+        { label: 'Settings', icon: 'settings', route: '/settings', roles: ['Admin'] }
       ]
     }
   ];

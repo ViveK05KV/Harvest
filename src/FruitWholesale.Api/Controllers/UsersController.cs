@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
+[Authorize(Roles = UserRoles.Admin)]
 public class UsersController(IUserService userService) : ApiControllerBase
 {
     [HttpGet]

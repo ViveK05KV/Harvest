@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager},{UserRoles.Accountant}")]
+[Authorize(Roles = UserRoles.Admin)]
 public class ReportController(IReportService service) : ApiControllerBase
 {
     [HttpGet("daily-sales")]
@@ -35,4 +35,12 @@ public class ReportController(IReportService service) : ApiControllerBase
     [HttpGet("profit-summary")]
     public async Task<ActionResult<List<ProfitSummaryReportRow>>> ProfitSummary([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate) =>
         Ok(await service.GetProfitSummaryAsync(fromDate, toDate));
+
+    [HttpGet("expense-by-category")]
+    public async Task<ActionResult<List<ExpenseByCategoryReportRow>>> ExpenseByCategory([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate) =>
+        Ok(await service.GetExpenseByCategoryAsync(fromDate, toDate));
+
+    [HttpGet("salary-by-employee")]
+    public async Task<ActionResult<List<SalaryByEmployeeReportRow>>> SalaryByEmployee([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate, [FromQuery] int? employeeId) =>
+        Ok(await service.GetSalaryByEmployeeAsync(fromDate, toDate, employeeId));
 }

@@ -56,3 +56,17 @@ public class ProfitSummaryReportRow
     public decimal TotalExpenses { get; set; }
     public decimal NetProfit { get; set; }
 }
+
+public class ExpenseByCategoryReportRow
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+}
+
+public class SalaryByEmployeeReportRow
+{
+    public int EmployeeID { get; set; }
+    public string EmployeeName { get; set; } = string.Empty;
+    public int WorkDaysCount { get; set; }
+    public decimal TotalAmount { get; set; }
+}

@@ -149,4 +149,35 @@ public class ReportRepository(IDbConnectionFactory connectionFactory) : IReportR
         var result = await connection.QueryAsync<ProfitSummaryReportRow>(sql, new { FromDate = fromDate, ToDate = toDate });
         return result.ToList();
     }
+
+    public async Task<List<ExpenseByCategoryReportRow>> GetExpenseByCategoryAsync(DateTime fromDate, DateTime toDate)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT c.CategoryName, SUM(e.Amount) AS TotalAmount
+            FROM dbo.DailyExpense e
+            INNER JOIN dbo.ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
+            WHERE e.ExpenseDate BETWEEN @FromDate AND @ToDate
+            GROUP BY c.CategoryName
+            ORDER BY TotalAmount DESC;
+            """;
+        var result = await connection.QueryAsync<ExpenseByCategoryReportRow>(sql, new { FromDate = fromDate, ToDate = toDate });
+        return result.ToList();
+    }
+
+    public async Task<List<SalaryByEmployeeReportRow>> GetSalaryByEmployeeAsync(DateTime fromDate, DateTime toDate, int? employeeId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT emp.EmployeeID, emp.FullName AS EmployeeName, COUNT(*) AS WorkDaysCount, SUM(w.Amount) AS TotalAmount
+            FROM dbo.EmployeeWorkLog w
+            INNER JOIN dbo.EmployeeMaster emp ON emp.EmployeeID = w.EmployeeID
+            WHERE w.WorkDate BETWEEN @FromDate AND @ToDate
+              AND (@EmployeeID IS NULL OR w.EmployeeID = @EmployeeID)
+            GROUP BY emp.EmployeeID, emp.FullName
+            ORDER BY TotalAmount DESC;
+            """;
+        var result = await connection.QueryAsync<SalaryByEmployeeReportRow>(sql, new { FromDate = fromDate, ToDate = toDate, EmployeeID = employeeId });
+        return result.ToList();
+    }
 }

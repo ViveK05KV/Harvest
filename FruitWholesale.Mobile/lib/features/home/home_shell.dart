@@ -97,12 +97,12 @@ class _HomeShellState extends State<HomeShell> {
       NavItem(label: 'Inventory', icon: Icons.inventory_outlined, builder: (_) => const StockScreen()),
     ]),
     NavGroup(label: 'Reports', items: [
-      NavItem(label: 'Reports', icon: Icons.assessment_outlined, builder: (_) => const ReportsScreen(), roles: _backOffice),
+      NavItem(label: 'Reports', icon: Icons.assessment_outlined, builder: (_) => const ReportsScreen(), roles: [UserRole.admin]),
       NavItem(
         label: 'Profit Calculator',
         icon: Icons.trending_up,
         builder: (_) => const ProfitScreen(),
-        roles: [UserRole.admin, UserRole.accountant],
+        roles: [UserRole.admin],
       ),
     ]),
     NavGroup(label: 'Masters', items: [
@@ -123,13 +123,13 @@ class _HomeShellState extends State<HomeShell> {
         label: 'Users',
         icon: Icons.manage_accounts_outlined,
         builder: (_) => const UserListScreen(),
-        roles: [UserRole.admin, UserRole.accountant],
+        roles: [UserRole.admin],
       ),
       NavItem(
         label: 'Settings',
         icon: Icons.settings_outlined,
         builder: (_) => const SettingsScreen(),
-        roles: [UserRole.admin, UserRole.accountant],
+        roles: [UserRole.admin],
       ),
     ]),
   ];

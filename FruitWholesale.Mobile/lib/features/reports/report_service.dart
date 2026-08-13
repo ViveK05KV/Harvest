@@ -45,4 +45,14 @@ class ReportService {
     final json = await _api.get('/report/profit-summary', query: _range(from, to)) as List;
     return json.map((e) => ProfitSummaryRow.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  Future<List<ExpenseByCategoryRow>> expenseByCategory(DateTime from, DateTime to) async {
+    final json = await _api.get('/report/expense-by-category', query: _range(from, to)) as List;
+    return json.map((e) => ExpenseByCategoryRow.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<SalaryByEmployeeRow>> salaryByEmployee(DateTime from, DateTime to, {int? employeeId}) async {
+    final json = await _api.get('/report/salary-by-employee', query: {..._range(from, to), if (employeeId != null) 'employeeId': employeeId}) as List;
+    return json.map((e) => SalaryByEmployeeRow.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }

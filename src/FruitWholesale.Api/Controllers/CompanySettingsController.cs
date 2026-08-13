@@ -30,7 +30,7 @@ public class CompanySettingsController(ICompanySettingsService service) : ApiCon
     public async Task<ActionResult<CompanySettingsDto>> Save(UpsertCompanySettingsDto dto) => Ok(await service.SaveAsync(dto));
 
     [HttpPost("cash-adjustment")]
-    [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Accountant}")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult> ApplyCashAdjustment(CashAdjustmentDto dto) => FromResult(await service.ApplyCashAdjustmentAsync(dto));
 
     [HttpPost("logo")]

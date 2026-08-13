@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
+import '../../core/api/lookup_service.dart';
+import '../../core/models/employee_option.dart';
 import 'report_service.dart';
 
 enum _ReportType {
@@ -13,7 +15,9 @@ enum _ReportType {
   purchase('Purchase', needsDateRange: true),
   fruitSales('Fruit Sales', needsDateRange: true),
   outstanding('Outstanding', needsDateRange: false),
-  profitSummary('Profit Summary', needsDateRange: true);
+  profitSummary('Profit Summary', needsDateRange: true),
+  expenseByCategory('Expense by Category', needsDateRange: true),
+  salaryByEmployee('Salary by Employee', needsDateRange: true);
 
   final String label;
   final bool needsDateRange;
@@ -30,10 +34,15 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   late final ReportService _service = ReportService(context.read<ApiClient>());
+  late final LookupService _lookupService = LookupService(context.read<ApiClient>());
 
   _ReportType _type = _ReportType.dailySales;
   DateTime _from = DateTime.now().subtract(const Duration(days: 30));
   DateTime _to = DateTime.now();
+
+  List<EmployeeOption> _employees = [];
+  int? _selectedEmployeeId;
+  final _employeeController = TextEditingController();
 
   List<Widget>? _rows;
   String? _error;
@@ -43,7 +52,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void initState() {
     super.initState();
+    _lookupService.getActiveEmployees().then((employees) {
+      if (mounted) setState(() => _employees = employees);
+    });
     _run();
+  }
+
+  @override
+  void dispose() {
+    _employeeController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickDate({required bool isFrom}) async {
@@ -147,6 +165,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ),
           ];
+        case _ReportType.expenseByCategory:
+          final data = await _service.expenseByCategory(_from, _to);
+          rows = [
+            for (final r in data)
+              ListTile(
+                title: Text(r.categoryName),
+                trailing: Text(currencyFormat.format(r.totalAmount), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+          ];
+        case _ReportType.salaryByEmployee:
+          final data = await _service.salaryByEmployee(_from, _to, employeeId: _selectedEmployeeId);
+          rows = [
+            for (final r in data)
+              ListTile(
+                title: Text(r.employeeName),
+                subtitle: Text('${r.workDaysCount} work day${r.workDaysCount == 1 ? '' : 's'}'),
+                trailing: Text(currencyFormat.format(r.totalAmount), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+          ];
       }
       if (!mounted || requestId != _loadRequestId) return;
       setState(() => _rows = rows);
@@ -203,6 +240,41 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       IconButton(icon: const Icon(Icons.search), onPressed: _run),
                     ],
+                  ),
+                ],
+                if (_type == _ReportType.salaryByEmployee) ...[
+                  const SizedBox(height: 12),
+                  Autocomplete<EmployeeOption>(
+                    textEditingController: _employeeController,
+                    displayStringForOption: (employee) => employee.fullName,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      if (query.isEmpty) return _employees;
+                      return _employees.where((e) => e.fullName.toLowerCase().contains(query));
+                    },
+                    onSelected: (employee) {
+                      setState(() => _selectedEmployeeId = employee.employeeId);
+                      _run();
+                    },
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          labelText: 'Filter by Employee (optional)',
+                          suffixIcon: _selectedEmployeeId == null
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    controller.clear();
+                                    setState(() => _selectedEmployeeId = null);
+                                    _run();
+                                  },
+                                ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ],

@@ -5,10 +5,12 @@ import {
   DailyCollectionReportRow,
   DailyExpenseReportRow,
   DailySalesReportRow,
+  ExpenseByCategoryReportRow,
   FruitSalesReportRow,
   OutstandingReportRow,
   ProfitSummaryReportRow,
-  PurchaseReportRow
+  PurchaseReportRow,
+  SalaryByEmployeeReportRow
 } from '../../core/models/report.model';
 import { toHttpParams } from '../../core/utils/http-params.util';
 
@@ -48,5 +50,15 @@ export class ReportService {
 
   getProfitSummary(fromDate: string, toDate: string) {
     return this.http.get<ProfitSummaryReportRow[]>(`${this.baseUrl}/profit-summary`, { params: toHttpParams({ fromDate, toDate }) });
+  }
+
+  getExpenseByCategory(fromDate: string, toDate: string) {
+    return this.http.get<ExpenseByCategoryReportRow[]>(`${this.baseUrl}/expense-by-category`, { params: toHttpParams({ fromDate, toDate }) });
+  }
+
+  getSalaryByEmployee(fromDate: string, toDate: string, employeeId?: number | null) {
+    return this.http.get<SalaryByEmployeeReportRow[]>(`${this.baseUrl}/salary-by-employee`, {
+      params: toHttpParams({ fromDate, toDate, employeeId })
+    });
   }
 }

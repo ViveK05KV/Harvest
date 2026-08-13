@@ -10,17 +10,22 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { ReportService } from './report.service';
 import { ExportService } from '../../core/services/export.service';
+import { EmployeeService } from '../employee/employee.service';
 import { firstOfMonth, toIso } from '../../core/utils/date.util';
+import { Employee } from '../../core/models/master-data.model';
 import {
   DailyCollectionReportRow,
   DailyExpenseReportRow,
   DailySalesReportRow,
+  ExpenseByCategoryReportRow,
   FruitSalesReportRow,
   OutstandingReportRow,
   ProfitSummaryReportRow,
-  PurchaseReportRow
+  PurchaseReportRow,
+  SalaryByEmployeeReportRow
 } from '../../core/models/report.model';
 
 @Component({
@@ -39,13 +44,15 @@ import {
     MatNativeDateModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatAutocompleteModule
   ],
   templateUrl: './reports.component.html'
 })
 export class ReportsComponent implements OnInit {
   private readonly reportService = inject(ReportService);
   private readonly exportService = inject(ExportService);
+  private readonly employeeService = inject(EmployeeService);
 
   fromDate = firstOfMonth();
   toDate = new Date();
@@ -59,6 +66,8 @@ export class ReportsComponent implements OnInit {
   readonly fruitSales = signal<FruitSalesReportRow[]>([]);
   readonly outstanding = signal<OutstandingReportRow[]>([]);
   readonly profitSummary = signal<ProfitSummaryReportRow[]>([]);
+  readonly expenseByCategory = signal<ExpenseByCategoryReportRow[]>([]);
+  readonly salaryByEmployee = signal<SalaryByEmployeeReportRow[]>([]);
 
   readonly dailySalesColumns = ['supplyDate', 'invoiceNo', 'shopName', 'totalAmount'];
   readonly dailyCollectionColumns = ['collectionDate', 'shopName', 'amountReceived', 'paymentMode'];
@@ -67,10 +76,47 @@ export class ReportsComponent implements OnInit {
   readonly fruitSalesColumns = ['fruitName', 'unit', 'totalQuantity', 'totalAmount'];
   readonly outstandingColumns = ['type', 'name', 'outstandingAmount'];
   readonly profitColumns = ['month', 'totalSales', 'totalPurchases', 'totalExpenses', 'netProfit'];
+  readonly expenseByCategoryColumns = ['categoryName', 'totalAmount'];
+  readonly salaryByEmployeeColumns = ['employeeName', 'workDaysCount', 'totalAmount'];
   private loadRequestId = 0;
 
+  // Salary tab's employee filter - same searchable-dropdown pattern as the
+  // shop/supplier filters used across the transaction list pages.
+  readonly employees = signal<Employee[]>([]);
+  employeeId: number | null = null;
+  employeeSearch = '';
+
   ngOnInit(): void {
+    this.employeeService.getAllActive().subscribe((employees) => this.employees.set(employees));
     this.loadActiveTab();
+  }
+
+  filteredEmployees(search: string | null | undefined): Employee[] {
+    const term = (search ?? '').trim().toLowerCase();
+    if (!term) return this.employees();
+    return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
+  }
+
+  readonly displayEmployee = (value: unknown): string =>
+    typeof value === 'number' ? (this.employees().find((e) => e.employeeID === value)?.fullName ?? '') : typeof value === 'string' ? value : '';
+
+  onEmployeeFilterSelected(event: MatAutocompleteSelectedEvent): void {
+    const employeeId = event.option.value as number | null;
+    this.employeeId = employeeId;
+    this.employeeSearch = employeeId == null ? '' : (this.employees().find((e) => e.employeeID === employeeId)?.fullName ?? '');
+    this.onFilterChange();
+  }
+
+  onEmployeeSearchFocus(): void {
+    if (this.employeeSearch === (this.employees().find((e) => e.employeeID === this.employeeId)?.fullName ?? '')) this.employeeSearch = '';
+  }
+
+  // Typing away from the selected employee must clear the stale filter and
+  // reload - otherwise the field shows different text while the table stays
+  // silently filtered by whatever employee was previously selected.
+  onEmployeeSearchInput(): void {
+    this.employeeId = null;
+    this.onFilterChange();
   }
 
   onTabChange(index: number): void {
@@ -166,6 +212,26 @@ export class ReportsComponent implements OnInit {
           error: finish
         });
         break;
+      case 7:
+        this.reportService.getExpenseByCategory(from, to).subscribe({
+          next: (r) => {
+            if (isStale()) return;
+            this.expenseByCategory.set(r);
+            finish();
+          },
+          error: finish
+        });
+        break;
+      case 8:
+        this.reportService.getSalaryByEmployee(from, to, this.employeeId).subscribe({
+          next: (r) => {
+            if (isStale()) return;
+            this.salaryByEmployee.set(r);
+            finish();
+          },
+          error: finish
+        });
+        break;
     }
   }
 
@@ -254,6 +320,27 @@ export class ReportsComponent implements OnInit {
             { header: 'Net Profit', field: 'netProfit' }
           ],
           'profit-summary-report'
+        );
+        break;
+      case 7:
+        this.exportService.exportToExcel(
+          this.expenseByCategory(),
+          [
+            { header: 'Category', field: 'categoryName' },
+            { header: 'Amount', field: 'totalAmount' }
+          ],
+          'expense-by-category-report'
+        );
+        break;
+      case 8:
+        this.exportService.exportToExcel(
+          this.salaryByEmployee(),
+          [
+            { header: 'Employee', field: 'employeeName' },
+            { header: 'Work Days', field: 'workDaysCount' },
+            { header: 'Amount', field: 'totalAmount' }
+          ],
+          'salary-by-employee-report'
         );
         break;
     }

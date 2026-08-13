@@ -47,3 +47,15 @@ export interface ProfitSummaryReportRow {
   totalExpenses: number;
   netProfit: number;
 }
+
+export interface ExpenseByCategoryReportRow {
+  categoryName: string;
+  totalAmount: number;
+}
+
+export interface SalaryByEmployeeReportRow {
+  employeeID: number;
+  employeeName: string;
+  workDaysCount: number;
+  totalAmount: number;
+}

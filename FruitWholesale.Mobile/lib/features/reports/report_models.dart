@@ -123,3 +123,36 @@ class ProfitSummaryRow {
         netProfit: (json['netProfit'] as num).toDouble(),
       );
 }
+
+class ExpenseByCategoryRow {
+  final String categoryName;
+  final double totalAmount;
+
+  const ExpenseByCategoryRow({required this.categoryName, required this.totalAmount});
+
+  factory ExpenseByCategoryRow.fromJson(Map<String, dynamic> json) => ExpenseByCategoryRow(
+        categoryName: json['categoryName'] as String,
+        totalAmount: (json['totalAmount'] as num).toDouble(),
+      );
+}
+
+class SalaryByEmployeeRow {
+  final int employeeId;
+  final String employeeName;
+  final int workDaysCount;
+  final double totalAmount;
+
+  const SalaryByEmployeeRow({
+    required this.employeeId,
+    required this.employeeName,
+    required this.workDaysCount,
+    required this.totalAmount,
+  });
+
+  factory SalaryByEmployeeRow.fromJson(Map<String, dynamic> json) => SalaryByEmployeeRow(
+        employeeId: json['employeeID'] as int,
+        employeeName: json['employeeName'] as String,
+        workDaysCount: json['workDaysCount'] as int,
+        totalAmount: (json['totalAmount'] as num).toDouble(),
+      );
+}

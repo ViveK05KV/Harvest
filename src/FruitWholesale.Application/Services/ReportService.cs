@@ -12,6 +12,8 @@ public interface IReportService
     Task<List<FruitSalesReportRow>> GetFruitSalesReportAsync(DateTime fromDate, DateTime toDate);
     Task<List<OutstandingReportRow>> GetOutstandingReportAsync();
     Task<List<ProfitSummaryReportRow>> GetProfitSummaryAsync(DateTime fromDate, DateTime toDate);
+    Task<List<ExpenseByCategoryReportRow>> GetExpenseByCategoryAsync(DateTime fromDate, DateTime toDate);
+    Task<List<SalaryByEmployeeReportRow>> GetSalaryByEmployeeAsync(DateTime fromDate, DateTime toDate, int? employeeId);
 }
 
 public class ReportService(IReportRepository repository) : IReportService
@@ -35,4 +37,10 @@ public class ReportService(IReportRepository repository) : IReportService
 
     public Task<List<ProfitSummaryReportRow>> GetProfitSummaryAsync(DateTime fromDate, DateTime toDate) =>
         repository.GetProfitSummaryAsync(fromDate, toDate);
+
+    public Task<List<ExpenseByCategoryReportRow>> GetExpenseByCategoryAsync(DateTime fromDate, DateTime toDate) =>
+        repository.GetExpenseByCategoryAsync(fromDate, toDate);
+
+    public Task<List<SalaryByEmployeeReportRow>> GetSalaryByEmployeeAsync(DateTime fromDate, DateTime toDate, int? employeeId) =>
+        repository.GetSalaryByEmployeeAsync(fromDate, toDate, employeeId);
 }

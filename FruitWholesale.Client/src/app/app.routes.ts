@@ -155,22 +155,22 @@ export const routes: Routes = [
       {
         path: 'reports',
         loadComponent: () => import('./features/reports/reports.component').then((m) => m.ReportsComponent),
-        canActivate: backOfficeGuard
+        canActivate: [roleGuard('Admin')]
       },
       {
         path: 'profit',
         loadComponent: () => import('./features/profit/profit.component').then((m) => m.ProfitComponent),
-        canActivate: [roleGuard('Admin', 'Accountant')]
+        canActivate: [roleGuard('Admin')]
       },
       {
         path: 'users',
         loadComponent: () => import('./features/users/user-list.component').then((m) => m.UserListComponent),
-        canActivate: [roleGuard('Admin', 'Accountant')]
+        canActivate: [roleGuard('Admin')]
       },
       {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
-        canActivate: [roleGuard('Admin', 'Accountant')]
+        canActivate: [roleGuard('Admin')]
       }
     ]
   },

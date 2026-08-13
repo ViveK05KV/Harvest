@@ -17,6 +17,27 @@
     </mat-form-field>
   }
 
+  @if (activeTab() === 8) {
+    <mat-form-field subscriptSizing="dynamic" style="width: 220px">
+      <mat-label>Filter by Employee</mat-label>
+      <input
+        matInput
+        [(ngModel)]="employeeSearch"
+        placeholder="Search employee"
+        [matAutocomplete]="employeeFilterAuto"
+        (focus)="onEmployeeSearchFocus()"
+        (click)="onEmployeeSearchFocus()"
+        (input)="onEmployeeSearchInput()"
+      />
+      <mat-autocomplete #employeeFilterAuto="matAutocomplete" [displayWith]="displayEmployee" (optionSelected)="onEmployeeFilterSelected($event)">
+        <mat-option [value]="null">All Employees</mat-option>
+        @for (employee of filteredEmployees(employeeSearch); track employee.employeeID) {
+          <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+  }
+
   <span class="spacer"></span>
 
   <button mat-stroked-button (click)="exportExcel()">
@@ -206,6 +227,56 @@
         <tr mat-header-row *matHeaderRowDef="profitColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: profitColumns"></tr>
       </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Expense by Category">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="expenseByCategory()">
+        <ng-container matColumnDef="categoryName">
+          <th mat-header-cell *matHeaderCellDef>Category</th>
+          <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalAmount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="expenseByCategoryColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: expenseByCategoryColumns"></tr>
+      </table>
+
+      @if (!loading() && expenseByCategory().length === 0) {
+        <div class="empty-state">
+          <p>No expenses recorded for this date range.</p>
+        </div>
+      }
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Salary by Employee">
+    <div class="table-container tab-table">
+      <table mat-table [dataSource]="salaryByEmployee()">
+        <ng-container matColumnDef="employeeName">
+          <th mat-header-cell *matHeaderCellDef>Employee</th>
+          <td mat-cell *matCellDef="let row">{{ row.employeeName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="workDaysCount">
+          <th mat-header-cell *matHeaderCellDef>Work Days</th>
+          <td mat-cell *matCellDef="let row">{{ row.workDaysCount }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalAmount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="salaryByEmployeeColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: salaryByEmployeeColumns"></tr>
+      </table>
+
+      @if (!loading() && salaryByEmployee().length === 0) {
+        <div class="empty-state">
+          <p>No work-log entries for this date range.</p>
+        </div>
+      }
     </div>
   </mat-tab>
 </mat-tab-group>
