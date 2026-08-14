@@ -7,19 +7,10 @@ class SupplyService {
 
   SupplyService(this._api);
 
-  Future<PaginatedList<SupplyListItem>> getPaged({
-    int pageNumber = 1,
-    int pageSize = 20,
-    int? shopId,
-    String? fromDate,
-    String? toDate,
-  }) async {
+  Future<PaginatedList<SupplyListItem>> getPaged({int pageNumber = 1, int pageSize = 20}) async {
     final json = await _api.get('/supply', query: {
       'pageNumber': pageNumber,
       'pageSize': pageSize,
-      if (shopId != null) 'shopId': shopId,
-      if (fromDate != null) 'fromDate': fromDate,
-      if (toDate != null) 'toDate': toDate,
     });
     return PaginatedList.fromJson(json as Map<String, dynamic>, SupplyListItem.fromJson);
   }
@@ -27,11 +18,6 @@ class SupplyService {
   Future<SupplyDetail> getById(int id) async {
     final json = await _api.get('/supply/$id');
     return SupplyDetail.fromJson(json as Map<String, dynamic>);
-  }
-
-  Future<SupplyBillExtras> getBillExtras(int id) async {
-    final json = await _api.get('/supply/$id/bill');
-    return SupplyBillExtras.fromJson(json as Map<String, dynamic>);
   }
 
   Future<String> getNextInvoiceNo() async {

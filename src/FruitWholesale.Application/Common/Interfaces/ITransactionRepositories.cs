@@ -1,5 +1,4 @@
 using FruitWholesale.Application.DTOs.Collection;
-using FruitWholesale.Application.DTOs.Supply;
 using FruitWholesale.Domain.Entities;
 using FruitWholesale.Shared.Pagination;
 
@@ -14,7 +13,6 @@ public interface ISupplyRepository
     Task DeleteAsync(int supplyId);
     Task<bool> InvoiceNoExistsAsync(string invoiceNo, int? excludeSupplyId = null);
     Task<string> GenerateNextInvoiceNoAsync();
-    Task<SupplyBillExtrasDto> GetBillExtrasAsync(int supplyId);
 }
 
 public interface IPurchaseRepository
