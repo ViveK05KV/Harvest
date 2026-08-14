@@ -13,7 +13,6 @@ public interface ISupplyService
     Task<PaginatedList<SupplyListItemDto>> GetPagedAsync(PaginationRequest request, int? shopId, DateTime? fromDate, DateTime? toDate);
     Task<SupplyDto> GetByIdAsync(int supplyId);
     Task<string> GetNextInvoiceNoAsync();
-    Task<SupplyBillExtrasDto> GetBillExtrasAsync(int supplyId);
     Task<Result<SupplyDto>> CreateAsync(CreateSupplyDto dto, int? userId);
     Task<Result<SupplyDto>> UpdateAsync(UpdateSupplyDto dto);
     Task DeleteAsync(int supplyId);
@@ -34,8 +33,6 @@ public class SupplyService(ISupplyRepository repository, IMapper mapper) : ISupp
     }
 
     public Task<string> GetNextInvoiceNoAsync() => repository.GenerateNextInvoiceNoAsync();
-
-    public Task<SupplyBillExtrasDto> GetBillExtrasAsync(int supplyId) => repository.GetBillExtrasAsync(supplyId);
 
     public async Task<Result<SupplyDto>> CreateAsync(CreateSupplyDto dto, int? userId)
     {

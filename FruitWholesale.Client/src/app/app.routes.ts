@@ -71,11 +71,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/supply/supply-form.component').then((m) => m.SupplyFormComponent)
       },
       {
-        path: 'bill-printing',
-        loadComponent: () =>
-          import('./features/bill-printing/bill-printing-list.component').then((m) => m.BillPrintingListComponent)
-      },
-      {
         path: 'shop-returns',
         loadComponent: () => import('./features/shop-return/shop-return-list.component').then((m) => m.ShopReturnListComponent)
       },

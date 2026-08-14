@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PaginatedList, PaginationRequest } from '../../core/models/common.model';
-import { SaveSupply, Supply, SupplyBillExtras, SupplyListItem } from '../../core/models/transactions.model';
+import { SaveSupply, Supply, SupplyListItem } from '../../core/models/transactions.model';
 import { toHttpParams } from '../../core/utils/http-params.util';
 
 @Injectable({ providedIn: 'root' })
@@ -24,10 +24,6 @@ export class SupplyService {
 
   getNextInvoiceNo(): Observable<string> {
     return this.http.get(`${this.baseUrl}/next-invoice-no`, { responseType: 'text' });
-  }
-
-  getBillExtras(id: number): Observable<SupplyBillExtras> {
-    return this.http.get<SupplyBillExtras>(`${this.baseUrl}/${id}/bill`);
   }
 
   create(dto: SaveSupply): Observable<Supply> {

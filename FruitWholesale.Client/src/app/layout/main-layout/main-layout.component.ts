@@ -76,7 +76,6 @@ export class MainLayoutComponent {
       label: 'Transactions',
       items: [
         { label: 'Supply', icon: 'local_shipping', route: '/supply' },
-        { label: 'Bill Printing', icon: 'print', route: '/bill-printing' },
         { label: 'Shop Returns', icon: 'assignment_return', route: '/shop-returns' },
         { label: 'Purchase', icon: 'shopping_cart', route: '/purchase', roles: MainLayoutComponent.BACK_OFFICE },
         {
