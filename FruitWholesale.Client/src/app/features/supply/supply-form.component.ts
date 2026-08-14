@@ -19,6 +19,7 @@ import { ShopMasterService } from '../shop-master/shop-master.service';
 import { FruitMasterService } from '../fruit-master/fruit-master.service';
 import { ShopMaster, FruitMaster } from '../../core/models/master-data.model';
 import { NotificationService } from '../../core/services/notification.service';
+import { AuthService } from '../../core/services/auth.service';
 import { toIso } from '../../core/utils/date.util';
 
 @Component({
@@ -49,8 +50,12 @@ export class SupplyFormComponent implements OnInit {
   private readonly shopService = inject(ShopMasterService);
   private readonly fruitService = inject(FruitMasterService);
   private readonly notification = inject(NotificationService);
+  private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  readonly isAdmin = this.authService.hasRole('Admin');
+  readonly editingAmountIndex = signal<number | null>(null);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -117,11 +122,16 @@ export class SupplyFormComponent implements OnInit {
     this.form.controls.shopID.setValue(null);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onShopSelected can patch shopID first, otherwise a mouse
+  // click on a filtered option gets wiped by this clearing the text.
   onShopSearchBlur(): void {
-    // If user hasn't selected a valid shop from dropdown, clear the search field
-    if (this.form.controls.shopID.value === null) {
-      this.form.controls.shopSearch.setValue('');
-    }
+    setTimeout(() => {
+      // If user hasn't selected a valid shop from dropdown, clear the search field
+      if (this.form.controls.shopID.value === null) {
+        this.form.controls.shopSearch.setValue('');
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -264,14 +274,39 @@ export class SupplyFormComponent implements OnInit {
 
   rowAmount(index: number): number {
     const item = this.itemsArray.at(index).getRawValue();
-    if (this.fruitTracksByBox(item.fruitID) && item.saleType === 'box') {
-      return (item.boxCount || 0) * (item.unitPrice || 0);
-    }
-    return (item.quantity || 0) * (item.unitPrice || 0);
+    const raw =
+      this.fruitTracksByBox(item.fruitID) && item.saleType === 'box'
+        ? (item.boxCount || 0) * (item.unitPrice || 0)
+        : (item.quantity || 0) * (item.unitPrice || 0);
+    // Amounts are posted to the ledger rounded up to the next whole rupee.
+    return Math.ceil(raw);
   }
 
   total(): number {
     return this.itemsArray.controls.reduce((sum, _, i) => sum + this.rowAmount(i), 0);
+  }
+
+  // Admin-only: let the row's Amount be typed directly, back-solving Rate
+  // from it (Rate = Amount / effective quantity) instead of the usual
+  // Rate-in, Amount-out direction. Double-click enters edit mode; the
+  // input auto-focuses/selects so typing replaces the shown amount outright.
+  startEditAmount(index: number, event: MouseEvent): void {
+    this.editingAmountIndex.set(index);
+    const cell = (event.target as HTMLElement).closest('td');
+    setTimeout(() => cell?.querySelector('input')?.select());
+  }
+
+  onAmountChange(index: number, event: Event): void {
+    const amount = Number((event.target as HTMLInputElement).value);
+    const item = this.itemsArray.at(index);
+    const raw = item.getRawValue();
+    const usesBox = this.fruitTracksByBox(raw.fruitID) && raw.saleType === 'box';
+    const divisor = usesBox ? raw.boxCount : raw.quantity;
+
+    if (amount && amount > 0 && divisor) {
+      item.patchValue({ unitPrice: Math.round((amount / divisor) * 100) / 100 });
+    }
+    this.editingAmountIndex.set(null);
   }
 
   fruitName(fruitID: number | null): string {

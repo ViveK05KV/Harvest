@@ -133,7 +133,17 @@
                     <span class="rate-unit">{{ fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box' ? '/box' : '/kg' }}</span>
                   </div>
                 </td>
-                <td class="amount-cell">{{ rowAmount(i) | number: '1.2-2' }}</td>
+                <td class="amount-cell">
+                  @if (isAdmin && editingAmountIndex() === i) {
+                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
+                      <input matInput type="number" [value]="rowAmount(i)" (blur)="onAmountChange(i, $event)" min="0" step="1" />
+                    </mat-form-field>
+                  } @else {
+                    <span [class.admin-editable-amount]="isAdmin" (dblclick)="isAdmin && startEditAmount(i, $event)">
+                      {{ rowAmount(i) | number: '1.0-0' }}
+                    </span>
+                  }
+                </td>
                 <td>
                   <button mat-icon-button type="button" (click)="removeRow(i)">
                     <mat-icon>delete</mat-icon>
@@ -147,7 +157,7 @@
 
       <div class="grand-total">
         <span>Grand Total:</span>
-        <strong>{{ total() | number: '1.2-2' }}</strong>
+        <strong>{{ total() | number: '1.0-0' }}</strong>
       </div>
     </form>
   </mat-card>
@@ -174,14 +184,14 @@
             <td>{{ fruitName(item.value.fruitID) }}</td>
             <td>{{ item.value.quantity }} {{ fruitUnit(item.value.fruitID) }}</td>
             <td>{{ item.value.unitPrice | number: '1.2-2' }}</td>
-            <td>{{ rowAmount(i) | number: '1.2-2' }}</td>
+            <td>{{ rowAmount(i) | number: '1.0-0' }}</td>
           </tr>
         }
       </tbody>
       <tfoot>
         <tr>
           <td colspan="3">Grand Total</td>
-          <td>{{ total() | number: '1.2-2' }}</td>
+          <td>{{ total() | number: '1.0-0' }}</td>
         </tr>
       </tfoot>
     </table>
