@@ -269,6 +269,42 @@ table.mat-mdc-table {
   background: var(--mat-sys-surface-container-low);
 }
 
+.clickable-row {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-low);
+  }
+}
+
+// Bill printing: isolate the receipt inside the dialog from the rest of the
+// app (sidenav, toolbar, dialog backdrop) so only .bill-print-area comes out
+// of window.print(). The dialog panel/backdrop live outside app-root in the
+// CDK overlay container, so this has to be a global rule, not a component one.
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .bill-print-area,
+  .bill-print-area * {
+    visibility: visible;
+  }
+
+  .bill-print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .bill-print-dialog-panel .mat-mdc-dialog-actions,
+  .cdk-overlay-backdrop {
+    display: none !important;
+  }
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

@@ -33,6 +33,15 @@ public class SupplyListItemDto
     public decimal TotalAmount { get; set; }
 }
 
+// Bill-print figures that aren't part of the Supply record itself: the shop's
+// running balance immediately before this invoice, and same-day Collections
+// (real cash received) to suggest as the printed "Cash Received" amount.
+public class SupplyBillExtrasDto
+{
+    public decimal OldBalance { get; set; }
+    public decimal SuggestedCashReceived { get; set; }
+}
+
 public class SaveSupplyItemDto
 {
     public int FruitID { get; set; }

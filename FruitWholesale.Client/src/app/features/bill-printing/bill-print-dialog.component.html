@@ -1,0 +1,79 @@
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+  <div class="loading-pad">Loading bill...</div>
+} @else if (supply(); as s) {
+  <div mat-dialog-content class="bill-print-area">
+    <div class="bill-header">
+      <div class="company-name">{{ branding.companyName() }}</div>
+      @if (branding.companySettings()?.address; as address) {
+        <div class="company-line">{{ address }}</div>
+      }
+      @if (branding.companySettings()?.phone; as phone) {
+        <div class="company-line">Phone: {{ phone }}</div>
+      }
+    </div>
+
+    <div class="bill-rule"></div>
+
+    <div class="bill-meta">
+      <div><span>Bill</span><span>: {{ s.invoiceNo }}</span></div>
+      <div><span>Date</span><span>: {{ s.supplyDate | date: 'dd/MM/yyyy' }}</span></div>
+      <div><span>Customer</span><span>: {{ s.shopName }}</span></div>
+      @if (shopPhone()) {
+        <div><span>Phone</span><span>: {{ shopPhone() }}</span></div>
+      }
+    </div>
+
+    <div class="bill-rule"></div>
+
+    <table class="bill-items">
+      <thead>
+        <tr>
+          <th class="col-no">#</th>
+          <th class="col-name">Item Name</th>
+          <th class="col-num">Rate</th>
+          <th class="col-num">Qty</th>
+          <th class="col-num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of s.items; track item.supplyItemID; let i = $index) {
+          <tr>
+            <td class="col-no">{{ i + 1 }}</td>
+            <td class="col-name">{{ item.fruitName }}</td>
+            <td class="col-num">{{ item.unitPrice | number: '1.2-2' }}</td>
+            <td class="col-num">{{ (item.boxCount && item.boxCount > 0 ? item.boxCount : item.quantity) | number: '1.0-3' }}</td>
+            <td class="col-num">{{ item.totalAmount | number: '1.2-2' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="bill-rule"></div>
+
+    <div class="bill-summary">
+      <div class="bill-row"><span>Sales Amount</span><span>{{ s.totalAmount | number: '1.2-2' }}</span></div>
+      <div class="bill-row"><span>Old Balance</span><span>{{ oldBalance() | number: '1.2-2' }}</span></div>
+      <div class="bill-row bill-row--input">
+        <span>Cash Received</span>
+        <input
+          class="cash-received-input"
+          type="number"
+          step="0.01"
+          [ngModel]="cashReceived()"
+          (ngModelChange)="onCashReceivedChange($event)"
+        />
+      </div>
+      <div class="bill-rule"></div>
+      <div class="bill-row bill-row--total"><span>Net Balance</span><span>{{ netBalance() | number: '1.2-2' }}</span></div>
+    </div>
+  </div>
+
+  <div class="dialog-actions" mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Close</button>
+    <button mat-flat-button color="primary" (click)="print()">
+      <mat-icon>print</mat-icon>
+      Print
+    </button>
+  </div>
+}
