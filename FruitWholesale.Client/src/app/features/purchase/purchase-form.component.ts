@@ -149,10 +149,15 @@ export class PurchaseFormComponent implements OnInit {
     this.form.controls.supplierID.setValue(null);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onSupplierSelected can patch supplierID first, otherwise a
+  // mouse click on a filtered option gets wiped by this clearing the text.
   onSupplierSearchBlur(): void {
-    if (this.form.controls.supplierID.value === null) {
-      this.form.controls.supplierSearch.setValue('');
-    }
+    setTimeout(() => {
+      if (this.form.controls.supplierID.value === null) {
+        this.form.controls.supplierSearch.setValue('');
+      }
+    });
   }
 
   buildItem(fruitID: number | null = null, quantity = 0, purchasePrice = 0, boxCount: number | null = null) {

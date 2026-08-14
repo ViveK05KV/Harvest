@@ -110,10 +110,15 @@ export class EmployeeWorkLogFormComponent implements OnInit {
     this.form.controls.employeeID.setValue(null);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onEmployeeSelected can patch employeeID first, otherwise a
+  // mouse click on a filtered option gets wiped by this clearing the text.
   onEmployeeSearchBlur(): void {
-    if (this.form.controls.employeeID.value === null) {
-      this.form.controls.employeeSearch.setValue('');
-    }
+    setTimeout(() => {
+      if (this.form.controls.employeeID.value === null) {
+        this.form.controls.employeeSearch.setValue('');
+      }
+    });
   }
 
   save(): void {

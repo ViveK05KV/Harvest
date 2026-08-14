@@ -9,6 +9,7 @@
         placeholder="Search shop"
         [matAutocomplete]="shopAuto"
         (focus)="onShopSearchFocus()"
+        (click)="onShopSearchFocus()"
         (input)="onShopSearchInput()"
         (blur)="onShopSearchBlur()"
         [attr.autocomplete]="'off'"

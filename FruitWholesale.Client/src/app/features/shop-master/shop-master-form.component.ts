@@ -102,10 +102,16 @@ export class ShopMasterFormComponent implements OnInit {
     this.form.controls.linkedSupplierID.setValue(null);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onLinkedSupplierSelected can patch linkedSupplierID first,
+  // otherwise a mouse click on a filtered option gets wiped by this
+  // clearing the text.
   onLinkedSupplierSearchBlur(): void {
-    if (this.form.controls.linkedSupplierID.value === null) {
-      this.form.controls.linkedSupplierSearch.setValue('');
-    }
+    setTimeout(() => {
+      if (this.form.controls.linkedSupplierID.value === null) {
+        this.form.controls.linkedSupplierSearch.setValue('');
+      }
+    });
   }
 
   save(): void {

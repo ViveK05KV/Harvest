@@ -170,10 +170,15 @@ export class SupplierReturnFormComponent implements OnInit {
     this.supplierPurchases.set([]);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onSupplierSelected can patch supplierID first, otherwise a
+  // mouse click on a filtered option gets wiped by this clearing the text.
   onSupplierSearchBlur(): void {
-    if (this.form.controls.supplierID.value === null) {
-      this.form.controls.supplierSearch.setValue('');
-    }
+    setTimeout(() => {
+      if (this.form.controls.supplierID.value === null) {
+        this.form.controls.supplierSearch.setValue('');
+      }
+    });
   }
 
   private loadSupplierPurchases(supplierId: number): void {

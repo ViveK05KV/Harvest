@@ -85,10 +85,15 @@ export class StockAdjustmentFormComponent implements OnInit {
     this.form.controls.fruitID.setValue(null);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onFruitSelected can patch fruitID first, otherwise a mouse
+  // click on a filtered option gets wiped by this clearing the text.
   onFruitSearchBlur(): void {
-    if (this.form.controls.fruitID.value === null) {
-      this.form.controls.fruitSearch.setValue('');
-    }
+    setTimeout(() => {
+      if (this.form.controls.fruitID.value === null) {
+        this.form.controls.fruitSearch.setValue('');
+      }
+    });
   }
 
   save(): void {

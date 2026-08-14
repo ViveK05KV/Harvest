@@ -118,10 +118,15 @@ export class CollectionFormComponent implements OnInit {
     this.form.controls.shopID.setValue(null);
   }
 
+  // Blur fires before mat-option's mousedown/click finishes selecting -
+  // defer so onShopSelected can patch shopID first, otherwise a mouse
+  // click on a filtered option gets wiped by this clearing the text.
   onShopSearchBlur(): void {
-    if (this.form.controls.shopID.value === null) {
-      this.form.controls.shopSearch.setValue('');
-    }
+    setTimeout(() => {
+      if (this.form.controls.shopID.value === null) {
+        this.form.controls.shopSearch.setValue('');
+      }
+    });
   }
 
   save(): void {
