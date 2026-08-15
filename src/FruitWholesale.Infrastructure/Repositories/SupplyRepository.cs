@@ -1,5 +1,6 @@
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
+using FruitWholesale.Application.DTOs.Supply;
 using FruitWholesale.Domain.Entities;
 using FruitWholesale.Domain.Enums;
 using FruitWholesale.Shared.Pagination;
@@ -267,5 +268,25 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             WHERE InvoiceNo LIKE 'SUP%'
             """);
         return $"SUP{(maxSeq ?? 0) + 1:D6}";
+    }
+
+    public async Task<SupplyBillExtrasDto> GetBillExtrasAsync(int supplyId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT ISNULL((
+                SELECT TOP 1 RunningBalance - Debit FROM dbo.ShopLedger
+                WHERE TransactionType = @TransactionType AND ReferenceID = @SupplyID
+            ), 0) AS OldBalance,
+            ISNULL((
+                SELECT SUM(c.AmountReceived) FROM dbo.Collections c
+                INNER JOIN dbo.Supply s ON s.SupplyID = @SupplyID
+                WHERE c.ShopID = s.ShopID
+                  AND CAST(c.CollectionDate AS DATE) = CAST(s.SupplyDate AS DATE)
+                  AND c.CollectionType = @CollectionType
+            ), 0) AS SuggestedCashReceived;
+            """;
+        return await connection.QuerySingleAsync<SupplyBillExtrasDto>(sql,
+            new { SupplyID = supplyId, TransactionType = LedgerTransactionTypes.Supply, CollectionType = CollectionTypes.Normal });
     }
 }

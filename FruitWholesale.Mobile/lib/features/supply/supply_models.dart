@@ -109,3 +109,20 @@ class SupplyDetail {
         'items': items.map((i) => i.toSaveJson()).toList(),
       };
 }
+
+/// Bill-printing extras for a Supply invoice (from GET /supply/{id}/bill):
+/// the shop's ledger balance immediately before this invoice, and same-day
+/// collection total as a starting suggestion for Cash Received.
+class SupplyBillExtras {
+  final double oldBalance;
+  final double suggestedCashReceived;
+
+  const SupplyBillExtras({required this.oldBalance, required this.suggestedCashReceived});
+
+  factory SupplyBillExtras.fromJson(Map<String, dynamic> json) {
+    return SupplyBillExtras(
+      oldBalance: (json['oldBalance'] as num).toDouble(),
+      suggestedCashReceived: (json['suggestedCashReceived'] as num).toDouble(),
+    );
+  }
+}
