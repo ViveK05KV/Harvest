@@ -21,6 +21,9 @@ public class SupplyController(ISupplyService service, ICurrentUserService curren
     [HttpGet("next-invoice-no")]
     public async Task<ActionResult<string>> GetNextInvoiceNo() => Ok(await service.GetNextInvoiceNoAsync());
 
+    [HttpGet("{id:int}/bill")]
+    public async Task<ActionResult<SupplyBillExtrasDto>> GetBillExtras(int id) => Ok(await service.GetBillExtrasAsync(id));
+
     [HttpPost]
     public async Task<ActionResult<SupplyDto>> Create(CreateSupplyDto dto) => FromResult(await service.CreateAsync(dto, currentUserService.UserId));
 

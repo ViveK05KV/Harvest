@@ -30,6 +30,11 @@ export interface SupplyListItem {
   totalAmount: number;
 }
 
+export interface SupplyBillExtras {
+  oldBalance: number;
+  suggestedCashReceived: number;
+}
+
 export interface SaveSupplyItem {
   fruitID: number | null;
   quantity: number;

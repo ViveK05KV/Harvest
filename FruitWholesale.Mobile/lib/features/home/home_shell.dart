@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/models/nav_item.dart';
 import '../../core/models/user_role.dart';
+import '../bill_printing/bill_printing_list_screen.dart';
 import '../collections/collections_list_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../daily_expense/daily_expense_list_screen.dart';
@@ -56,6 +57,7 @@ class _HomeShellState extends State<HomeShell> {
     ], label: 'Overview'),
     NavGroup(label: 'Transactions', items: [
       NavItem(label: 'Supply', icon: Icons.local_shipping_outlined, builder: (_) => const SupplyListScreen()),
+      NavItem(label: 'Bill Printing', icon: Icons.print_outlined, builder: (_) => const BillPrintingListScreen()),
       NavItem(label: 'Shop Returns', icon: Icons.assignment_return_outlined, builder: (_) => const ShopReturnListScreen()),
       NavItem(label: 'Purchase', icon: Icons.shopping_cart_outlined, builder: (_) => const PurchaseListScreen(), roles: _backOffice),
       NavItem(
