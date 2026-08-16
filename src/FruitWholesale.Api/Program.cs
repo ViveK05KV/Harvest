@@ -1,4 +1,5 @@
 using System.Text;
+using Amazon.Lambda.AspNetCoreServer.Hosting;
 using FruitWholesale.Api.Filters;
 using FruitWholesale.Api.Middleware;
 using FruitWholesale.Api.Services;
@@ -20,6 +21,10 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30)
     .CreateLogger();
 builder.Host.UseSerilog();
+
+// Adapts the app to run on AWS Lambda behind a Function URL / HTTP API.
+// No-op when not running in Lambda, so local dev is unaffected.
+builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()

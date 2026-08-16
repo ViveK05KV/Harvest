@@ -4,9 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The AWS Lambda provided.al2023 runtime ships without libicu; .NET FailFasts on
+         startup without it. Run culture-invariant so no ICU is required (safe for this
+         JSON API — it doesn't do culture-specific parsing/formatting). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
@@ -27,5 +32,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <!-- AWS Lambda custom runtime (provided.al2023) requires the entrypoint executable to be
+       named 'bootstrap'. On a self-contained RID publish (how the Lambda package is built),
+       rename the apphost to 'bootstrap'. It still loads FruitWholesale.Api.dll beside it.
+       Guarded on RuntimeIdentifier so local dev builds/runs are unaffected. -->
+  <Target Name="RenameApphostToBootstrap" AfterTargets="Publish"
+          Condition="'$(RuntimeIdentifier)' != '' And Exists('$(PublishDir)$(AssemblyName)')">
+    <Move SourceFiles="$(PublishDir)$(AssemblyName)" DestinationFiles="$(PublishDir)bootstrap" OverwriteReadOnlyFiles="true" />
+    <Exec Command="chmod +x &quot;$(PublishDir)bootstrap&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+  </Target>
 
 </Project>

@@ -1,0 +1,56 @@
+name: Deploy Web to S3 + CloudFront
+
+# Builds the Angular app and publishes it to S3, then invalidates CloudFront.
+# Runs on pushes to main that touch frontend code, or manually via "Run workflow".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "FruitWholesale.Client/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for GitHub OIDC -> AWS
+  contents: read
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+env:
+  S3_BUCKET: harvest-erp-web-426187995582
+  CLOUDFRONT_DISTRIBUTION_ID: E2GOH5XW7X0XGO
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FruitWholesale.Client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: FruitWholesale.Client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build -- --configuration production
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::426187995582:role/harvest-github-deploy
+          aws-region: ap-south-1   # S3 bucket region; CloudFront is global
+
+      - name: Sync to S3
+        run: aws s3 sync dist/FruitWholesale.Client/browser "s3://${S3_BUCKET}/" --delete
+
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths '/*'
