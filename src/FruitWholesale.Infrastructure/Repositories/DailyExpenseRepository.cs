@@ -13,8 +13,8 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT e.*, c.CategoryName FROM dbo.DailyExpense e
-            INNER JOIN dbo.ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
+            SELECT e.*, c.CategoryName FROM DailyExpense e
+            INNER JOIN ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
             WHERE e.ExpenseID = @ExpenseID;
             """;
         return await connection.QueryFirstOrDefaultAsync<DailyExpense>(sql, new { ExpenseID = expenseId });
@@ -24,19 +24,19 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.DailyExpense e
-            INNER JOIN dbo.ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
-            WHERE (@ExpenseCategoryID IS NULL OR e.ExpenseCategoryID = @ExpenseCategoryID)
-              AND (@FromDate IS NULL OR e.ExpenseDate >= @FromDate)
-              AND (@ToDate IS NULL OR e.ExpenseDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR e.PaidTo LIKE @SearchPattern OR c.CategoryName LIKE @SearchPattern);
+            SELECT COUNT(*) FROM DailyExpense e
+            INNER JOIN ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
+            WHERE (@ExpenseCategoryID::int IS NULL OR e.ExpenseCategoryID = @ExpenseCategoryID)
+              AND (@FromDate::timestamp IS NULL OR e.ExpenseDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR e.ExpenseDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR e.PaidTo ILIKE @SearchPattern OR c.CategoryName ILIKE @SearchPattern);
 
-            SELECT e.*, c.CategoryName FROM dbo.DailyExpense e
-            INNER JOIN dbo.ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
-            WHERE (@ExpenseCategoryID IS NULL OR e.ExpenseCategoryID = @ExpenseCategoryID)
-              AND (@FromDate IS NULL OR e.ExpenseDate >= @FromDate)
-              AND (@ToDate IS NULL OR e.ExpenseDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR e.PaidTo LIKE @SearchPattern OR c.CategoryName LIKE @SearchPattern)
+            SELECT e.*, c.CategoryName FROM DailyExpense e
+            INNER JOIN ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
+            WHERE (@ExpenseCategoryID::int IS NULL OR e.ExpenseCategoryID = @ExpenseCategoryID)
+              AND (@FromDate::timestamp IS NULL OR e.ExpenseDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR e.ExpenseDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR e.PaidTo ILIKE @SearchPattern OR c.CategoryName ILIKE @SearchPattern)
             ORDER BY e.ExpenseDate DESC, e.ExpenseID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -63,9 +63,9 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
         try
         {
             const string insertSql = """
-                INSERT INTO dbo.DailyExpense (ExpenseDate, ExpenseCategoryID, Amount, PaymentMode, PaidTo, Description, CreatedBy)
-                OUTPUT INSERTED.ExpenseID
-                VALUES (@ExpenseDate, @ExpenseCategoryID, @Amount, @PaymentMode, @PaidTo, @Description, @CreatedBy);
+                INSERT INTO DailyExpense (ExpenseDate, ExpenseCategoryID, Amount, PaymentMode, PaidTo, Description, CreatedBy)
+                VALUES (@ExpenseDate, @ExpenseCategoryID, @Amount, @PaymentMode, @PaidTo, @Description, @CreatedBy)
+                RETURNING ExpenseID;
                 """;
             var expenseId = await connection.QuerySingleAsync<int>(insertSql, expense, transaction);
 
@@ -92,9 +92,9 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
         try
         {
             const string updateSql = """
-                UPDATE dbo.DailyExpense
+                UPDATE DailyExpense
                 SET ExpenseDate = @ExpenseDate, ExpenseCategoryID = @ExpenseCategoryID, Amount = @Amount,
-                    PaymentMode = @PaymentMode, PaidTo = @PaidTo, Description = @Description, UpdatedAt = SYSUTCDATETIME()
+                    PaymentMode = @PaymentMode, PaidTo = @PaidTo, Description = @Description, UpdatedAt = (now() AT TIME ZONE 'utc')
                 WHERE ExpenseID = @ExpenseID;
                 """;
             await connection.ExecuteAsync(updateSql, expense, transaction);
@@ -122,7 +122,7 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
         try
         {
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.DailyExpense, expenseId);
-            await connection.ExecuteAsync("DELETE FROM dbo.DailyExpense WHERE ExpenseID = @ExpenseID", new { ExpenseID = expenseId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM DailyExpense WHERE ExpenseID = @ExpenseID", new { ExpenseID = expenseId }, transaction);
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();
@@ -141,7 +141,7 @@ public class DailyExpenseRepository(IDbConnectionFactory connectionFactory, ILed
     private static async Task<string> ExpenseNarrationAsync(IDbConnection connection, IDbTransaction transaction, DailyExpense expense)
     {
         var categoryName = await connection.QueryFirstOrDefaultAsync<string>(
-            "SELECT CategoryName FROM dbo.ExpenseCategory WHERE ExpenseCategoryID = @ExpenseCategoryID",
+            "SELECT CategoryName FROM ExpenseCategory WHERE ExpenseCategoryID = @ExpenseCategoryID",
             new { expense.ExpenseCategoryID }, transaction) ?? "Expense";
         return string.IsNullOrWhiteSpace(expense.PaidTo) ? categoryName : $"{categoryName} - {expense.PaidTo}";
     }

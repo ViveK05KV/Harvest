@@ -1,197 +1,188 @@
 /* =====================================================================
    Fruit Wholesale Management System
    01_CreateDatabase_Tables.sql
-   Creates the database and all core tables, primary keys, foreign keys
-   and default constraints.
+   Creates all core tables, primary keys, foreign keys and default
+   constraints. Run against an existing (already-created) database —
+   Postgres can't CREATE DATABASE from inside a script running against
+   a connection to another database; create FruitWholesaleDB with
+   `createdb` / `CREATE DATABASE` from psql first.
    ===================================================================== */
-
-IF DB_ID('FruitWholesaleDB') IS NULL
-BEGIN
-    CREATE DATABASE FruitWholesaleDB;
-END
-GO
-
-USE FruitWholesaleDB;
-GO
 
 /* =====================================================================
    Drop all tables up front, in dependency-safe (child-before-parent)
    order, so this script can be re-run at any time. Each CREATE TABLE
-   section below still guards with IF OBJECT_ID(...) IS NULL for safety,
-   but relies on this block for the correct drop order.
+   section below still guards with IF NOT EXISTS for safety, but relies
+   on this block for the correct drop order.
    ===================================================================== */
-IF OBJECT_ID('dbo.ShopReturnItems', 'U') IS NOT NULL DROP TABLE dbo.ShopReturnItems;
-IF OBJECT_ID('dbo.ShopReturns', 'U') IS NOT NULL DROP TABLE dbo.ShopReturns;
-IF OBJECT_ID('dbo.SupplierReturnItems', 'U') IS NOT NULL DROP TABLE dbo.SupplierReturnItems;
-IF OBJECT_ID('dbo.SupplierReturns', 'U') IS NOT NULL DROP TABLE dbo.SupplierReturns;
-IF OBJECT_ID('dbo.CashLedger', 'U') IS NOT NULL DROP TABLE dbo.CashLedger;
-IF OBJECT_ID('dbo.SupplierLedger', 'U') IS NOT NULL DROP TABLE dbo.SupplierLedger;
-IF OBJECT_ID('dbo.ShopLedger', 'U') IS NOT NULL DROP TABLE dbo.ShopLedger;
-IF OBJECT_ID('dbo.StockLedger', 'U') IS NOT NULL DROP TABLE dbo.StockLedger;
-IF OBJECT_ID('dbo.FruitCostBasis', 'U') IS NOT NULL DROP TABLE dbo.FruitCostBasis;
-IF OBJECT_ID('dbo.EmployeeWorkLog', 'U') IS NOT NULL DROP TABLE dbo.EmployeeWorkLog;
-IF OBJECT_ID('dbo.EmployeeSupplyDay', 'U') IS NOT NULL DROP TABLE dbo.EmployeeSupplyDay;
-IF OBJECT_ID('dbo.DailyExpense', 'U') IS NOT NULL DROP TABLE dbo.DailyExpense;
-IF OBJECT_ID('dbo.SupplierPayments', 'U') IS NOT NULL DROP TABLE dbo.SupplierPayments;
-IF OBJECT_ID('dbo.PurchaseItems', 'U') IS NOT NULL DROP TABLE dbo.PurchaseItems;
-IF OBJECT_ID('dbo.Purchase', 'U') IS NOT NULL DROP TABLE dbo.Purchase;
-IF OBJECT_ID('dbo.Collections', 'U') IS NOT NULL DROP TABLE dbo.Collections;
-IF OBJECT_ID('dbo.SupplyItems', 'U') IS NOT NULL DROP TABLE dbo.SupplyItems;
-IF OBJECT_ID('dbo.Supply', 'U') IS NOT NULL DROP TABLE dbo.Supply;
-IF OBJECT_ID('dbo.ExpenseCategory', 'U') IS NOT NULL DROP TABLE dbo.ExpenseCategory;
-IF OBJECT_ID('dbo.EmployeeMaster', 'U') IS NOT NULL DROP TABLE dbo.EmployeeMaster;
-IF OBJECT_ID('dbo.SupplierMaster', 'U') IS NOT NULL DROP TABLE dbo.SupplierMaster;
-IF OBJECT_ID('dbo.ShopMaster', 'U') IS NOT NULL DROP TABLE dbo.ShopMaster;
-IF OBJECT_ID('dbo.RouteMaster', 'U') IS NOT NULL DROP TABLE dbo.RouteMaster;
-IF OBJECT_ID('dbo.FruitMaster', 'U') IS NOT NULL DROP TABLE dbo.FruitMaster;
-IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
-IF OBJECT_ID('dbo.CompanySettings', 'U') IS NOT NULL DROP TABLE dbo.CompanySettings;
-GO
+DROP TABLE IF EXISTS ShopReturnItems;
+DROP TABLE IF EXISTS ShopReturns;
+DROP TABLE IF EXISTS SupplierReturnItems;
+DROP TABLE IF EXISTS SupplierReturns;
+DROP TABLE IF EXISTS Collections;
+DROP TABLE IF EXISTS TemporaryCollectionSettlements;
+DROP TABLE IF EXISTS CashLedger;
+DROP TABLE IF EXISTS SupplierLedger;
+DROP TABLE IF EXISTS ShopLedger;
+DROP TABLE IF EXISTS FruitBoxes;
+DROP TABLE IF EXISTS StockLedger;
+DROP TABLE IF EXISTS FruitCostBasis;
+DROP TABLE IF EXISTS EmployeeWorkLog;
+DROP TABLE IF EXISTS DailyExpense;
+DROP TABLE IF EXISTS SupplierPayments;
+DROP TABLE IF EXISTS PurchaseItems;
+DROP TABLE IF EXISTS Purchase;
+DROP TABLE IF EXISTS Collections;
+DROP TABLE IF EXISTS SupplyItems;
+DROP TABLE IF EXISTS Supply;
+DROP TABLE IF EXISTS ExpenseCategory;
+DROP TABLE IF EXISTS EmployeeMaster;
+DROP TABLE IF EXISTS RefreshTokens;
+DROP TABLE IF EXISTS SupplierMaster;
+DROP TABLE IF EXISTS ShopMaster;
+DROP TABLE IF EXISTS RouteMaster;
+DROP TABLE IF EXISTS FruitMaster;
+DROP TABLE IF EXISTS Users;
+DROP TABLE IF EXISTS CompanySettings;
 
 /* =====================================================================
    CompanySettings
    ===================================================================== */
-IF OBJECT_ID('dbo.CompanySettings', 'U') IS NOT NULL DROP TABLE dbo.CompanySettings;
-GO
-CREATE TABLE dbo.CompanySettings
+CREATE TABLE CompanySettings
 (
-    CompanyID           INT IDENTITY(1,1)   NOT NULL,
-    CompanyName         NVARCHAR(200)       NOT NULL,
-    OwnerName           NVARCHAR(150)       NULL,
-    Address              NVARCHAR(500)       NULL,
-    Phone               NVARCHAR(20)        NULL,
-    GSTNo               NVARCHAR(50)        NULL,
-    LogoUrl             NVARCHAR(MAX)       NULL,
-    OpeningCashBalance  DECIMAL(18,2)       NOT NULL CONSTRAINT DF_CompanySettings_OpeningCashBalance DEFAULT (0),
-    CreatedAt           DATETIME2           NOT NULL CONSTRAINT DF_CompanySettings_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt           DATETIME2           NULL,
-    CONSTRAINT PK_CompanySettings PRIMARY KEY CLUSTERED (CompanyID)
+    CompanyID           INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    CompanyName         VARCHAR(200)        NOT NULL,
+    OwnerName           VARCHAR(150)        NULL,
+    Address              VARCHAR(500)       NULL,
+    Phone               VARCHAR(20)         NULL,
+    GSTNo               VARCHAR(50)         NULL,
+    LogoUrl             TEXT                NULL,
+    OpeningCashBalance  DECIMAL(18,2)       NOT NULL DEFAULT (0),
+    CreatedAt           TIMESTAMP           NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt           TIMESTAMP           NULL,
+    CONSTRAINT PK_CompanySettings PRIMARY KEY (CompanyID)
 );
-GO
 
 /* =====================================================================
    Users
    ===================================================================== */
-IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
-GO
-CREATE TABLE dbo.Users
+CREATE TABLE Users
 (
-    UserID          INT IDENTITY(1,1)  NOT NULL,
-    FullName        NVARCHAR(150)      NOT NULL,
-    Username        NVARCHAR(100)      NOT NULL,
-    PasswordHash    NVARCHAR(300)      NOT NULL,
-    Role            NVARCHAR(50)       NOT NULL, -- Admin, Manager, Accountant, Staff
-    IsActive        BIT                NOT NULL CONSTRAINT DF_Users_IsActive DEFAULT (1),
-    CreatedAt       DATETIME2          NOT NULL CONSTRAINT DF_Users_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt       DATETIME2          NULL,
-    CONSTRAINT PK_Users PRIMARY KEY CLUSTERED (UserID),
+    UserID          INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    FullName        VARCHAR(150)       NOT NULL,
+    Username        VARCHAR(100)       NOT NULL,
+    PasswordHash    VARCHAR(300)       NOT NULL,
+    Role            VARCHAR(50)        NOT NULL, -- Admin, Manager, Accountant, Staff
+    IsActive        BOOLEAN            NOT NULL DEFAULT (TRUE),
+    CreatedAt       TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt       TIMESTAMP          NULL,
+    CONSTRAINT PK_Users PRIMARY KEY (UserID),
     CONSTRAINT UQ_Users_Username UNIQUE (Username)
 );
-GO
+
+/* =====================================================================
+   RefreshTokens
+   ===================================================================== */
+CREATE TABLE RefreshTokens
+(
+    RefreshTokenID       INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    UserID               INT               NOT NULL,
+    TokenHash            VARCHAR(128)      NOT NULL,
+    ExpiresAt            TIMESTAMP         NOT NULL,
+    CreatedAt            TIMESTAMP         NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    RevokedAt            TIMESTAMP         NULL,
+    ReplacedByTokenHash  VARCHAR(128)      NULL,
+    CONSTRAINT PK_RefreshTokens PRIMARY KEY (RefreshTokenID),
+    CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserID) REFERENCES Users(UserID)
+);
+CREATE INDEX IX_RefreshTokens_TokenHash ON RefreshTokens (TokenHash);
+CREATE INDEX IX_RefreshTokens_UserID ON RefreshTokens (UserID);
 
 /* =====================================================================
    FruitMaster
    ===================================================================== */
-IF OBJECT_ID('dbo.FruitMaster', 'U') IS NOT NULL DROP TABLE dbo.FruitMaster;
-GO
-CREATE TABLE dbo.FruitMaster
+CREATE TABLE FruitMaster
 (
-    FruitID     INT IDENTITY(1,1)  NOT NULL,
-    FruitName   NVARCHAR(150)      NOT NULL,
-    Unit        NVARCHAR(20)       NOT NULL, -- Kg, Box, Dozen, Piece
-    TracksByBox BIT                NOT NULL CONSTRAINT DF_FruitMaster_TracksByBox DEFAULT (0), -- see 18_AddFruitBoxTracking.sql
-    BoxWeightKg DECIMAL(18,3)      NULL, -- nominal kg per box; see 19_AddFruitBoxWeight.sql
-    IsActive    BIT                NOT NULL CONSTRAINT DF_FruitMaster_IsActive DEFAULT (1),
-    CreatedAt   DATETIME2          NOT NULL CONSTRAINT DF_FruitMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt   DATETIME2          NULL,
-    CONSTRAINT PK_FruitMaster PRIMARY KEY CLUSTERED (FruitID),
+    FruitID     INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    FruitName   VARCHAR(150)       NOT NULL,
+    Unit        VARCHAR(20)        NOT NULL, -- Kg, Box, Dozen, Piece
+    TracksByBox BOOLEAN            NOT NULL DEFAULT (FALSE),
+    BoxWeightKg DECIMAL(18,3)      NULL, -- nominal kg per box
+    IsActive    BOOLEAN            NOT NULL DEFAULT (TRUE),
+    CreatedAt   TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt   TIMESTAMP          NULL,
+    CONSTRAINT PK_FruitMaster PRIMARY KEY (FruitID),
     CONSTRAINT UQ_FruitMaster_FruitName UNIQUE (FruitName)
 );
-GO
 
 /* =====================================================================
-   FruitCostBasis (weighted-average cost tracking for profit calculation
-   — see database/08_AddProfitTracking.sql for the full design rationale)
+   FruitCostBasis (weighted-average cost tracking for profit calculation)
    ===================================================================== */
-IF OBJECT_ID('dbo.FruitCostBasis', 'U') IS NOT NULL DROP TABLE dbo.FruitCostBasis;
-GO
-CREATE TABLE dbo.FruitCostBasis
+CREATE TABLE FruitCostBasis
 (
     FruitID          INT            NOT NULL,
-    QuantityOnHand   DECIMAL(18,3)  NOT NULL CONSTRAINT DF_FruitCostBasis_QuantityOnHand DEFAULT (0),
-    AverageCost      DECIMAL(18,4)  NOT NULL CONSTRAINT DF_FruitCostBasis_AverageCost DEFAULT (0),
-    UpdatedAt        DATETIME2      NOT NULL CONSTRAINT DF_FruitCostBasis_UpdatedAt DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_FruitCostBasis PRIMARY KEY CLUSTERED (FruitID),
-    CONSTRAINT FK_FruitCostBasis_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
+    QuantityOnHand   DECIMAL(18,3)  NOT NULL DEFAULT (0),
+    AverageCost      DECIMAL(18,4)  NOT NULL DEFAULT (0),
+    UpdatedAt        TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT PK_FruitCostBasis PRIMARY KEY (FruitID),
+    CONSTRAINT FK_FruitCostBasis_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
-GO
 
 /* =====================================================================
    RouteMaster (a supply route groups a set of shops that share a
    delivery run — a wholesaler may run more than one route)
    ===================================================================== */
-IF OBJECT_ID('dbo.RouteMaster', 'U') IS NOT NULL DROP TABLE dbo.RouteMaster;
-GO
-CREATE TABLE dbo.RouteMaster
+CREATE TABLE RouteMaster
 (
-    RouteID     INT IDENTITY(1,1)  NOT NULL,
-    RouteName   NVARCHAR(150)      NOT NULL,
-    Description NVARCHAR(500)      NULL,
-    IsActive    BIT                NOT NULL CONSTRAINT DF_RouteMaster_IsActive DEFAULT (1),
-    CreatedAt   DATETIME2          NOT NULL CONSTRAINT DF_RouteMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt   DATETIME2          NULL,
-    CONSTRAINT PK_RouteMaster PRIMARY KEY CLUSTERED (RouteID),
+    RouteID     INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    RouteName   VARCHAR(150)       NOT NULL,
+    Description VARCHAR(500)       NULL,
+    IsActive    BOOLEAN            NOT NULL DEFAULT (TRUE),
+    CreatedAt   TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt   TIMESTAMP          NULL,
+    CONSTRAINT PK_RouteMaster PRIMARY KEY (RouteID),
     CONSTRAINT UQ_RouteMaster_RouteName UNIQUE (RouteName)
 );
-GO
 
 /* =====================================================================
    ShopMaster (Customers)
    ===================================================================== */
-IF OBJECT_ID('dbo.ShopMaster', 'U') IS NOT NULL DROP TABLE dbo.ShopMaster;
-GO
-CREATE TABLE dbo.ShopMaster
+CREATE TABLE ShopMaster
 (
-    ShopID          INT IDENTITY(1,1)  NOT NULL,
-    ShopName        NVARCHAR(200)      NOT NULL,
-    OwnerName       NVARCHAR(150)      NULL,
-    Phone           NVARCHAR(20)       NULL,
-    Address         NVARCHAR(500)      NULL,
-    OpeningBalance  DECIMAL(18,2)      NOT NULL CONSTRAINT DF_ShopMaster_OpeningBalance DEFAULT (0),
-    CreditLimit     DECIMAL(18,2)      NOT NULL CONSTRAINT DF_ShopMaster_CreditLimit DEFAULT (0),
+    ShopID          INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    ShopName        VARCHAR(200)       NOT NULL,
+    OwnerName       VARCHAR(150)       NULL,
+    Phone           VARCHAR(20)        NULL,
+    Address         VARCHAR(500)       NULL,
+    OpeningBalance  DECIMAL(18,2)      NOT NULL DEFAULT (0),
+    CreditLimit     DECIMAL(18,2)      NOT NULL DEFAULT (0),
     RouteID         INT                NULL,
     LinkedSupplierID INT               NULL,
-    IsActive        BIT                NOT NULL CONSTRAINT DF_ShopMaster_IsActive DEFAULT (1),
-    CreatedAt       DATETIME2          NOT NULL CONSTRAINT DF_ShopMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt       DATETIME2          NULL,
-    CONSTRAINT PK_ShopMaster PRIMARY KEY CLUSTERED (ShopID),
-    CONSTRAINT FK_ShopMaster_RouteMaster FOREIGN KEY (RouteID) REFERENCES dbo.RouteMaster(RouteID)
-    -- FK_ShopMaster_SupplierMaster added below, after dbo.SupplierMaster exists.
+    IsActive        BOOLEAN            NOT NULL DEFAULT (TRUE),
+    CreatedAt       TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt       TIMESTAMP          NULL,
+    CONSTRAINT PK_ShopMaster PRIMARY KEY (ShopID),
+    CONSTRAINT FK_ShopMaster_RouteMaster FOREIGN KEY (RouteID) REFERENCES RouteMaster(RouteID)
+    -- FK_ShopMaster_SupplierMaster added below, after SupplierMaster exists.
 );
-GO
 
 /* =====================================================================
    SupplierMaster
    ===================================================================== */
-IF OBJECT_ID('dbo.SupplierMaster', 'U') IS NOT NULL DROP TABLE dbo.SupplierMaster;
-GO
-CREATE TABLE dbo.SupplierMaster
+CREATE TABLE SupplierMaster
 (
-    SupplierID      INT IDENTITY(1,1)  NOT NULL,
-    SupplierName    NVARCHAR(200)      NOT NULL,
-    Phone           NVARCHAR(20)       NULL,
-    Address         NVARCHAR(500)      NULL,
-    OpeningBalance  DECIMAL(18,2)      NOT NULL CONSTRAINT DF_SupplierMaster_OpeningBalance DEFAULT (0),
-    IsActive        BIT                NOT NULL CONSTRAINT DF_SupplierMaster_IsActive DEFAULT (1),
-    CreatedAt       DATETIME2          NOT NULL CONSTRAINT DF_SupplierMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt       DATETIME2          NULL,
-    CONSTRAINT PK_SupplierMaster PRIMARY KEY CLUSTERED (SupplierID)
+    SupplierID      INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    SupplierName    VARCHAR(200)       NOT NULL,
+    Phone           VARCHAR(20)        NULL,
+    Address         VARCHAR(500)       NULL,
+    OpeningBalance  DECIMAL(18,2)      NOT NULL DEFAULT (0),
+    IsActive        BOOLEAN            NOT NULL DEFAULT (TRUE),
+    CreatedAt       TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt       TIMESTAMP          NULL,
+    CONSTRAINT PK_SupplierMaster PRIMARY KEY (SupplierID)
 );
-GO
 
-ALTER TABLE dbo.ShopMaster ADD CONSTRAINT FK_ShopMaster_SupplierMaster
-    FOREIGN KEY (LinkedSupplierID) REFERENCES dbo.SupplierMaster(SupplierID);
-GO
+ALTER TABLE ShopMaster ADD CONSTRAINT FK_ShopMaster_SupplierMaster
+    FOREIGN KEY (LinkedSupplierID) REFERENCES SupplierMaster(SupplierID);
 
 /* =====================================================================
    EmployeeMaster
@@ -200,184 +191,181 @@ GO
    day, and what they were paid for it, is recorded per entry in
    EmployeeWorkLog below.
    ===================================================================== */
-IF OBJECT_ID('dbo.EmployeeMaster', 'U') IS NOT NULL DROP TABLE dbo.EmployeeMaster;
-GO
-CREATE TABLE dbo.EmployeeMaster
+CREATE TABLE EmployeeMaster
 (
-    EmployeeID  INT IDENTITY(1,1)  NOT NULL,
-    FullName    NVARCHAR(150)      NOT NULL,
-    Phone       NVARCHAR(20)       NULL,
-    Address     NVARCHAR(500)      NULL,
-    IsActive    BIT                NOT NULL CONSTRAINT DF_EmployeeMaster_IsActive DEFAULT (1),
-    CreatedAt   DATETIME2          NOT NULL CONSTRAINT DF_EmployeeMaster_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt   DATETIME2          NULL,
-    CONSTRAINT PK_EmployeeMaster PRIMARY KEY CLUSTERED (EmployeeID)
+    EmployeeID  INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    FullName    VARCHAR(150)       NOT NULL,
+    Phone       VARCHAR(20)        NULL,
+    Address     VARCHAR(500)       NULL,
+    IsActive    BOOLEAN            NOT NULL DEFAULT (TRUE),
+    CreatedAt   TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt   TIMESTAMP          NULL,
+    CONSTRAINT PK_EmployeeMaster PRIMARY KEY (EmployeeID)
 );
-GO
 
 /* =====================================================================
    Supply (header) + SupplyItems
    ===================================================================== */
-IF OBJECT_ID('dbo.SupplyItems', 'U') IS NOT NULL DROP TABLE dbo.SupplyItems;
-IF OBJECT_ID('dbo.Supply', 'U') IS NOT NULL DROP TABLE dbo.Supply;
-GO
-CREATE TABLE dbo.Supply
+CREATE TABLE Supply
 (
-    SupplyID     INT IDENTITY(1,1)  NOT NULL,
+    SupplyID     INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     SupplyDate   DATE               NOT NULL,
     ShopID       INT                NOT NULL,
-    InvoiceNo    NVARCHAR(50)       NOT NULL,
-    Remarks      NVARCHAR(500)      NULL,
-    TotalAmount  DECIMAL(18,2)      NOT NULL CONSTRAINT DF_Supply_TotalAmount DEFAULT (0),
+    InvoiceNo    VARCHAR(50)        NOT NULL,
+    Remarks      VARCHAR(500)       NULL,
+    TotalAmount  DECIMAL(18,2)      NOT NULL DEFAULT (0),
     CreatedBy    INT                NULL,
-    CreatedAt    DATETIME2          NOT NULL CONSTRAINT DF_Supply_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt    DATETIME2          NULL,
-    CONSTRAINT PK_Supply PRIMARY KEY CLUSTERED (SupplyID),
+    CreatedAt    TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt    TIMESTAMP          NULL,
+    CONSTRAINT PK_Supply PRIMARY KEY (SupplyID),
     CONSTRAINT UQ_Supply_InvoiceNo UNIQUE (InvoiceNo),
-    CONSTRAINT FK_Supply_ShopMaster FOREIGN KEY (ShopID) REFERENCES dbo.ShopMaster(ShopID),
-    CONSTRAINT FK_Supply_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    CONSTRAINT FK_Supply_ShopMaster FOREIGN KEY (ShopID) REFERENCES ShopMaster(ShopID),
+    CONSTRAINT FK_Supply_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
-CREATE TABLE dbo.SupplyItems
+CREATE TABLE SupplyItems
 (
-    SupplyItemID  INT IDENTITY(1,1)  NOT NULL,
+    SupplyItemID  INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     SupplyID      INT                NOT NULL,
     FruitID       INT                NOT NULL,
     Quantity      DECIMAL(18,3)      NOT NULL,
     UnitPrice     DECIMAL(18,2)      NOT NULL,
     TotalAmount   DECIMAL(18,2)      NOT NULL,
-    CostBasis     DECIMAL(18,4)      NOT NULL CONSTRAINT DF_SupplyItems_CostBasis DEFAULT (0), -- weighted-avg fruit cost at time of sale; see 08_AddProfitTracking.sql
-    BoxCount      DECIMAL(18,3)      NULL, -- display-only box count for "by box" sales; see 19_AddFruitBoxWeight.sql, 21_ChangeBoxCountToDecimal.sql
-    CONSTRAINT PK_SupplyItems PRIMARY KEY CLUSTERED (SupplyItemID),
-    CONSTRAINT FK_SupplyItems_Supply FOREIGN KEY (SupplyID) REFERENCES dbo.Supply(SupplyID) ON DELETE CASCADE,
-    CONSTRAINT FK_SupplyItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
+    CostBasis     DECIMAL(18,4)      NOT NULL DEFAULT (0), -- weighted-avg fruit cost at time of sale
+    BoxCount      DECIMAL(18,3)      NULL, -- display-only box count for "by box" sales
+    CONSTRAINT PK_SupplyItems PRIMARY KEY (SupplyItemID),
+    CONSTRAINT FK_SupplyItems_Supply FOREIGN KEY (SupplyID) REFERENCES Supply(SupplyID) ON DELETE CASCADE,
+    CONSTRAINT FK_SupplyItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
-GO
+
+/* =====================================================================
+   TemporaryCollectionSettlements — a batch settlement of a shop's
+   pending "Temporary" collections (money collected but not yet booked
+   to the shop ledger) into a single dated ShopLedger credit.
+   ===================================================================== */
+CREATE TABLE TemporaryCollectionSettlements
+(
+    TemporaryCollectionSettlementID INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    ShopID           INT               NOT NULL,
+    SettlementDate   DATE              NOT NULL,
+    TotalAmount      DECIMAL(18,2)     NOT NULL,
+    CreatedBy        INT               NULL,
+    CreatedAt        TIMESTAMP         NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT PK_TemporaryCollectionSettlements PRIMARY KEY (TemporaryCollectionSettlementID),
+    CONSTRAINT FK_TemporaryCollectionSettlements_ShopMaster FOREIGN KEY (ShopID) REFERENCES ShopMaster(ShopID),
+    CONSTRAINT FK_TemporaryCollectionSettlements_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
+);
 
 /* =====================================================================
    Collections
    ===================================================================== */
-IF OBJECT_ID('dbo.Collections', 'U') IS NOT NULL DROP TABLE dbo.Collections;
-GO
-CREATE TABLE dbo.Collections
+CREATE TABLE Collections
 (
-    CollectionID     INT IDENTITY(1,1)  NOT NULL,
+    CollectionID     INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     CollectionDate   DATE               NOT NULL,
     ShopID           INT                NOT NULL,
     AmountReceived   DECIMAL(18,2)      NOT NULL,
-    DiscountAmount   DECIMAL(18,2)      NOT NULL CONSTRAINT DF_Collections_DiscountAmount DEFAULT (0),
-    PaymentMode      NVARCHAR(30)       NOT NULL, -- Cash, Bank, UPI, Cheque
-    ReferenceNumber  NVARCHAR(100)      NULL,
-    Remarks          NVARCHAR(500)      NULL,
+    DiscountAmount   DECIMAL(18,2)      NOT NULL DEFAULT (0),
+    PaymentMode      VARCHAR(30)        NOT NULL, -- Cash, Bank, UPI, Cheque
+    ReferenceNumber  VARCHAR(100)       NULL,
+    Remarks          VARCHAR(500)       NULL,
     CreatedBy        INT                NULL,
-    CreatedAt        DATETIME2          NOT NULL CONSTRAINT DF_Collections_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt        DATETIME2          NULL,
-    CONSTRAINT PK_Collections PRIMARY KEY CLUSTERED (CollectionID),
-    CONSTRAINT FK_Collections_ShopMaster FOREIGN KEY (ShopID) REFERENCES dbo.ShopMaster(ShopID),
-    CONSTRAINT FK_Collections_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    CreatedAt        TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt        TIMESTAMP          NULL,
+    CollectionType   VARCHAR(20)        NULL, -- Normal, Temporary
+    TemporaryStatus  VARCHAR(20)        NOT NULL DEFAULT ('None'), -- None, Pending, Settled
+    SettlementID     INT                NULL,
+    CONSTRAINT PK_Collections PRIMARY KEY (CollectionID),
+    CONSTRAINT FK_Collections_ShopMaster FOREIGN KEY (ShopID) REFERENCES ShopMaster(ShopID),
+    CONSTRAINT FK_Collections_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    CONSTRAINT FK_Collections_TemporaryCollectionSettlements FOREIGN KEY (SettlementID) REFERENCES TemporaryCollectionSettlements(TemporaryCollectionSettlementID)
 );
-GO
 
 /* =====================================================================
    Purchase (header) + PurchaseItems
    ===================================================================== */
-IF OBJECT_ID('dbo.PurchaseItems', 'U') IS NOT NULL DROP TABLE dbo.PurchaseItems;
-IF OBJECT_ID('dbo.Purchase', 'U') IS NOT NULL DROP TABLE dbo.Purchase;
-GO
-CREATE TABLE dbo.Purchase
+CREATE TABLE Purchase
 (
-    PurchaseID   INT IDENTITY(1,1)  NOT NULL,
+    PurchaseID   INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     PurchaseDate DATE               NOT NULL,
     SupplierID   INT                NOT NULL,
-    InvoiceNo    NVARCHAR(50)       NOT NULL,
-    Remarks      NVARCHAR(500)      NULL,
-    TotalAmount  DECIMAL(18,2)      NOT NULL CONSTRAINT DF_Purchase_TotalAmount DEFAULT (0),
+    InvoiceNo    VARCHAR(50)        NOT NULL,
+    Remarks      VARCHAR(500)       NULL,
+    TotalAmount  DECIMAL(18,2)      NOT NULL DEFAULT (0),
     CreatedBy    INT                NULL,
-    CreatedAt    DATETIME2          NOT NULL CONSTRAINT DF_Purchase_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt    DATETIME2          NULL,
-    CONSTRAINT PK_Purchase PRIMARY KEY CLUSTERED (PurchaseID),
+    CreatedAt    TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt    TIMESTAMP          NULL,
+    CONSTRAINT PK_Purchase PRIMARY KEY (PurchaseID),
     CONSTRAINT UQ_Purchase_InvoiceNo UNIQUE (InvoiceNo),
-    CONSTRAINT FK_Purchase_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES dbo.SupplierMaster(SupplierID),
-    CONSTRAINT FK_Purchase_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    CONSTRAINT FK_Purchase_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES SupplierMaster(SupplierID),
+    CONSTRAINT FK_Purchase_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
-CREATE TABLE dbo.PurchaseItems
+CREATE TABLE PurchaseItems
 (
-    PurchaseItemID  INT IDENTITY(1,1)  NOT NULL,
+    PurchaseItemID  INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     PurchaseID      INT                NOT NULL,
     FruitID         INT                NOT NULL,
     Quantity        DECIMAL(18,3)      NOT NULL,
     PurchasePrice   DECIMAL(18,2)      NOT NULL,
     TotalAmount     DECIMAL(18,2)      NOT NULL,
-    BoxCount        DECIMAL(18,3)      NULL, -- physical box count for TracksByBox fruits; see 18_AddFruitBoxTracking.sql, 21_ChangeBoxCountToDecimal.sql
-    CONSTRAINT PK_PurchaseItems PRIMARY KEY CLUSTERED (PurchaseItemID),
-    CONSTRAINT FK_PurchaseItems_Purchase FOREIGN KEY (PurchaseID) REFERENCES dbo.Purchase(PurchaseID) ON DELETE CASCADE,
-    CONSTRAINT FK_PurchaseItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
+    BoxCount        DECIMAL(18,3)      NULL, -- physical box count for TracksByBox fruits
+    CONSTRAINT PK_PurchaseItems PRIMARY KEY (PurchaseItemID),
+    CONSTRAINT FK_PurchaseItems_Purchase FOREIGN KEY (PurchaseID) REFERENCES Purchase(PurchaseID) ON DELETE CASCADE,
+    CONSTRAINT FK_PurchaseItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
-GO
 
 /* =====================================================================
    SupplierPayments
    ===================================================================== */
-IF OBJECT_ID('dbo.SupplierPayments', 'U') IS NOT NULL DROP TABLE dbo.SupplierPayments;
-GO
-CREATE TABLE dbo.SupplierPayments
+CREATE TABLE SupplierPayments
 (
-    SupplierPaymentID  INT IDENTITY(1,1)  NOT NULL,
+    SupplierPaymentID  INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     PaymentDate         DATE               NOT NULL,
     SupplierID           INT                NOT NULL,
     AmountPaid           DECIMAL(18,2)      NOT NULL,
-    DiscountAmount        DECIMAL(18,2)      NOT NULL CONSTRAINT DF_SupplierPayments_DiscountAmount DEFAULT (0),
-    PaymentMode          NVARCHAR(30)       NOT NULL,
-    ReferenceNumber      NVARCHAR(100)      NULL,
-    Remarks               NVARCHAR(500)      NULL,
-    CreatedBy             INT                NULL,
-    CreatedAt             DATETIME2          NOT NULL CONSTRAINT DF_SupplierPayments_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt             DATETIME2          NULL,
-    CONSTRAINT PK_SupplierPayments PRIMARY KEY CLUSTERED (SupplierPaymentID),
-    CONSTRAINT FK_SupplierPayments_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES dbo.SupplierMaster(SupplierID),
-    CONSTRAINT FK_SupplierPayments_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    DiscountAmount        DECIMAL(18,2)      NOT NULL DEFAULT (0),
+    PaymentMode          VARCHAR(30)        NOT NULL,
+    ReferenceNumber      VARCHAR(100)       NULL,
+    Remarks               VARCHAR(500)      NULL,
+    CreatedBy             INT               NULL,
+    CreatedAt             TIMESTAMP         NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt             TIMESTAMP         NULL,
+    CONSTRAINT PK_SupplierPayments PRIMARY KEY (SupplierPaymentID),
+    CONSTRAINT FK_SupplierPayments_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES SupplierMaster(SupplierID),
+    CONSTRAINT FK_SupplierPayments_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
 
 /* =====================================================================
    ExpenseCategory
    ===================================================================== */
-IF OBJECT_ID('dbo.ExpenseCategory', 'U') IS NOT NULL DROP TABLE dbo.ExpenseCategory;
-GO
-CREATE TABLE dbo.ExpenseCategory
+CREATE TABLE ExpenseCategory
 (
-    ExpenseCategoryID  INT IDENTITY(1,1)  NOT NULL,
-    CategoryName        NVARCHAR(150)      NOT NULL,
-    Description          NVARCHAR(500)      NULL,
-    IsActive              BIT                NOT NULL CONSTRAINT DF_ExpenseCategory_IsActive DEFAULT (1),
-    CONSTRAINT PK_ExpenseCategory PRIMARY KEY CLUSTERED (ExpenseCategoryID),
+    ExpenseCategoryID  INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    CategoryName        VARCHAR(150)      NOT NULL,
+    Description          VARCHAR(500)     NULL,
+    IsActive              BOOLEAN         NOT NULL DEFAULT (TRUE),
+    CONSTRAINT PK_ExpenseCategory PRIMARY KEY (ExpenseCategoryID),
     CONSTRAINT UQ_ExpenseCategory_CategoryName UNIQUE (CategoryName)
 );
-GO
 
 /* =====================================================================
    DailyExpense
    ===================================================================== */
-IF OBJECT_ID('dbo.DailyExpense', 'U') IS NOT NULL DROP TABLE dbo.DailyExpense;
-GO
-CREATE TABLE dbo.DailyExpense
+CREATE TABLE DailyExpense
 (
-    ExpenseID           INT IDENTITY(1,1)  NOT NULL,
-    ExpenseDate          DATE               NOT NULL,
-    ExpenseCategoryID    INT                NOT NULL,
-    Amount                DECIMAL(18,2)      NOT NULL,
-    PaymentMode           NVARCHAR(30)       NOT NULL,
-    PaidTo                 NVARCHAR(200)      NULL,
-    Description            NVARCHAR(500)      NULL,
-    CreatedBy              INT                NULL,
-    CreatedAt              DATETIME2          NOT NULL CONSTRAINT DF_DailyExpense_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt              DATETIME2          NULL,
-    CONSTRAINT PK_DailyExpense PRIMARY KEY CLUSTERED (ExpenseID),
-    CONSTRAINT FK_DailyExpense_ExpenseCategory FOREIGN KEY (ExpenseCategoryID) REFERENCES dbo.ExpenseCategory(ExpenseCategoryID),
-    CONSTRAINT FK_DailyExpense_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    ExpenseID           INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    ExpenseDate          DATE              NOT NULL,
+    ExpenseCategoryID    INT               NOT NULL,
+    Amount                DECIMAL(18,2)    NOT NULL,
+    PaymentMode           VARCHAR(30)      NOT NULL,
+    PaidTo                 VARCHAR(200)    NULL,
+    Description            VARCHAR(500)    NULL,
+    CreatedBy              INT             NULL,
+    CreatedAt              TIMESTAMP       NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt              TIMESTAMP       NULL,
+    CONSTRAINT PK_DailyExpense PRIMARY KEY (ExpenseID),
+    CONSTRAINT FK_DailyExpense_ExpenseCategory FOREIGN KEY (ExpenseCategoryID) REFERENCES ExpenseCategory(ExpenseCategoryID),
+    CONSTRAINT FK_DailyExpense_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
 
 /* =====================================================================
    EmployeeWorkLog
@@ -387,233 +375,198 @@ GO
    work at all on a given day (simply no row). Every entry with an
    Amount > 0 books a CashLedger 'Cash Out' entry, same as DailyExpense.
    ===================================================================== */
-IF OBJECT_ID('dbo.EmployeeWorkLog', 'U') IS NOT NULL DROP TABLE dbo.EmployeeWorkLog;
-GO
-CREATE TABLE dbo.EmployeeWorkLog
+CREATE TABLE EmployeeWorkLog
 (
-    EmployeeWorkLogID  INT IDENTITY(1,1)  NOT NULL,
-    WorkDate             DATE               NOT NULL,
-    EmployeeID            INT                NOT NULL,
-    JobType                NVARCHAR(30)       NOT NULL, -- Supply, Collection, Loading, Other
-    RouteID                  INT                NULL,
-    Amount                    DECIMAL(18,2)      NOT NULL,
-    PaymentMode                NVARCHAR(30)       NOT NULL,
-    Remarks                      NVARCHAR(500)      NULL,
-    CreatedBy                      INT                NULL,
-    CreatedAt                        DATETIME2          NOT NULL CONSTRAINT DF_EmployeeWorkLog_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt                          DATETIME2          NULL,
-    CONSTRAINT PK_EmployeeWorkLog PRIMARY KEY CLUSTERED (EmployeeWorkLogID),
-    CONSTRAINT FK_EmployeeWorkLog_EmployeeMaster FOREIGN KEY (EmployeeID) REFERENCES dbo.EmployeeMaster(EmployeeID),
-    CONSTRAINT FK_EmployeeWorkLog_RouteMaster FOREIGN KEY (RouteID) REFERENCES dbo.RouteMaster(RouteID),
-    CONSTRAINT FK_EmployeeWorkLog_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    EmployeeWorkLogID  INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    WorkDate             DATE            NOT NULL,
+    EmployeeID            INT            NOT NULL,
+    JobType                VARCHAR(30)   NOT NULL, -- Supply, Collection, Loading, Other
+    RouteID                  INT         NULL,
+    Amount                    DECIMAL(18,2) NOT NULL,
+    PaymentMode                VARCHAR(30) NOT NULL,
+    Remarks                      VARCHAR(500) NULL,
+    CreatedBy                      INT     NULL,
+    CreatedAt                        TIMESTAMP NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt                          TIMESTAMP NULL,
+    CONSTRAINT PK_EmployeeWorkLog PRIMARY KEY (EmployeeWorkLogID),
+    CONSTRAINT FK_EmployeeWorkLog_EmployeeMaster FOREIGN KEY (EmployeeID) REFERENCES EmployeeMaster(EmployeeID),
+    CONSTRAINT FK_EmployeeWorkLog_RouteMaster FOREIGN KEY (RouteID) REFERENCES RouteMaster(RouteID),
+    CONSTRAINT FK_EmployeeWorkLog_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
 
 /* =====================================================================
    ShopLedger
    ===================================================================== */
-IF OBJECT_ID('dbo.ShopLedger', 'U') IS NOT NULL DROP TABLE dbo.ShopLedger;
-GO
-CREATE TABLE dbo.ShopLedger
+CREATE TABLE ShopLedger
 (
-    LedgerID          BIGINT IDENTITY(1,1) NOT NULL,
-    ShopID             INT                  NOT NULL,
-    TransactionDate     DATETIME2            NOT NULL,
-    TransactionType     NVARCHAR(30)         NOT NULL, -- OpeningBalance, Supply, Collection, Adjustment
-    ReferenceID          INT                  NULL,
-    Debit                 DECIMAL(18,2)        NOT NULL CONSTRAINT DF_ShopLedger_Debit DEFAULT (0),
-    Credit                DECIMAL(18,2)        NOT NULL CONSTRAINT DF_ShopLedger_Credit DEFAULT (0),
-    RunningBalance        DECIMAL(18,2)        NOT NULL,
-    Narration              NVARCHAR(500)        NULL,
-    CreatedAt              DATETIME2            NOT NULL CONSTRAINT DF_ShopLedger_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_ShopLedger PRIMARY KEY CLUSTERED (LedgerID),
-    CONSTRAINT FK_ShopLedger_ShopMaster FOREIGN KEY (ShopID) REFERENCES dbo.ShopMaster(ShopID)
+    LedgerID          BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    ShopID             INT                 NOT NULL,
+    TransactionDate     TIMESTAMP          NOT NULL,
+    TransactionType     VARCHAR(30)        NOT NULL, -- OpeningBalance, Supply, Collection, Adjustment
+    ReferenceID          INT                NULL,
+    Debit                 DECIMAL(18,2)     NOT NULL DEFAULT (0),
+    Credit                DECIMAL(18,2)     NOT NULL DEFAULT (0),
+    RunningBalance        DECIMAL(18,2)     NOT NULL,
+    Narration              VARCHAR(500)     NULL,
+    CreatedAt              TIMESTAMP        NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT PK_ShopLedger PRIMARY KEY (LedgerID),
+    CONSTRAINT FK_ShopLedger_ShopMaster FOREIGN KEY (ShopID) REFERENCES ShopMaster(ShopID)
 );
-GO
 
 /* =====================================================================
    SupplierLedger
    ===================================================================== */
-IF OBJECT_ID('dbo.SupplierLedger', 'U') IS NOT NULL DROP TABLE dbo.SupplierLedger;
-GO
-CREATE TABLE dbo.SupplierLedger
+CREATE TABLE SupplierLedger
 (
-    LedgerID          BIGINT IDENTITY(1,1) NOT NULL,
-    SupplierID          INT                  NOT NULL,
-    TransactionDate     DATETIME2            NOT NULL,
-    TransactionType     NVARCHAR(30)         NOT NULL, -- OpeningBalance, Purchase, SupplierPayment, Adjustment
-    ReferenceID          INT                  NULL,
-    Debit                 DECIMAL(18,2)        NOT NULL CONSTRAINT DF_SupplierLedger_Debit DEFAULT (0),
-    Credit                DECIMAL(18,2)        NOT NULL CONSTRAINT DF_SupplierLedger_Credit DEFAULT (0),
-    RunningBalance        DECIMAL(18,2)        NOT NULL,
-    Narration              NVARCHAR(500)        NULL,
-    CreatedAt              DATETIME2            NOT NULL CONSTRAINT DF_SupplierLedger_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_SupplierLedger PRIMARY KEY CLUSTERED (LedgerID),
-    CONSTRAINT FK_SupplierLedger_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES dbo.SupplierMaster(SupplierID)
+    LedgerID          BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    SupplierID          INT               NOT NULL,
+    TransactionDate     TIMESTAMP         NOT NULL,
+    TransactionType     VARCHAR(30)       NOT NULL, -- OpeningBalance, Purchase, SupplierPayment, Adjustment
+    ReferenceID          INT              NULL,
+    Debit                 DECIMAL(18,2)   NOT NULL DEFAULT (0),
+    Credit                DECIMAL(18,2)   NOT NULL DEFAULT (0),
+    RunningBalance        DECIMAL(18,2)   NOT NULL,
+    Narration              VARCHAR(500)   NULL,
+    CreatedAt              TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT PK_SupplierLedger PRIMARY KEY (LedgerID),
+    CONSTRAINT FK_SupplierLedger_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES SupplierMaster(SupplierID)
 );
-GO
 
 /* =====================================================================
    StockLedger — tracks fruit stock quantity. Purchase books QuantityIn,
    Supply books QuantityOut, mirroring the Shop/Supplier/Cash ledger
    pattern (including automatic recalculation of RunningStock).
    ===================================================================== */
-IF OBJECT_ID('dbo.StockLedger', 'U') IS NOT NULL DROP TABLE dbo.StockLedger;
-GO
-CREATE TABLE dbo.StockLedger
+CREATE TABLE StockLedger
 (
-    StockLedgerID    BIGINT IDENTITY(1,1) NOT NULL,
-    FruitID           INT                  NOT NULL,
-    TransactionDate    DATETIME2            NOT NULL,
-    TransactionType    NVARCHAR(30)         NOT NULL, -- Purchase, Supply, Adjustment
-    ReferenceTable      NVARCHAR(50)         NOT NULL,
-    ReferenceID           INT                  NULL,
-    QuantityIn             DECIMAL(18,3)        NOT NULL CONSTRAINT DF_StockLedger_QuantityIn DEFAULT (0),
-    QuantityOut             DECIMAL(18,3)        NOT NULL CONSTRAINT DF_StockLedger_QuantityOut DEFAULT (0),
-    RunningStock              DECIMAL(18,3)        NOT NULL,
-    Narration                  NVARCHAR(500)        NULL,
-    CreatedAt                    DATETIME2            NOT NULL CONSTRAINT DF_StockLedger_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_StockLedger PRIMARY KEY CLUSTERED (StockLedgerID),
-    CONSTRAINT FK_StockLedger_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
+    StockLedgerID    BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    FruitID           INT                NOT NULL,
+    TransactionDate    TIMESTAMP         NOT NULL,
+    TransactionType    VARCHAR(30)       NOT NULL, -- Purchase, Supply, Adjustment
+    ReferenceTable      VARCHAR(50)      NOT NULL,
+    ReferenceID           INT             NULL,
+    QuantityIn             DECIMAL(18,3) NOT NULL DEFAULT (0),
+    QuantityOut             DECIMAL(18,3) NOT NULL DEFAULT (0),
+    RunningStock              DECIMAL(18,3) NOT NULL,
+    Narration                  VARCHAR(500) NULL,
+    CreatedAt                    TIMESTAMP  NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT PK_StockLedger PRIMARY KEY (StockLedgerID),
+    CONSTRAINT FK_StockLedger_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
-GO
 
 /* =====================================================================
    FruitBoxes — dual-unit (box count + kg) tracking layer for
    TracksByBox fruits, on top of StockLedger's kg-only tracking. One row
    per physical box; rebuilt from scratch by
    LedgerService.RecalculateFruitBoxesAsync on every Purchase/Supply
-   write. See 18_AddFruitBoxTracking.sql for the full design rationale.
+   write.
    ===================================================================== */
-IF OBJECT_ID('dbo.FruitBoxes', 'U') IS NOT NULL DROP TABLE dbo.FruitBoxes;
-GO
-CREATE TABLE dbo.FruitBoxes
+CREATE TABLE FruitBoxes
 (
-    FruitBoxID         INT IDENTITY(1,1) NOT NULL,
+    FruitBoxID         INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     FruitID            INT               NOT NULL,
     PurchaseID         INT               NULL,
     InitialWeightKg    DECIMAL(18,3)     NOT NULL,
     RemainingWeightKg  DECIMAL(18,3)     NOT NULL,
-    Status             NVARCHAR(10)      NOT NULL, -- Full | Opened | Empty
-    CreatedAt          DATETIME2         NOT NULL CONSTRAINT DF_FruitBoxes_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt          DATETIME2         NULL,
-    CONSTRAINT PK_FruitBoxes PRIMARY KEY CLUSTERED (FruitBoxID),
-    CONSTRAINT FK_FruitBoxes_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID),
-    CONSTRAINT FK_FruitBoxes_Purchase FOREIGN KEY (PurchaseID) REFERENCES dbo.Purchase(PurchaseID) ON DELETE SET NULL
+    Status             VARCHAR(10)       NOT NULL, -- Full | Opened | Empty
+    CreatedAt          TIMESTAMP         NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt          TIMESTAMP         NULL,
+    CONSTRAINT PK_FruitBoxes PRIMARY KEY (FruitBoxID),
+    CONSTRAINT FK_FruitBoxes_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID),
+    CONSTRAINT FK_FruitBoxes_Purchase FOREIGN KEY (PurchaseID) REFERENCES Purchase(PurchaseID) ON DELETE SET NULL
 );
-GO
-CREATE NONCLUSTERED INDEX IX_FruitBoxes_FruitID_Status ON dbo.FruitBoxes (FruitID, Status) INCLUDE (RemainingWeightKg);
-GO
+CREATE INDEX IX_FruitBoxes_FruitID_Status ON FruitBoxes (FruitID, Status) INCLUDE (RemainingWeightKg);
 
 /* =====================================================================
    CashLedger
    ===================================================================== */
-IF OBJECT_ID('dbo.CashLedger', 'U') IS NOT NULL DROP TABLE dbo.CashLedger;
-GO
-CREATE TABLE dbo.CashLedger
+CREATE TABLE CashLedger
 (
-    CashLedgerID     BIGINT IDENTITY(1,1) NOT NULL,
-    TransactionDate    DATETIME2            NOT NULL,
-    TransactionType    NVARCHAR(30)         NOT NULL, -- OpeningBalance, Collection, SupplierPayment, DailyExpense, Adjustment
-    ReferenceTable      NVARCHAR(50)         NOT NULL,
-    ReferenceID          INT                  NULL,
-    PaymentMode           NVARCHAR(30)         NOT NULL,
-    CashIn                 DECIMAL(18,2)        NOT NULL CONSTRAINT DF_CashLedger_CashIn DEFAULT (0),
-    CashOut                DECIMAL(18,2)        NOT NULL CONSTRAINT DF_CashLedger_CashOut DEFAULT (0),
-    RunningBalance          DECIMAL(18,2)        NOT NULL,
-    Narration                NVARCHAR(500)        NULL,
-    CreatedAt                DATETIME2            NOT NULL CONSTRAINT DF_CashLedger_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT PK_CashLedger PRIMARY KEY CLUSTERED (CashLedgerID)
+    CashLedgerID     BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    TransactionDate    TIMESTAMP        NOT NULL,
+    TransactionType    VARCHAR(30)      NOT NULL, -- OpeningBalance, Collection, SupplierPayment, DailyExpense, Adjustment
+    ReferenceTable      VARCHAR(50)     NOT NULL,
+    ReferenceID          INT            NULL,
+    PaymentMode           VARCHAR(30)   NOT NULL,
+    CashIn                 DECIMAL(18,2) NOT NULL DEFAULT (0),
+    CashOut                DECIMAL(18,2) NOT NULL DEFAULT (0),
+    RunningBalance          DECIMAL(18,2) NOT NULL,
+    Narration                VARCHAR(500) NULL,
+    CreatedAt                TIMESTAMP    NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT PK_CashLedger PRIMARY KEY (CashLedgerID)
 );
-GO
 
 /* =====================================================================
-   ShopReturns / SupplierReturns — see 09_AddReturns.sql for the full
-   design rationale (returns are their own dated documents, not edits to
-   the original invoice). FKs to Supply/Purchase are ON DELETE SET NULL
-   per 10_FixReturnForeignKeys.sql: the link is optional traceability, so
+   ShopReturns / SupplierReturns — returns are their own dated
+   documents, not edits to the original invoice. FKs to Supply/Purchase
+   are ON DELETE SET NULL: the link is optional traceability, so
    deleting the original invoice must not block deleting/keeping the
    return.
    ===================================================================== */
-IF OBJECT_ID('dbo.ShopReturns', 'U') IS NOT NULL DROP TABLE dbo.ShopReturns;
-GO
-CREATE TABLE dbo.ShopReturns
+CREATE TABLE ShopReturns
 (
-    ShopReturnID    INT IDENTITY(1,1) NOT NULL,
+    ShopReturnID    INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     ReturnDate      DATE               NOT NULL,
     ShopID          INT                NOT NULL,
     SupplyID        INT                NULL,
-    ReferenceNo     NVARCHAR(50)       NOT NULL,
-    Remarks         NVARCHAR(500)      NULL,
-    TotalAmount     DECIMAL(18,2)      NOT NULL CONSTRAINT DF_ShopReturns_TotalAmount DEFAULT (0),
+    ReferenceNo     VARCHAR(50)        NOT NULL,
+    Remarks         VARCHAR(500)       NULL,
+    TotalAmount     DECIMAL(18,2)      NOT NULL DEFAULT (0),
     CreatedBy       INT                NULL,
-    CreatedAt       DATETIME2          NOT NULL CONSTRAINT DF_ShopReturns_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt       DATETIME2          NULL,
-    CONSTRAINT PK_ShopReturns PRIMARY KEY CLUSTERED (ShopReturnID),
+    CreatedAt       TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt       TIMESTAMP          NULL,
+    CONSTRAINT PK_ShopReturns PRIMARY KEY (ShopReturnID),
     CONSTRAINT UQ_ShopReturns_ReferenceNo UNIQUE (ReferenceNo),
-    CONSTRAINT FK_ShopReturns_ShopMaster FOREIGN KEY (ShopID) REFERENCES dbo.ShopMaster(ShopID),
-    CONSTRAINT FK_ShopReturns_Supply FOREIGN KEY (SupplyID) REFERENCES dbo.Supply(SupplyID) ON DELETE SET NULL,
-    CONSTRAINT FK_ShopReturns_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    CONSTRAINT FK_ShopReturns_ShopMaster FOREIGN KEY (ShopID) REFERENCES ShopMaster(ShopID),
+    CONSTRAINT FK_ShopReturns_Supply FOREIGN KEY (SupplyID) REFERENCES Supply(SupplyID) ON DELETE SET NULL,
+    CONSTRAINT FK_ShopReturns_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
 
-IF OBJECT_ID('dbo.ShopReturnItems', 'U') IS NOT NULL DROP TABLE dbo.ShopReturnItems;
-GO
-CREATE TABLE dbo.ShopReturnItems
+CREATE TABLE ShopReturnItems
 (
-    ShopReturnItemID INT IDENTITY(1,1) NOT NULL,
+    ShopReturnItemID INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     ShopReturnID      INT               NOT NULL,
     FruitID           INT               NOT NULL,
     Quantity          DECIMAL(18,3)     NOT NULL,
     UnitPrice         DECIMAL(18,2)     NOT NULL,
     TotalAmount       DECIMAL(18,2)     NOT NULL,
-    CostBasis         DECIMAL(18,4)     NOT NULL CONSTRAINT DF_ShopReturnItems_CostBasis DEFAULT (0),
-    BoxCount          DECIMAL(18,3)     NULL, -- see 20_AddReturnBoxCount.sql, 21_ChangeBoxCountToDecimal.sql
-    CONSTRAINT PK_ShopReturnItems PRIMARY KEY CLUSTERED (ShopReturnItemID),
-    CONSTRAINT FK_ShopReturnItems_ShopReturns FOREIGN KEY (ShopReturnID) REFERENCES dbo.ShopReturns(ShopReturnID) ON DELETE CASCADE,
-    CONSTRAINT FK_ShopReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
+    CostBasis         DECIMAL(18,4)     NOT NULL DEFAULT (0),
+    BoxCount          DECIMAL(18,3)     NULL,
+    CONSTRAINT PK_ShopReturnItems PRIMARY KEY (ShopReturnItemID),
+    CONSTRAINT FK_ShopReturnItems_ShopReturns FOREIGN KEY (ShopReturnID) REFERENCES ShopReturns(ShopReturnID) ON DELETE CASCADE,
+    CONSTRAINT FK_ShopReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
-GO
 
-IF OBJECT_ID('dbo.SupplierReturns', 'U') IS NOT NULL DROP TABLE dbo.SupplierReturns;
-GO
-CREATE TABLE dbo.SupplierReturns
+CREATE TABLE SupplierReturns
 (
-    SupplierReturnID INT IDENTITY(1,1) NOT NULL,
+    SupplierReturnID INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     ReturnDate        DATE               NOT NULL,
     SupplierID        INT                NOT NULL,
     PurchaseID        INT                NULL,
-    ReferenceNo       NVARCHAR(50)       NOT NULL,
-    Remarks           NVARCHAR(500)      NULL,
-    TotalAmount       DECIMAL(18,2)      NOT NULL CONSTRAINT DF_SupplierReturns_TotalAmount DEFAULT (0),
+    ReferenceNo       VARCHAR(50)        NOT NULL,
+    Remarks           VARCHAR(500)       NULL,
+    TotalAmount       DECIMAL(18,2)      NOT NULL DEFAULT (0),
     CreatedBy         INT                NULL,
-    CreatedAt         DATETIME2          NOT NULL CONSTRAINT DF_SupplierReturns_CreatedAt DEFAULT (SYSUTCDATETIME()),
-    UpdatedAt         DATETIME2          NULL,
-    CONSTRAINT PK_SupplierReturns PRIMARY KEY CLUSTERED (SupplierReturnID),
+    CreatedAt         TIMESTAMP          NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    UpdatedAt         TIMESTAMP          NULL,
+    CONSTRAINT PK_SupplierReturns PRIMARY KEY (SupplierReturnID),
     CONSTRAINT UQ_SupplierReturns_ReferenceNo UNIQUE (ReferenceNo),
-    CONSTRAINT FK_SupplierReturns_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES dbo.SupplierMaster(SupplierID),
-    CONSTRAINT FK_SupplierReturns_Purchase FOREIGN KEY (PurchaseID) REFERENCES dbo.Purchase(PurchaseID) ON DELETE SET NULL,
-    CONSTRAINT FK_SupplierReturns_Users FOREIGN KEY (CreatedBy) REFERENCES dbo.Users(UserID)
+    CONSTRAINT FK_SupplierReturns_SupplierMaster FOREIGN KEY (SupplierID) REFERENCES SupplierMaster(SupplierID),
+    CONSTRAINT FK_SupplierReturns_Purchase FOREIGN KEY (PurchaseID) REFERENCES Purchase(PurchaseID) ON DELETE SET NULL,
+    CONSTRAINT FK_SupplierReturns_Users FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
-GO
 
-IF OBJECT_ID('dbo.SupplierReturnItems', 'U') IS NOT NULL DROP TABLE dbo.SupplierReturnItems;
-GO
-CREATE TABLE dbo.SupplierReturnItems
+CREATE TABLE SupplierReturnItems
 (
-    SupplierReturnItemID INT IDENTITY(1,1) NOT NULL,
+    SupplierReturnItemID INT GENERATED ALWAYS AS IDENTITY NOT NULL,
     SupplierReturnID      INT               NOT NULL,
-    FruitID                INT               NOT NULL,
-    Quantity               DECIMAL(18,3)     NOT NULL,
-    UnitPrice              DECIMAL(18,2)     NOT NULL,
-    TotalAmount            DECIMAL(18,2)     NOT NULL,
-    CostBasis              DECIMAL(18,4)     NOT NULL CONSTRAINT DF_SupplierReturnItems_CostBasis DEFAULT (0),
-    BoxCount               DECIMAL(18,3)     NULL, -- see 20_AddReturnBoxCount.sql, 21_ChangeBoxCountToDecimal.sql
-    CONSTRAINT PK_SupplierReturnItems PRIMARY KEY CLUSTERED (SupplierReturnItemID),
-    CONSTRAINT FK_SupplierReturnItems_SupplierReturns FOREIGN KEY (SupplierReturnID) REFERENCES dbo.SupplierReturns(SupplierReturnID) ON DELETE CASCADE,
-    CONSTRAINT FK_SupplierReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES dbo.FruitMaster(FruitID)
+    FruitID                INT              NOT NULL,
+    Quantity               DECIMAL(18,3)    NOT NULL,
+    UnitPrice              DECIMAL(18,2)    NOT NULL,
+    TotalAmount            DECIMAL(18,2)    NOT NULL,
+    CostBasis              DECIMAL(18,4)    NOT NULL DEFAULT (0),
+    BoxCount               DECIMAL(18,3)    NULL,
+    CONSTRAINT PK_SupplierReturnItems PRIMARY KEY (SupplierReturnItemID),
+    CONSTRAINT FK_SupplierReturnItems_SupplierReturns FOREIGN KEY (SupplierReturnID) REFERENCES SupplierReturns(SupplierReturnID) ON DELETE CASCADE,
+    CONSTRAINT FK_SupplierReturnItems_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
-GO
-
-PRINT 'Tables created successfully.';
-GO

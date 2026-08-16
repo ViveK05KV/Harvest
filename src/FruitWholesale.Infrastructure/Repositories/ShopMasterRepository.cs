@@ -12,9 +12,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
-            LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
-            LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
+            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM ShopMaster s
+            LEFT JOIN RouteMaster r ON r.RouteID = s.RouteID
+            LEFT JOIN SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
             WHERE s.ShopID = @ShopID;
             """;
         return await connection.QueryFirstOrDefaultAsync<ShopMaster>(sql, new { ShopID = shopId });
@@ -24,10 +24,10 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
-            LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
-            LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
-            WHERE s.IsActive = 1
+            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM ShopMaster s
+            LEFT JOIN RouteMaster r ON r.RouteID = s.RouteID
+            LEFT JOIN SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
+            WHERE s.IsActive = TRUE
             ORDER BY s.ShopName;
             """;
         var result = await connection.QueryAsync<ShopMaster>(sql);
@@ -38,18 +38,18 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.ShopMaster s
-            WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
-                AND (@RouteID IS NULL OR s.RouteID = @RouteID);
+            SELECT COUNT(*) FROM ShopMaster s
+            WHERE (@SearchTerm::text IS NULL OR s.ShopName ILIKE @SearchPattern OR s.OwnerName ILIKE @SearchPattern OR s.Phone ILIKE @SearchPattern)
+                AND (@RouteID::int IS NULL OR s.RouteID = @RouteID);
 
-            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM dbo.ShopMaster s
-            LEFT JOIN dbo.RouteMaster r ON r.RouteID = s.RouteID
-            LEFT JOIN dbo.SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
-            WHERE (@SearchTerm IS NULL OR s.ShopName LIKE @SearchPattern OR s.OwnerName LIKE @SearchPattern OR s.Phone LIKE @SearchPattern)
-                AND (@RouteID IS NULL OR s.RouteID = @RouteID)
+            SELECT s.*, r.RouteName, ls.SupplierName AS LinkedSupplierName FROM ShopMaster s
+            LEFT JOIN RouteMaster r ON r.RouteID = s.RouteID
+            LEFT JOIN SupplierMaster ls ON ls.SupplierID = s.LinkedSupplierID
+            WHERE (@SearchTerm::text IS NULL OR s.ShopName ILIKE @SearchPattern OR s.OwnerName ILIKE @SearchPattern OR s.Phone ILIKE @SearchPattern)
+                AND (@RouteID::int IS NULL OR s.RouteID = @RouteID)
             ORDER BY
-                CASE WHEN @SortBy = 'shopName' AND @SortDescending = 0 THEN s.ShopName END ASC,
-                CASE WHEN @SortBy = 'shopName' AND @SortDescending = 1 THEN s.ShopName END DESC,
+                CASE WHEN @SortBy = 'shopName' AND NOT @SortDescending THEN s.ShopName END ASC,
+                CASE WHEN @SortBy = 'shopName' AND @SortDescending THEN s.ShopName END DESC,
                 CASE WHEN @SortBy IS NULL OR @SortBy <> 'shopName' THEN s.ShopName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -76,9 +76,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
         try
         {
             const string insertSql = """
-                INSERT INTO dbo.ShopMaster (ShopName, OwnerName, Phone, Address, OpeningBalance, CreditLimit, RouteID, LinkedSupplierID, IsActive)
-                OUTPUT INSERTED.ShopID
-                VALUES (@ShopName, @OwnerName, @Phone, @Address, @OpeningBalance, @CreditLimit, @RouteID, @LinkedSupplierID, @IsActive);
+                INSERT INTO ShopMaster (ShopName, OwnerName, Phone, Address, OpeningBalance, CreditLimit, RouteID, LinkedSupplierID, IsActive)
+                VALUES (@ShopName, @OwnerName, @Phone, @Address, @OpeningBalance, @CreditLimit, @RouteID, @LinkedSupplierID, @IsActive)
+                RETURNING ShopID;
                 """;
             var shopId = await connection.QuerySingleAsync<int>(insertSql, shop, transaction);
 
@@ -102,9 +102,9 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            UPDATE dbo.ShopMaster
+            UPDATE ShopMaster
             SET ShopName = @ShopName, OwnerName = @OwnerName, Phone = @Phone, Address = @Address,
-                CreditLimit = @CreditLimit, RouteID = @RouteID, LinkedSupplierID = @LinkedSupplierID, UpdatedAt = SYSUTCDATETIME()
+                CreditLimit = @CreditLimit, RouteID = @RouteID, LinkedSupplierID = @LinkedSupplierID, UpdatedAt = (now() AT TIME ZONE 'utc')
             WHERE ShopID = @ShopID;
             """;
         await connection.ExecuteAsync(sql, shop);
@@ -114,7 +114,7 @@ public class ShopMasterRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE dbo.ShopMaster SET IsActive = @IsActive, UpdatedAt = SYSUTCDATETIME() WHERE ShopID = @ShopID",
+            "UPDATE ShopMaster SET IsActive = @IsActive, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE ShopID = @ShopID",
             new { ShopID = shopId, IsActive = isActive });
     }
 }

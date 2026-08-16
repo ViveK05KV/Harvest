@@ -12,12 +12,12 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT p.*, sp.SupplierName FROM dbo.Purchase p
-            INNER JOIN dbo.SupplierMaster sp ON sp.SupplierID = p.SupplierID
+            SELECT p.*, sp.SupplierName FROM Purchase p
+            INNER JOIN SupplierMaster sp ON sp.SupplierID = p.SupplierID
             WHERE p.PurchaseID = @PurchaseID;
 
-            SELECT pi.*, f.FruitName, f.Unit FROM dbo.PurchaseItems pi
-            INNER JOIN dbo.FruitMaster f ON f.FruitID = pi.FruitID
+            SELECT pi.*, f.FruitName, f.Unit FROM PurchaseItems pi
+            INNER JOIN FruitMaster f ON f.FruitID = pi.FruitID
             WHERE pi.PurchaseID = @PurchaseID;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new { PurchaseID = purchaseId });
@@ -31,19 +31,19 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.Purchase p
-            INNER JOIN dbo.SupplierMaster sp ON sp.SupplierID = p.SupplierID
-            WHERE (@SupplierID IS NULL OR p.SupplierID = @SupplierID)
-              AND (@FromDate IS NULL OR p.PurchaseDate >= @FromDate)
-              AND (@ToDate IS NULL OR p.PurchaseDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR p.InvoiceNo LIKE @SearchPattern OR sp.SupplierName LIKE @SearchPattern);
+            SELECT COUNT(*) FROM Purchase p
+            INNER JOIN SupplierMaster sp ON sp.SupplierID = p.SupplierID
+            WHERE (@SupplierID::int IS NULL OR p.SupplierID = @SupplierID)
+              AND (@FromDate::date IS NULL OR p.PurchaseDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR p.PurchaseDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR p.InvoiceNo ILIKE @SearchPattern OR sp.SupplierName ILIKE @SearchPattern);
 
-            SELECT p.*, sp.SupplierName FROM dbo.Purchase p
-            INNER JOIN dbo.SupplierMaster sp ON sp.SupplierID = p.SupplierID
-            WHERE (@SupplierID IS NULL OR p.SupplierID = @SupplierID)
-              AND (@FromDate IS NULL OR p.PurchaseDate >= @FromDate)
-              AND (@ToDate IS NULL OR p.PurchaseDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR p.InvoiceNo LIKE @SearchPattern OR sp.SupplierName LIKE @SearchPattern)
+            SELECT p.*, sp.SupplierName FROM Purchase p
+            INNER JOIN SupplierMaster sp ON sp.SupplierID = p.SupplierID
+            WHERE (@SupplierID::int IS NULL OR p.SupplierID = @SupplierID)
+              AND (@FromDate::date IS NULL OR p.PurchaseDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR p.PurchaseDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR p.InvoiceNo ILIKE @SearchPattern OR sp.SupplierName ILIKE @SearchPattern)
             ORDER BY p.PurchaseDate DESC, p.PurchaseID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -72,14 +72,14 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
             purchase.TotalAmount = purchase.Items.Sum(i => i.TotalAmount);
 
             const string insertSql = """
-                INSERT INTO dbo.Purchase (PurchaseDate, SupplierID, InvoiceNo, Remarks, TotalAmount, CreatedBy)
-                OUTPUT INSERTED.PurchaseID
-                VALUES (@PurchaseDate, @SupplierID, @InvoiceNo, @Remarks, @TotalAmount, @CreatedBy);
+                INSERT INTO Purchase (PurchaseDate, SupplierID, InvoiceNo, Remarks, TotalAmount, CreatedBy)
+                VALUES (@PurchaseDate, @SupplierID, @InvoiceNo, @Remarks, @TotalAmount, @CreatedBy)
+                RETURNING PurchaseID;
                 """;
             var purchaseId = await connection.QuerySingleAsync<int>(insertSql, purchase, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount, BoxCount)
+                INSERT INTO PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount, BoxCount)
                 VALUES (@PurchaseID, @FruitID, @Quantity, @PurchasePrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in purchase.Items)
@@ -122,24 +122,24 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
         try
         {
             var oldSupplierId = await connection.ExecuteScalarAsync<int>(
-                "SELECT SupplierID FROM dbo.Purchase WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction);
+                "SELECT SupplierID FROM Purchase WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction);
             var oldFruitIds = (await connection.QueryAsync<int>(
-                "SELECT DISTINCT FruitID FROM dbo.PurchaseItems WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction)).ToList();
+                "SELECT DISTINCT FruitID FROM PurchaseItems WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction)).ToList();
 
             purchase.TotalAmount = purchase.Items.Sum(i => i.TotalAmount);
 
             const string updateSql = """
-                UPDATE dbo.Purchase
+                UPDATE Purchase
                 SET PurchaseDate = @PurchaseDate, SupplierID = @SupplierID, InvoiceNo = @InvoiceNo,
-                    Remarks = @Remarks, TotalAmount = @TotalAmount, UpdatedAt = SYSUTCDATETIME()
+                    Remarks = @Remarks, TotalAmount = @TotalAmount, UpdatedAt = (now() AT TIME ZONE 'utc')
                 WHERE PurchaseID = @PurchaseID;
                 """;
             await connection.ExecuteAsync(updateSql, purchase, transaction);
 
-            await connection.ExecuteAsync("DELETE FROM dbo.PurchaseItems WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction);
+            await connection.ExecuteAsync("DELETE FROM PurchaseItems WHERE PurchaseID = @PurchaseID", new { purchase.PurchaseID }, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount, BoxCount)
+                INSERT INTO PurchaseItems (PurchaseID, FruitID, Quantity, PurchasePrice, TotalAmount, BoxCount)
                 VALUES (@PurchaseID, @FruitID, @Quantity, @PurchasePrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in purchase.Items)
@@ -189,13 +189,13 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
         try
         {
             var supplierId = await connection.ExecuteScalarAsync<int>(
-                "SELECT SupplierID FROM dbo.Purchase WHERE PurchaseID = @PurchaseID", new { PurchaseID = purchaseId }, transaction);
+                "SELECT SupplierID FROM Purchase WHERE PurchaseID = @PurchaseID", new { PurchaseID = purchaseId }, transaction);
             var fruitIds = (await connection.QueryAsync<int>(
-                "SELECT DISTINCT FruitID FROM dbo.PurchaseItems WHERE PurchaseID = @PurchaseID", new { PurchaseID = purchaseId }, transaction)).ToList();
+                "SELECT DISTINCT FruitID FROM PurchaseItems WHERE PurchaseID = @PurchaseID", new { PurchaseID = purchaseId }, transaction)).ToList();
 
             await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.Purchase, purchaseId);
             await ledgerService.RemoveStockLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Purchase, purchaseId);
-            await connection.ExecuteAsync("DELETE FROM dbo.Purchase WHERE PurchaseID = @PurchaseID", new { PurchaseID = purchaseId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM Purchase WHERE PurchaseID = @PurchaseID", new { PurchaseID = purchaseId }, transaction);
             await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, supplierId);
             foreach (var fruitId in fruitIds)
             {
@@ -217,7 +217,7 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
-            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.Purchase WHERE InvoiceNo = @InvoiceNo AND (@ExcludePurchaseId IS NULL OR PurchaseID <> @ExcludePurchaseId)) THEN 1 ELSE 0 END",
+            "SELECT EXISTS (SELECT 1 FROM Purchase WHERE InvoiceNo = @InvoiceNo AND (@ExcludePurchaseId::int IS NULL OR PurchaseID <> @ExcludePurchaseId))",
             new { InvoiceNo = invoiceNo, ExcludePurchaseId = excludePurchaseId });
     }
 
@@ -225,8 +225,8 @@ public class PurchaseRepository(IDbConnectionFactory connectionFactory, ILedgerS
     {
         using var connection = connectionFactory.CreateConnection();
         var maxSeq = await connection.ExecuteScalarAsync<int?>("""
-            SELECT MAX(TRY_CAST(SUBSTRING(InvoiceNo, 4, 20) AS INT))
-            FROM dbo.Purchase
+            SELECT MAX(CASE WHEN SUBSTRING(InvoiceNo FROM 4) ~ '^[0-9]+$' THEN CAST(SUBSTRING(InvoiceNo FROM 4) AS INT) ELSE NULL END)
+            FROM Purchase
             WHERE InvoiceNo LIKE 'PUR%'
             """);
         return $"PUR{(maxSeq ?? 0) + 1:D6}";

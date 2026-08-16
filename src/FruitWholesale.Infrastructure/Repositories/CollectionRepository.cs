@@ -15,8 +15,8 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT c.*, sh.ShopName FROM dbo.Collections c
-            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = c.ShopID
+            SELECT c.*, sh.ShopName FROM Collections c
+            INNER JOIN ShopMaster sh ON sh.ShopID = c.ShopID
             WHERE c.CollectionID = @CollectionID;
             """;
         return await connection.QueryFirstOrDefaultAsync<Collection>(sql, new { CollectionID = collectionId });
@@ -26,19 +26,19 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.Collections c
-            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = c.ShopID
-            WHERE (@ShopID IS NULL OR c.ShopID = @ShopID)
-              AND (@FromDate IS NULL OR c.CollectionDate >= @FromDate)
-              AND (@ToDate IS NULL OR c.CollectionDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR sh.ShopName LIKE @SearchPattern OR c.ReferenceNumber LIKE @SearchPattern);
+            SELECT COUNT(*) FROM Collections c
+            INNER JOIN ShopMaster sh ON sh.ShopID = c.ShopID
+            WHERE (@ShopID::int IS NULL OR c.ShopID = @ShopID)
+              AND (@FromDate::date IS NULL OR c.CollectionDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR c.CollectionDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR sh.ShopName ILIKE @SearchPattern OR c.ReferenceNumber ILIKE @SearchPattern);
 
-            SELECT c.*, sh.ShopName FROM dbo.Collections c
-            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = c.ShopID
-            WHERE (@ShopID IS NULL OR c.ShopID = @ShopID)
-              AND (@FromDate IS NULL OR c.CollectionDate >= @FromDate)
-              AND (@ToDate IS NULL OR c.CollectionDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR sh.ShopName LIKE @SearchPattern OR c.ReferenceNumber LIKE @SearchPattern)
+            SELECT c.*, sh.ShopName FROM Collections c
+            INNER JOIN ShopMaster sh ON sh.ShopID = c.ShopID
+            WHERE (@ShopID::int IS NULL OR c.ShopID = @ShopID)
+              AND (@FromDate::date IS NULL OR c.CollectionDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR c.CollectionDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR sh.ShopName ILIKE @SearchPattern OR c.ReferenceNumber ILIKE @SearchPattern)
             ORDER BY c.CollectionDate DESC, c.CollectionID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -65,9 +65,9 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         try
         {
             const string insertSql = """
-                INSERT INTO dbo.Collections (CollectionDate, ShopID, AmountReceived, DiscountAmount, PaymentMode, ReferenceNumber, Remarks, CreatedBy, CollectionType, TemporaryStatus)
-                OUTPUT INSERTED.CollectionID
-                VALUES (@CollectionDate, @ShopID, @AmountReceived, @DiscountAmount, @PaymentMode, @ReferenceNumber, @Remarks, @CreatedBy, @CollectionType, @TemporaryStatus);
+                INSERT INTO Collections (CollectionDate, ShopID, AmountReceived, DiscountAmount, PaymentMode, ReferenceNumber, Remarks, CreatedBy, CollectionType, TemporaryStatus)
+                VALUES (@CollectionDate, @ShopID, @AmountReceived, @DiscountAmount, @PaymentMode, @ReferenceNumber, @Remarks, @CreatedBy, @CollectionType, @TemporaryStatus)
+                RETURNING CollectionID;
                 """;
             var collectionId = await connection.QuerySingleAsync<int>(insertSql, collection, transaction);
 
@@ -106,7 +106,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         try
         {
             var existing = await connection.QuerySingleOrDefaultAsync<Collection>(
-                "SELECT CollectionID, ShopID, CollectionType, TemporaryStatus, SettlementID FROM dbo.Collections WHERE CollectionID = @CollectionID",
+                "SELECT CollectionID, ShopID, CollectionType, TemporaryStatus, SettlementID FROM Collections WHERE CollectionID = @CollectionID",
                 new { collection.CollectionID }, transaction);
             if (existing is null)
             {
@@ -125,11 +125,11 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             var shouldHaveShopLedger = !isTemporary;
 
             const string updateSql = """
-                UPDATE dbo.Collections
+                UPDATE Collections
                 SET CollectionDate = @CollectionDate, ShopID = @ShopID, AmountReceived = @AmountReceived,
                     DiscountAmount = @DiscountAmount, PaymentMode = @PaymentMode, ReferenceNumber = @ReferenceNumber,
                     Remarks = @Remarks, CollectionType = @CollectionType, TemporaryStatus = @TemporaryStatus,
-                    SettlementID = @SettlementID, UpdatedAt = SYSUTCDATETIME()
+                    SettlementID = @SettlementID, UpdatedAt = (now() AT TIME ZONE 'utc')
                 WHERE CollectionID = @CollectionID;
                 """;
             await connection.ExecuteAsync(updateSql, collection, transaction);
@@ -181,7 +181,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         try
         {
             var existing = await connection.QuerySingleOrDefaultAsync<Collection>(
-                "SELECT CollectionID, ShopID, CollectionType, TemporaryStatus FROM dbo.Collections WHERE CollectionID = @CollectionID",
+                "SELECT CollectionID, ShopID, CollectionType, TemporaryStatus FROM Collections WHERE CollectionID = @CollectionID",
                 new { CollectionID = collectionId }, transaction);
             if (existing is null)
             {
@@ -200,7 +200,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             }
 
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Collections, collectionId);
-            await connection.ExecuteAsync("DELETE FROM dbo.Collections WHERE CollectionID = @CollectionID", new { CollectionID = collectionId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM Collections WHERE CollectionID = @CollectionID", new { CollectionID = collectionId }, transaction);
 
             if (existing.CollectionType != CollectionTypes.Temporary)
             {
@@ -221,13 +221,14 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT TOP 1 sh.ShopID, sh.ShopName, COUNT(c.CollectionID) AS PendingCount, SUM(c.AmountReceived) AS PendingTotal
-            FROM dbo.ShopMaster sh
-            LEFT JOIN dbo.Collections c ON c.ShopID = sh.ShopID
+            SELECT sh.ShopID, sh.ShopName, COUNT(c.CollectionID) AS PendingCount, COALESCE(SUM(c.AmountReceived), 0) AS PendingTotal
+            FROM ShopMaster sh
+            LEFT JOIN Collections c ON c.ShopID = sh.ShopID
                 AND c.CollectionType = 'Temporary'
                 AND c.TemporaryStatus = 'Pending'
             WHERE sh.ShopID = @ShopID
-            GROUP BY sh.ShopID, sh.ShopName;
+            GROUP BY sh.ShopID, sh.ShopName
+            LIMIT 1;
             """;
         return await connection.QueryFirstOrDefaultAsync<CollectionSettlementPreviewDto>(sql, new { ShopID = shopId })
             ?? new CollectionSettlementPreviewDto { ShopID = shopId, PendingCount = 0, PendingTotal = 0m };
@@ -242,7 +243,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         {
             var pendingRows = (await connection.QueryAsync<Collection>("""
                 SELECT CollectionID, ShopID, AmountReceived, CollectionDate, CollectionType, TemporaryStatus
-                FROM dbo.Collections
+                FROM Collections
                 WHERE ShopID = @ShopID
                   AND CollectionType = 'Temporary'
                   AND TemporaryStatus = 'Pending'
@@ -257,9 +258,9 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
 
             var totalAmount = pendingRows.Sum(x => x.AmountReceived);
             var settlementId = await connection.ExecuteScalarAsync<int>("""
-                INSERT INTO dbo.TemporaryCollectionSettlements (ShopID, SettlementDate, TotalAmount, CreatedBy)
-                OUTPUT INSERTED.TemporaryCollectionSettlementID
-                VALUES (@ShopID, @SettlementDate, @TotalAmount, @CreatedBy);
+                INSERT INTO TemporaryCollectionSettlements (ShopID, SettlementDate, TotalAmount, CreatedBy)
+                VALUES (@ShopID, @SettlementDate, @TotalAmount, @CreatedBy)
+                RETURNING TemporaryCollectionSettlementID;
                 """, new { ShopID = shopId, SettlementDate = settlementDate, TotalAmount = totalAmount, CreatedBy = createdBy }, transaction);
 
             await ledgerService.AddShopLedgerEntryAsync(connection, transaction, shopId, settlementDate,
@@ -270,7 +271,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             foreach (var row in pendingRows)
             {
                 await connection.ExecuteAsync("""
-                    UPDATE dbo.Collections
+                    UPDATE Collections
                     SET TemporaryStatus = 'Settled', SettlementID = @SettlementID
                     WHERE CollectionID = @CollectionID;
                     """, new { CollectionID = row.CollectionID, SettlementID = settlementId }, transaction);
@@ -293,6 +294,6 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
 
     private static async Task<string> ShopNameAsync(IDbConnection connection, IDbTransaction transaction, int shopId) =>
         await connection.QueryFirstOrDefaultAsync<string>(
-            "SELECT ShopName FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction)
+            "SELECT ShopName FROM ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction)
         ?? "Unknown Shop";
 }
