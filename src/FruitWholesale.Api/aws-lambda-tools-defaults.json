@@ -1,0 +1,12 @@
+{
+  "region": "ap-southeast-1",
+  "configuration": "Release",
+  "function-architecture": "arm64",
+  "function-runtime": "provided.al2023",
+  "function-memory-size": 512,
+  "function-timeout": 30,
+  "function-handler": "FruitWholesale.Api",
+  "function-name": "harvest-erp-api",
+  "function-role": "arn:aws:iam::426187995582:role/harvest-lambda-exec",
+  "msbuild-parameters": "--self-contained true"
+}

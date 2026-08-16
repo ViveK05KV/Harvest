@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://harvest-erp-api-in.ambitiousdune-330fdd60.centralindia.azurecontainerapps.io/api',
-  serverUrl: 'https://harvest-erp-api-in.ambitiousdune-330fdd60.centralindia.azurecontainerapps.io'
+  apiUrl: 'https://d1303bxd595i6l.cloudfront.net/api',
+  serverUrl: 'https://d1303bxd595i6l.cloudfront.net'
 };
