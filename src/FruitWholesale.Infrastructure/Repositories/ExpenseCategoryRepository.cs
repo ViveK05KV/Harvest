@@ -11,14 +11,14 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<ExpenseCategory>(
-            "SELECT * FROM ExpenseCategory WHERE ExpenseCategoryID = @ExpenseCategoryID", new { ExpenseCategoryID = expenseCategoryId });
+            "SELECT * FROM dbo.ExpenseCategory WHERE ExpenseCategoryID = @ExpenseCategoryID", new { ExpenseCategoryID = expenseCategoryId });
     }
 
     public async Task<IReadOnlyList<ExpenseCategory>> GetAllActiveAsync()
     {
         using var connection = connectionFactory.CreateConnection();
         var result = await connection.QueryAsync<ExpenseCategory>(
-            "SELECT * FROM ExpenseCategory WHERE IsActive = TRUE ORDER BY CategoryName");
+            "SELECT * FROM dbo.ExpenseCategory WHERE IsActive = 1 ORDER BY CategoryName");
         return result.ToList();
     }
 
@@ -26,13 +26,13 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM ExpenseCategory WHERE (@SearchTerm::text IS NULL OR CategoryName ILIKE @SearchPattern);
+            SELECT COUNT(*) FROM dbo.ExpenseCategory WHERE (@SearchTerm IS NULL OR CategoryName LIKE @SearchPattern);
 
-            SELECT * FROM ExpenseCategory
-            WHERE (@SearchTerm::text IS NULL OR CategoryName ILIKE @SearchPattern)
+            SELECT * FROM dbo.ExpenseCategory
+            WHERE (@SearchTerm IS NULL OR CategoryName LIKE @SearchPattern)
             ORDER BY
-                CASE WHEN @SortBy = 'categoryName' AND NOT @SortDescending THEN CategoryName END ASC,
-                CASE WHEN @SortBy = 'categoryName' AND @SortDescending THEN CategoryName END DESC,
+                CASE WHEN @SortBy = 'categoryName' AND @SortDescending = 0 THEN CategoryName END ASC,
+                CASE WHEN @SortBy = 'categoryName' AND @SortDescending = 1 THEN CategoryName END DESC,
                 CASE WHEN @SortBy IS NULL OR @SortBy <> 'categoryName' THEN CategoryName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -54,9 +54,9 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            INSERT INTO ExpenseCategory (CategoryName, Description, IsActive)
-            VALUES (@CategoryName, @Description, @IsActive)
-            RETURNING ExpenseCategoryID;
+            INSERT INTO dbo.ExpenseCategory (CategoryName, Description, IsActive)
+            OUTPUT INSERTED.ExpenseCategoryID
+            VALUES (@CategoryName, @Description, @IsActive);
             """;
         return await connection.QuerySingleAsync<int>(sql, category);
     }
@@ -65,7 +65,7 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            UPDATE ExpenseCategory SET CategoryName = @CategoryName, Description = @Description
+            UPDATE dbo.ExpenseCategory SET CategoryName = @CategoryName, Description = @Description
             WHERE ExpenseCategoryID = @ExpenseCategoryID;
             """;
         await connection.ExecuteAsync(sql, category);
@@ -75,7 +75,7 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE ExpenseCategory SET IsActive = @IsActive WHERE ExpenseCategoryID = @ExpenseCategoryID",
+            "UPDATE dbo.ExpenseCategory SET IsActive = @IsActive WHERE ExpenseCategoryID = @ExpenseCategoryID",
             new { ExpenseCategoryID = expenseCategoryId, IsActive = isActive });
     }
 }

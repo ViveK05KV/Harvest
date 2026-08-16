@@ -1,62 +1,54 @@
 /* =====================================================================
    Fruit Wholesale Management System
    05_ClearData.sql
-   Wipes every table back to empty except the admin login in Users.
+   Wipes every table back to empty except the admin login in dbo.Users.
    Deletes in dependency-safe (child-before-parent) order and resets
-   identity sequences. Re-run any time you want a clean slate without
+   identity seeds. Re-run any time you want a clean slate without
    dropping/recreating the schema.
    ===================================================================== */
+USE FruitWholesaleDB;
+GO
 
-DELETE FROM CashLedger;
-DELETE FROM SupplierLedger;
-DELETE FROM ShopLedger;
-DELETE FROM FruitBoxes;
-DELETE FROM StockLedger;
-DELETE FROM FruitCostBasis;
-DELETE FROM ShopReturnItems;
-DELETE FROM ShopReturns;
-DELETE FROM SupplierReturnItems;
-DELETE FROM SupplierReturns;
-DELETE FROM EmployeeWorkLog;
-DELETE FROM DailyExpense;
-DELETE FROM SupplierPayments;
-DELETE FROM PurchaseItems;
-DELETE FROM Purchase;
-DELETE FROM Collections;
-DELETE FROM TemporaryCollectionSettlements;
-DELETE FROM SupplyItems;
-DELETE FROM Supply;
-DELETE FROM ExpenseCategory;
-DELETE FROM EmployeeMaster;
-DELETE FROM SupplierMaster;
-DELETE FROM ShopMaster;
-DELETE FROM RouteMaster;
-DELETE FROM FruitMaster;
-DELETE FROM CompanySettings;
-DELETE FROM RefreshTokens;
-DELETE FROM Users WHERE Username <> 'admin';
+DELETE FROM dbo.CashLedger;
+DELETE FROM dbo.SupplierLedger;
+DELETE FROM dbo.ShopLedger;
+DELETE FROM dbo.StockLedger;
+DELETE FROM dbo.EmployeeWorkLog;
+DELETE FROM dbo.DailyExpense;
+DELETE FROM dbo.SupplierPayments;
+DELETE FROM dbo.PurchaseItems;
+DELETE FROM dbo.Purchase;
+DELETE FROM dbo.Collections;
+DELETE FROM dbo.SupplyItems;
+DELETE FROM dbo.Supply;
+DELETE FROM dbo.ExpenseCategory;
+DELETE FROM dbo.EmployeeMaster;
+DELETE FROM dbo.SupplierMaster;
+DELETE FROM dbo.ShopMaster;
+DELETE FROM dbo.RouteMaster;
+DELETE FROM dbo.FruitMaster;
+DELETE FROM dbo.CompanySettings;
+DELETE FROM dbo.Users WHERE Username <> 'admin';
 
--- Looked up via pg_get_serial_sequence() rather than hardcoded "table_column_seq" names:
--- Postgres silently truncates auto-generated identity sequence names over 63 bytes
--- (e.g. TemporaryCollectionSettlements + its PK column overflows that limit), so a
--- literal ALTER SEQUENCE name can silently point at a sequence that doesn't exist.
-DO $$
-DECLARE
-    t text;
-BEGIN
-    FOREACH t IN ARRAY ARRAY[
-        'CashLedger', 'SupplierLedger', 'ShopLedger', 'FruitBoxes', 'StockLedger',
-        'ShopReturnItems', 'ShopReturns', 'SupplierReturnItems', 'SupplierReturns',
-        'EmployeeWorkLog', 'DailyExpense', 'SupplierPayments', 'PurchaseItems', 'Purchase',
-        'Collections', 'TemporaryCollectionSettlements', 'SupplyItems', 'Supply',
-        'ExpenseCategory', 'EmployeeMaster', 'SupplierMaster', 'ShopMaster', 'RouteMaster',
-        'FruitMaster', 'CompanySettings', 'RefreshTokens'
-    ]
-    LOOP
-        EXECUTE format(
-            'SELECT setval(pg_get_serial_sequence(%L, column_name), 1, false) FROM information_schema.columns WHERE table_name = %L AND column_default LIKE %L',
-            lower(t), lower(t), 'nextval%'
-        );
-    END LOOP;
-END
-$$;
+DBCC CHECKIDENT ('dbo.CashLedger', RESEED, 0);
+DBCC CHECKIDENT ('dbo.SupplierLedger', RESEED, 0);
+DBCC CHECKIDENT ('dbo.ShopLedger', RESEED, 0);
+DBCC CHECKIDENT ('dbo.StockLedger', RESEED, 0);
+DBCC CHECKIDENT ('dbo.EmployeeWorkLog', RESEED, 0);
+DBCC CHECKIDENT ('dbo.DailyExpense', RESEED, 0);
+DBCC CHECKIDENT ('dbo.SupplierPayments', RESEED, 0);
+DBCC CHECKIDENT ('dbo.PurchaseItems', RESEED, 0);
+DBCC CHECKIDENT ('dbo.Purchase', RESEED, 0);
+DBCC CHECKIDENT ('dbo.Collections', RESEED, 0);
+DBCC CHECKIDENT ('dbo.SupplyItems', RESEED, 0);
+DBCC CHECKIDENT ('dbo.Supply', RESEED, 0);
+DBCC CHECKIDENT ('dbo.ExpenseCategory', RESEED, 0);
+DBCC CHECKIDENT ('dbo.EmployeeMaster', RESEED, 0);
+DBCC CHECKIDENT ('dbo.SupplierMaster', RESEED, 0);
+DBCC CHECKIDENT ('dbo.ShopMaster', RESEED, 0);
+DBCC CHECKIDENT ('dbo.RouteMaster', RESEED, 0);
+DBCC CHECKIDENT ('dbo.FruitMaster', RESEED, 0);
+DBCC CHECKIDENT ('dbo.CompanySettings', RESEED, 0);
+
+PRINT 'All data cleared. Only the admin login remains.';
+GO

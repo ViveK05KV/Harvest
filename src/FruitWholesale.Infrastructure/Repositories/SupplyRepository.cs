@@ -13,12 +13,12 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT s.*, sh.ShopName FROM Supply s
-            INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
+            SELECT s.*, sh.ShopName FROM dbo.Supply s
+            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = s.ShopID
             WHERE s.SupplyID = @SupplyID;
 
-            SELECT si.*, f.FruitName, f.Unit FROM SupplyItems si
-            INNER JOIN FruitMaster f ON f.FruitID = si.FruitID
+            SELECT si.*, f.FruitName, f.Unit FROM dbo.SupplyItems si
+            INNER JOIN dbo.FruitMaster f ON f.FruitID = si.FruitID
             WHERE si.SupplyID = @SupplyID;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new { SupplyID = supplyId });
@@ -32,19 +32,19 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM Supply s
-            INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
-            WHERE (@ShopID::int IS NULL OR s.ShopID = @ShopID)
-              AND (@FromDate::date IS NULL OR s.SupplyDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR s.SupplyDate <= @ToDate)
-              AND (@SearchTerm::text IS NULL OR s.InvoiceNo ILIKE @SearchPattern OR sh.ShopName ILIKE @SearchPattern);
+            SELECT COUNT(*) FROM dbo.Supply s
+            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = s.ShopID
+            WHERE (@ShopID IS NULL OR s.ShopID = @ShopID)
+              AND (@FromDate IS NULL OR s.SupplyDate >= @FromDate)
+              AND (@ToDate IS NULL OR s.SupplyDate <= @ToDate)
+              AND (@SearchTerm IS NULL OR s.InvoiceNo LIKE @SearchPattern OR sh.ShopName LIKE @SearchPattern);
 
-            SELECT s.*, sh.ShopName FROM Supply s
-            INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
-            WHERE (@ShopID::int IS NULL OR s.ShopID = @ShopID)
-              AND (@FromDate::date IS NULL OR s.SupplyDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR s.SupplyDate <= @ToDate)
-              AND (@SearchTerm::text IS NULL OR s.InvoiceNo ILIKE @SearchPattern OR sh.ShopName ILIKE @SearchPattern)
+            SELECT s.*, sh.ShopName FROM dbo.Supply s
+            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = s.ShopID
+            WHERE (@ShopID IS NULL OR s.ShopID = @ShopID)
+              AND (@FromDate IS NULL OR s.SupplyDate >= @FromDate)
+              AND (@ToDate IS NULL OR s.SupplyDate <= @ToDate)
+              AND (@SearchTerm IS NULL OR s.InvoiceNo LIKE @SearchPattern OR sh.ShopName LIKE @SearchPattern)
             ORDER BY s.SupplyDate DESC, s.SupplyID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -73,14 +73,14 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             supply.TotalAmount = supply.Items.Sum(i => i.TotalAmount);
 
             const string insertSql = """
-                INSERT INTO Supply (SupplyDate, ShopID, InvoiceNo, Remarks, TotalAmount, CreatedBy)
-                VALUES (@SupplyDate, @ShopID, @InvoiceNo, @Remarks, @TotalAmount, @CreatedBy)
-                RETURNING SupplyID;
+                INSERT INTO dbo.Supply (SupplyDate, ShopID, InvoiceNo, Remarks, TotalAmount, CreatedBy)
+                OUTPUT INSERTED.SupplyID
+                VALUES (@SupplyDate, @ShopID, @InvoiceNo, @Remarks, @TotalAmount, @CreatedBy);
                 """;
             var supplyId = await connection.QuerySingleAsync<int>(insertSql, supply, transaction);
 
             const string insertItemSql = """
-                INSERT INTO SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
+                INSERT INTO dbo.SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
                 VALUES (@SupplyID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in supply.Items)
@@ -94,11 +94,11 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
             await ledgerService.RecalculateShopLedgerAsync(connection, transaction, supply.ShopID);
 
             var linkedSupplierId = await connection.ExecuteScalarAsync<int?>(
-                "SELECT LinkedSupplierID FROM ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
             if (linkedSupplierId is not null)
             {
                 var shopName = await connection.ExecuteScalarAsync<string>(
-                    "SELECT ShopName FROM ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+                    "SELECT ShopName FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
                 await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, linkedSupplierId.Value, supply.SupplyDate,
                     LedgerTransactionTypes.LinkedShopSale, supplyId, 0, supply.TotalAmount,
                     $"Sale to linked shop {shopName} (Invoice #{supply.InvoiceNo})");
@@ -135,26 +135,26 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
         try
         {
             var oldShopId = await connection.ExecuteScalarAsync<int>(
-                "SELECT ShopID FROM Supply WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction);
+                "SELECT ShopID FROM dbo.Supply WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction);
             var oldFruitIds = (await connection.QueryAsync<int>(
-                "SELECT DISTINCT FruitID FROM SupplyItems WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction)).ToList();
+                "SELECT DISTINCT FruitID FROM dbo.SupplyItems WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction)).ToList();
             var oldLinkedSupplierId = await connection.ExecuteScalarAsync<int?>(
-                "SELECT LinkedSupplierID FROM ShopMaster WHERE ShopID = @ShopID", new { ShopID = oldShopId }, transaction);
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { ShopID = oldShopId }, transaction);
 
             supply.TotalAmount = supply.Items.Sum(i => i.TotalAmount);
 
             const string updateSql = """
-                UPDATE Supply
+                UPDATE dbo.Supply
                 SET SupplyDate = @SupplyDate, ShopID = @ShopID, InvoiceNo = @InvoiceNo,
-                    Remarks = @Remarks, TotalAmount = @TotalAmount, UpdatedAt = (now() AT TIME ZONE 'utc')
+                    Remarks = @Remarks, TotalAmount = @TotalAmount, UpdatedAt = SYSUTCDATETIME()
                 WHERE SupplyID = @SupplyID;
                 """;
             await connection.ExecuteAsync(updateSql, supply, transaction);
 
-            await connection.ExecuteAsync("DELETE FROM SupplyItems WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction);
+            await connection.ExecuteAsync("DELETE FROM dbo.SupplyItems WHERE SupplyID = @SupplyID", new { supply.SupplyID }, transaction);
 
             const string insertItemSql = """
-                INSERT INTO SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
+                INSERT INTO dbo.SupplyItems (SupplyID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
                 VALUES (@SupplyID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in supply.Items)
@@ -175,11 +175,11 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
 
             await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.LinkedShopSale, supply.SupplyID);
             var newLinkedSupplierId = await connection.ExecuteScalarAsync<int?>(
-                "SELECT LinkedSupplierID FROM ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
             if (newLinkedSupplierId is not null)
             {
                 var shopName = await connection.ExecuteScalarAsync<string>(
-                    "SELECT ShopName FROM ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
+                    "SELECT ShopName FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { supply.ShopID }, transaction);
                 await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, newLinkedSupplierId.Value, supply.SupplyDate,
                     LedgerTransactionTypes.LinkedShopSale, supply.SupplyID, 0, supply.TotalAmount,
                     $"Sale to linked shop {shopName} (Invoice #{supply.InvoiceNo})");
@@ -220,16 +220,16 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
         try
         {
             var shopId = await connection.ExecuteScalarAsync<int>(
-                "SELECT ShopID FROM Supply WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction);
+                "SELECT ShopID FROM dbo.Supply WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction);
             var fruitIds = (await connection.QueryAsync<int>(
-                "SELECT DISTINCT FruitID FROM SupplyItems WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction)).ToList();
+                "SELECT DISTINCT FruitID FROM dbo.SupplyItems WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction)).ToList();
             var linkedSupplierId = await connection.ExecuteScalarAsync<int?>(
-                "SELECT LinkedSupplierID FROM ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction);
+                "SELECT LinkedSupplierID FROM dbo.ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction);
 
             await ledgerService.RemoveShopLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.Supply, supplyId);
             await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.LinkedShopSale, supplyId);
             await ledgerService.RemoveStockLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Supply, supplyId);
-            await connection.ExecuteAsync("DELETE FROM Supply WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM dbo.Supply WHERE SupplyID = @SupplyID", new { SupplyID = supplyId }, transaction);
             await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
             if (linkedSupplierId is not null)
             {
@@ -255,7 +255,7 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
-            "SELECT EXISTS (SELECT 1 FROM Supply WHERE InvoiceNo = @InvoiceNo AND (@ExcludeSupplyId::int IS NULL OR SupplyID <> @ExcludeSupplyId))",
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.Supply WHERE InvoiceNo = @InvoiceNo AND (@ExcludeSupplyId IS NULL OR SupplyID <> @ExcludeSupplyId)) THEN 1 ELSE 0 END",
             new { InvoiceNo = invoiceNo, ExcludeSupplyId = excludeSupplyId });
     }
 
@@ -263,8 +263,8 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
     {
         using var connection = connectionFactory.CreateConnection();
         var maxSeq = await connection.ExecuteScalarAsync<int?>("""
-            SELECT MAX(CASE WHEN SUBSTRING(InvoiceNo FROM 4) ~ '^[0-9]+$' THEN CAST(SUBSTRING(InvoiceNo FROM 4) AS INT) ELSE NULL END)
-            FROM Supply
+            SELECT MAX(TRY_CAST(SUBSTRING(InvoiceNo, 4, 20) AS INT))
+            FROM dbo.Supply
             WHERE InvoiceNo LIKE 'SUP%'
             """);
         return $"SUP{(maxSeq ?? 0) + 1:D6}";
@@ -274,14 +274,13 @@ public class SupplyRepository(IDbConnectionFactory connectionFactory, ILedgerSer
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COALESCE((
-                SELECT RunningBalance - Debit FROM ShopLedger
+            SELECT ISNULL((
+                SELECT TOP 1 RunningBalance - Debit FROM dbo.ShopLedger
                 WHERE TransactionType = @TransactionType AND ReferenceID = @SupplyID
-                LIMIT 1
             ), 0) AS OldBalance,
-            COALESCE((
-                SELECT SUM(c.AmountReceived) FROM Collections c
-                INNER JOIN Supply s ON s.SupplyID = @SupplyID
+            ISNULL((
+                SELECT SUM(c.AmountReceived) FROM dbo.Collections c
+                INNER JOIN dbo.Supply s ON s.SupplyID = @SupplyID
                 WHERE c.ShopID = s.ShopID
                   AND CAST(c.CollectionDate AS DATE) = CAST(s.SupplyDate AS DATE)
                   AND c.CollectionType = @CollectionType

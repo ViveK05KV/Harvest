@@ -12,9 +12,9 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT w.*, e.FullName AS EmployeeName, r.RouteName FROM EmployeeWorkLog w
-            INNER JOIN EmployeeMaster e ON e.EmployeeID = w.EmployeeID
-            LEFT JOIN RouteMaster r ON r.RouteID = w.RouteID
+            SELECT w.*, e.FullName AS EmployeeName, r.RouteName FROM dbo.EmployeeWorkLog w
+            INNER JOIN dbo.EmployeeMaster e ON e.EmployeeID = w.EmployeeID
+            LEFT JOIN dbo.RouteMaster r ON r.RouteID = w.RouteID
             WHERE w.EmployeeWorkLogID = @EmployeeWorkLogID;
             """;
         return await connection.QueryFirstOrDefaultAsync<EmployeeWorkLog>(sql, new { EmployeeWorkLogID = employeeWorkLogId });
@@ -24,20 +24,20 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM EmployeeWorkLog w
-            INNER JOIN EmployeeMaster e ON e.EmployeeID = w.EmployeeID
-            WHERE (@EmployeeID::int IS NULL OR w.EmployeeID = @EmployeeID)
-              AND (@FromDate::date IS NULL OR w.WorkDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR w.WorkDate <= @ToDate)
-              AND (@SearchTerm::text IS NULL OR e.FullName ILIKE @SearchPattern);
+            SELECT COUNT(*) FROM dbo.EmployeeWorkLog w
+            INNER JOIN dbo.EmployeeMaster e ON e.EmployeeID = w.EmployeeID
+            WHERE (@EmployeeID IS NULL OR w.EmployeeID = @EmployeeID)
+              AND (@FromDate IS NULL OR w.WorkDate >= @FromDate)
+              AND (@ToDate IS NULL OR w.WorkDate <= @ToDate)
+              AND (@SearchTerm IS NULL OR e.FullName LIKE @SearchPattern);
 
-            SELECT w.*, e.FullName AS EmployeeName, r.RouteName FROM EmployeeWorkLog w
-            INNER JOIN EmployeeMaster e ON e.EmployeeID = w.EmployeeID
-            LEFT JOIN RouteMaster r ON r.RouteID = w.RouteID
-            WHERE (@EmployeeID::int IS NULL OR w.EmployeeID = @EmployeeID)
-              AND (@FromDate::date IS NULL OR w.WorkDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR w.WorkDate <= @ToDate)
-              AND (@SearchTerm::text IS NULL OR e.FullName ILIKE @SearchPattern)
+            SELECT w.*, e.FullName AS EmployeeName, r.RouteName FROM dbo.EmployeeWorkLog w
+            INNER JOIN dbo.EmployeeMaster e ON e.EmployeeID = w.EmployeeID
+            LEFT JOIN dbo.RouteMaster r ON r.RouteID = w.RouteID
+            WHERE (@EmployeeID IS NULL OR w.EmployeeID = @EmployeeID)
+              AND (@FromDate IS NULL OR w.WorkDate >= @FromDate)
+              AND (@ToDate IS NULL OR w.WorkDate <= @ToDate)
+              AND (@SearchTerm IS NULL OR e.FullName LIKE @SearchPattern)
             ORDER BY w.WorkDate DESC, w.EmployeeWorkLogID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -64,9 +64,9 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             const string insertSql = """
-                INSERT INTO EmployeeWorkLog (WorkDate, EmployeeID, JobType, RouteID, Amount, PaymentMode, Remarks, CreatedBy)
-                VALUES (@WorkDate, @EmployeeID, @JobType, @RouteID, @Amount, @PaymentMode, @Remarks, @CreatedBy)
-                RETURNING EmployeeWorkLogID;
+                INSERT INTO dbo.EmployeeWorkLog (WorkDate, EmployeeID, JobType, RouteID, Amount, PaymentMode, Remarks, CreatedBy)
+                OUTPUT INSERTED.EmployeeWorkLogID
+                VALUES (@WorkDate, @EmployeeID, @JobType, @RouteID, @Amount, @PaymentMode, @Remarks, @CreatedBy);
                 """;
             var workLogId = await connection.QuerySingleAsync<int>(insertSql, workLog, transaction);
 
@@ -96,9 +96,9 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             const string updateSql = """
-                UPDATE EmployeeWorkLog
+                UPDATE dbo.EmployeeWorkLog
                 SET WorkDate = @WorkDate, EmployeeID = @EmployeeID, JobType = @JobType, RouteID = @RouteID,
-                    Amount = @Amount, PaymentMode = @PaymentMode, Remarks = @Remarks, UpdatedAt = (now() AT TIME ZONE 'utc')
+                    Amount = @Amount, PaymentMode = @PaymentMode, Remarks = @Remarks, UpdatedAt = SYSUTCDATETIME()
                 WHERE EmployeeWorkLogID = @EmployeeWorkLogID;
                 """;
             await connection.ExecuteAsync(updateSql, workLog, transaction);
@@ -129,7 +129,7 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.EmployeeWorkLog, employeeWorkLogId);
-            await connection.ExecuteAsync("DELETE FROM EmployeeWorkLog WHERE EmployeeWorkLogID = @EmployeeWorkLogID", new { EmployeeWorkLogID = employeeWorkLogId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM dbo.EmployeeWorkLog WHERE EmployeeWorkLogID = @EmployeeWorkLogID", new { EmployeeWorkLogID = employeeWorkLogId }, transaction);
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
             transaction.Commit();

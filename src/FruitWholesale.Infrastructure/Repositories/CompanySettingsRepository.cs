@@ -11,7 +11,7 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<CompanySettings>(
-            "SELECT * FROM CompanySettings ORDER BY CompanyID LIMIT 1");
+            "SELECT TOP 1 * FROM dbo.CompanySettings ORDER BY CompanyID");
     }
 
     public async Task<int> CreateAsync(CompanySettings settings)
@@ -22,9 +22,9 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             const string insertSql = """
-                INSERT INTO CompanySettings (CompanyName, OwnerName, Address, Phone, GSTNo, OpeningCashBalance)
-                VALUES (@CompanyName, @OwnerName, @Address, @Phone, @GSTNo, @OpeningCashBalance)
-                RETURNING CompanyID;
+                INSERT INTO dbo.CompanySettings (CompanyName, OwnerName, Address, Phone, GSTNo, OpeningCashBalance)
+                OUTPUT INSERTED.CompanyID
+                VALUES (@CompanyName, @OwnerName, @Address, @Phone, @GSTNo, @OpeningCashBalance);
                 """;
             var companyId = await connection.QuerySingleAsync<int>(insertSql, settings, transaction);
 
@@ -37,7 +37,7 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
                 // (e.g. backdated Daily Expenses entered first). AddCashLedgerEntryAsync only
                 // chains off whatever the chronologically-latest balance happens to be at insert
                 // time, which is meaningless for an opening balance - recalculate immediately so
-                // sp_recalculate_cash_ledger_balance's "OpeningBalance always first" rule takes over.
+                // sp_RecalculateCashLedgerBalance's "OpeningBalance always first" rule takes over.
                 await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
             }
 
@@ -55,9 +55,9 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            UPDATE CompanySettings
+            UPDATE dbo.CompanySettings
             SET CompanyName = @CompanyName, OwnerName = @OwnerName, Address = @Address,
-                Phone = @Phone, GSTNo = @GSTNo, UpdatedAt = (now() AT TIME ZONE 'utc')
+                Phone = @Phone, GSTNo = @GSTNo, UpdatedAt = SYSUTCDATETIME()
             WHERE CompanyID = @CompanyID;
             """;
         await connection.ExecuteAsync(sql, settings);
@@ -67,7 +67,7 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE CompanySettings SET LogoUrl = @LogoUrl, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE CompanyID = @CompanyID",
+            "UPDATE dbo.CompanySettings SET LogoUrl = @LogoUrl, UpdatedAt = SYSUTCDATETIME() WHERE CompanyID = @CompanyID",
             new { LogoUrl = logoUrl, CompanyID = companyId });
     }
 }

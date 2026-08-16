@@ -11,28 +11,28 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<User>(
-            "SELECT * FROM Users WHERE UserID = @UserID", new { UserID = userId });
+            "SELECT * FROM dbo.Users WHERE UserID = @UserID", new { UserID = userId });
     }
 
     public async Task<User?> GetByUsernameAsync(string username)
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<User>(
-            "SELECT * FROM Users WHERE Username = @Username", new { Username = username });
+            "SELECT * FROM dbo.Users WHERE Username = @Username", new { Username = username });
     }
 
     public async Task<PaginatedList<User>> GetPagedAsync(PaginationRequest request)
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM Users
-            WHERE (@SearchTerm::text IS NULL OR FullName ILIKE @SearchPattern OR Username ILIKE @SearchPattern);
+            SELECT COUNT(*) FROM dbo.Users
+            WHERE (@SearchTerm IS NULL OR FullName LIKE @SearchPattern OR Username LIKE @SearchPattern);
 
-            SELECT * FROM Users
-            WHERE (@SearchTerm::text IS NULL OR FullName ILIKE @SearchPattern OR Username ILIKE @SearchPattern)
+            SELECT * FROM dbo.Users
+            WHERE (@SearchTerm IS NULL OR FullName LIKE @SearchPattern OR Username LIKE @SearchPattern)
             ORDER BY
-                CASE WHEN @SortBy = 'FullName' AND NOT @SortDescending THEN FullName END ASC,
-                CASE WHEN @SortBy = 'FullName' AND @SortDescending THEN FullName END DESC,
+                CASE WHEN @SortBy = 'FullName' AND @SortDescending = 0 THEN FullName END ASC,
+                CASE WHEN @SortBy = 'FullName' AND @SortDescending = 1 THEN FullName END DESC,
                 CASE WHEN @SortBy IS NULL OR @SortBy <> 'FullName' THEN UserID END DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -54,9 +54,9 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            INSERT INTO Users (FullName, Username, PasswordHash, Role, IsActive)
-            VALUES (@FullName, @Username, @PasswordHash, @Role, @IsActive)
-            RETURNING UserID;
+            INSERT INTO dbo.Users (FullName, Username, PasswordHash, Role, IsActive)
+            OUTPUT INSERTED.UserID
+            VALUES (@FullName, @Username, @PasswordHash, @Role, @IsActive);
             """;
         return await connection.QuerySingleAsync<int>(sql, user);
     }
@@ -65,8 +65,8 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            UPDATE Users
-            SET FullName = @FullName, Role = @Role, UpdatedAt = (now() AT TIME ZONE 'utc')
+            UPDATE dbo.Users
+            SET FullName = @FullName, Role = @Role, UpdatedAt = SYSUTCDATETIME()
             WHERE UserID = @UserID;
             """;
         await connection.ExecuteAsync(sql, user);
@@ -76,7 +76,7 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE Users SET IsActive = @IsActive, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE UserID = @UserID",
+            "UPDATE dbo.Users SET IsActive = @IsActive, UpdatedAt = SYSUTCDATETIME() WHERE UserID = @UserID",
             new { UserID = userId, IsActive = isActive });
     }
 
@@ -84,7 +84,7 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
-            "SELECT EXISTS (SELECT 1 FROM Users WHERE Username = @Username AND (@ExcludeUserId::int IS NULL OR UserID <> @ExcludeUserId))",
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.Users WHERE Username = @Username AND (@ExcludeUserId IS NULL OR UserID <> @ExcludeUserId)) THEN 1 ELSE 0 END",
             new { Username = username, ExcludeUserId = excludeUserId });
     }
 
@@ -92,7 +92,7 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE Users SET PasswordHash = @PasswordHash, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE UserID = @UserID",
+            "UPDATE dbo.Users SET PasswordHash = @PasswordHash, UpdatedAt = SYSUTCDATETIME() WHERE UserID = @UserID",
             new { UserID = userId, PasswordHash = newPasswordHash });
     }
 }

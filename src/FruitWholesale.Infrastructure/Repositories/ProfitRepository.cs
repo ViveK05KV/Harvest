@@ -15,11 +15,11 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
                    SUM(si.TotalAmount) AS Revenue,
                    SUM(si.Quantity * si.CostBasis) AS Cost,
                    SUM(si.TotalAmount - si.Quantity * si.CostBasis) AS Profit
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            WHERE (@ShopID::int IS NULL OR s.ShopID = @ShopID)
-              AND (@FromDate::date IS NULL OR s.SupplyDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR s.SupplyDate <= @ToDate)
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            WHERE (@ShopID IS NULL OR s.ShopID = @ShopID)
+              AND (@FromDate IS NULL OR s.SupplyDate >= @FromDate)
+              AND (@ToDate IS NULL OR s.SupplyDate <= @ToDate)
             GROUP BY s.SupplyDate
             ORDER BY s.SupplyDate ASC;
             """;
@@ -36,11 +36,11 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
                    SUM(si.TotalAmount) AS Revenue,
                    SUM(si.Quantity * si.CostBasis) AS Cost,
                    SUM(si.TotalAmount - si.Quantity * si.CostBasis) AS Profit
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
-            WHERE (@FromDate::date IS NULL OR s.SupplyDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR s.SupplyDate <= @ToDate)
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = s.ShopID
+            WHERE (@FromDate IS NULL OR s.SupplyDate >= @FromDate)
+              AND (@ToDate IS NULL OR s.SupplyDate <= @ToDate)
             GROUP BY sh.ShopID, sh.ShopName
             ORDER BY Profit DESC;
             """;
@@ -58,11 +58,11 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
                    SUM(si.TotalAmount) AS Revenue,
                    SUM(si.Quantity * si.CostBasis) AS Cost,
                    SUM(si.TotalAmount - si.Quantity * si.CostBasis) AS Profit
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            INNER JOIN FruitMaster f ON f.FruitID = si.FruitID
-            WHERE (@FromDate::date IS NULL OR s.SupplyDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR s.SupplyDate <= @ToDate)
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            INNER JOIN dbo.FruitMaster f ON f.FruitID = si.FruitID
+            WHERE (@FromDate IS NULL OR s.SupplyDate >= @FromDate)
+              AND (@ToDate IS NULL OR s.SupplyDate <= @ToDate)
             GROUP BY f.FruitID, f.FruitName, f.Unit
             ORDER BY Profit DESC;
             """;
@@ -80,13 +80,13 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
                    SUM(si.TotalAmount) AS Revenue,
                    SUM(si.Quantity * si.CostBasis) AS Cost,
                    SUM(si.TotalAmount - si.Quantity * si.CostBasis) AS Profit
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
-            INNER JOIN FruitMaster f ON f.FruitID = si.FruitID
-            WHERE (@ShopID::int IS NULL OR s.ShopID = @ShopID)
-              AND (@FromDate::date IS NULL OR s.SupplyDate >= @FromDate)
-              AND (@ToDate::date IS NULL OR s.SupplyDate <= @ToDate)
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = s.ShopID
+            INNER JOIN dbo.FruitMaster f ON f.FruitID = si.FruitID
+            WHERE (@ShopID IS NULL OR s.ShopID = @ShopID)
+              AND (@FromDate IS NULL OR s.SupplyDate >= @FromDate)
+              AND (@ToDate IS NULL OR s.SupplyDate <= @ToDate)
             GROUP BY sh.ShopID, sh.ShopName, f.FruitID, f.FruitName, f.Unit
             ORDER BY sh.ShopName, Profit DESC;
             """;
@@ -99,11 +99,11 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COALESCE(SUM(si.TotalAmount), 0) AS Revenue,
-                   COALESCE(SUM(si.Quantity * si.CostBasis), 0) AS Cost,
-                   COALESCE(SUM(si.TotalAmount - si.Quantity * si.CostBasis), 0) AS Profit
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
+            SELECT ISNULL(SUM(si.TotalAmount), 0) AS Revenue,
+                   ISNULL(SUM(si.Quantity * si.CostBasis), 0) AS Cost,
+                   ISNULL(SUM(si.TotalAmount - si.Quantity * si.CostBasis), 0) AS Profit
+            FROM dbo.SupplyItems si
+            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
             WHERE s.SupplyDate >= @FromDate;
             """;
         var total = await connection.QuerySingleAsync<BusinessProfitTotal>(sql, new { FromDate = ProfitConstants.TrackingStartDate });

@@ -9,7 +9,15 @@
    BCrypt hash below was generated for "Admin@123" — change it after
    first login.
    ===================================================================== */
+USE FruitWholesaleDB;
+GO
 
-INSERT INTO Users (FullName, Username, PasswordHash, Role, IsActive)
-SELECT 'System Administrator', 'admin', '$2a$11$Ttdff7b1QzcgO0B7cI0mtuXwZb2dciz5MJHrGeQRwSQ/TduL3j1Wu', 'Admin', TRUE
-WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'admin');
+IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Username = 'admin')
+BEGIN
+    INSERT INTO dbo.Users (FullName, Username, PasswordHash, Role, IsActive)
+    VALUES (N'System Administrator', N'admin', N'$2a$11$Ttdff7b1QzcgO0B7cI0mtuXwZb2dciz5MJHrGeQRwSQ/TduL3j1Wu', N'Admin', 1);
+END
+GO
+
+PRINT 'Seed data inserted successfully.';
+GO

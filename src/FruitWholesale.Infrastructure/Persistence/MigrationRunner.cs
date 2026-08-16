@@ -1,12 +1,14 @@
+using System.Text;
+using System.Text.RegularExpressions;
 using FruitWholesale.Application.Common.Interfaces;
-using Npgsql;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
 namespace FruitWholesale.Infrastructure.Persistence;
 
 /// <summary>
 /// Applies migration scripts listed in database/auto-migrations.txt that haven't already
-/// been recorded in SchemaMigrations, in the order they're listed, on app startup.
+/// been recorded in dbo.SchemaMigrations, in the order they're listed, on app startup.
 ///
 /// Eligibility is an explicit allowlist, deliberately NOT inferred from filename
 /// numbering — this folder also contains one-time bootstrap scripts (01-05;
@@ -19,10 +21,7 @@ public class MigrationRunner(IDbConnectionFactory connectionFactory, ILogger<Mig
 {
     private const string ManifestFileName = "auto-migrations.txt";
     private const int MaxConnectAttempts = 5;
-
-    // Fixed advisory-lock key for the migration process; hashtext() of a stable string
-    // would also work, but a literal keeps the lock key visible without a round trip.
-    private const long MigrationLockKey = 872341;
+    private static readonly Regex GoSeparatorPattern = new(@"^\s*GO\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public async Task RunAsync(string migrationsDirectory, CancellationToken cancellationToken = default)
     {
@@ -32,14 +31,13 @@ public class MigrationRunner(IDbConnectionFactory connectionFactory, ILogger<Mig
             return;
         }
 
-        using var connection = (NpgsqlConnection)connectionFactory.CreateConnection();
+        using var connection = (SqlConnection)connectionFactory.CreateConnection();
         await OpenWithRetryAsync(connection, cancellationToken);
 
         // Serialize across replicas that might start concurrently.
         await using (var lockCmd = connection.CreateCommand())
         {
-            lockCmd.CommandText = "SELECT pg_advisory_lock(@LockKey);";
-            lockCmd.Parameters.AddWithValue("LockKey", MigrationLockKey);
+            lockCmd.CommandText = "EXEC sp_getapplock @Resource = 'SchemaMigrations', @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 60000;";
             await lockCmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -77,16 +75,17 @@ public class MigrationRunner(IDbConnectionFactory connectionFactory, ILogger<Mig
                 logger.LogInformation("Applying migration {Script}", scriptName);
                 var sql = await File.ReadAllTextAsync(scriptPath, cancellationToken);
 
-                await using (var cmd = connection.CreateCommand())
+                foreach (var batch in SplitBatches(sql))
                 {
-                    cmd.CommandText = sql;
+                    await using var cmd = connection.CreateCommand();
+                    cmd.CommandText = batch;
                     cmd.CommandTimeout = 120;
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
                 await using (var insertCmd = connection.CreateCommand())
                 {
-                    insertCmd.CommandText = "INSERT INTO SchemaMigrations (ScriptName) VALUES (@ScriptName);";
+                    insertCmd.CommandText = "INSERT INTO dbo.SchemaMigrations (ScriptName) VALUES (@ScriptName);";
                     insertCmd.Parameters.AddWithValue("@ScriptName", scriptName);
                     await insertCmd.ExecuteNonQueryAsync(cancellationToken);
                 }
@@ -97,19 +96,17 @@ public class MigrationRunner(IDbConnectionFactory connectionFactory, ILogger<Mig
         finally
         {
             await using var unlockCmd = connection.CreateCommand();
-            unlockCmd.CommandText = "SELECT pg_advisory_unlock(@LockKey);";
-            unlockCmd.Parameters.AddWithValue("LockKey", MigrationLockKey);
+            unlockCmd.CommandText = "EXEC sp_releaseapplock @Resource = 'SchemaMigrations', @LockOwner = 'Session';";
             await unlockCmd.ExecuteNonQueryAsync(cancellationToken);
         }
     }
 
     /// <summary>
-    /// A managed Postgres free/serverless tier can auto-pause after inactivity and take
-    /// well over a plain connection timeout to wake — and since this now runs before the
-    /// app can serve any traffic, a paused DB on the first request after a deploy must not
-    /// crash startup.
+    /// The Azure SQL free tier auto-pauses after inactivity and can take well over a plain
+    /// connection timeout to wake — and since this now runs before the app can serve any
+    /// traffic, a paused DB on the first request after a deploy must not crash startup.
     /// </summary>
-    private async Task OpenWithRetryAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    private async Task OpenWithRetryAsync(SqlConnection connection, CancellationToken cancellationToken)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -118,7 +115,7 @@ public class MigrationRunner(IDbConnectionFactory connectionFactory, ILogger<Mig
                 await connection.OpenAsync(cancellationToken);
                 return;
             }
-            catch (NpgsqlException ex) when (attempt < MaxConnectAttempts)
+            catch (SqlException ex) when (attempt < MaxConnectAttempts)
             {
                 var delay = TimeSpan.FromSeconds(5 * attempt);
                 logger.LogWarning(ex, "Database connection attempt {Attempt}/{Max} failed; retrying in {Delay}s (likely waking from auto-pause)", attempt, MaxConnectAttempts, delay.TotalSeconds);
@@ -127,24 +124,58 @@ public class MigrationRunner(IDbConnectionFactory connectionFactory, ILogger<Mig
         }
     }
 
-    private static async Task EnsureJournalTableAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    private static async Task EnsureJournalTableAsync(SqlConnection connection, CancellationToken cancellationToken)
     {
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            CREATE TABLE IF NOT EXISTS SchemaMigrations (
-                ScriptName VARCHAR(255) NOT NULL PRIMARY KEY,
-                AppliedAt TIMESTAMP NOT NULL DEFAULT (now())
-            );
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'SchemaMigrations')
+            BEGIN
+                CREATE TABLE dbo.SchemaMigrations (
+                    ScriptName NVARCHAR(255) NOT NULL CONSTRAINT PK_SchemaMigrations PRIMARY KEY,
+                    AppliedAt DATETIME2 NOT NULL CONSTRAINT DF_SchemaMigrations_AppliedAt DEFAULT (SYSUTCDATETIME())
+                );
+            END
             """;
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    private static async Task<bool> IsAppliedAsync(NpgsqlConnection connection, string scriptName, CancellationToken cancellationToken)
+    private static async Task<bool> IsAppliedAsync(SqlConnection connection, string scriptName, CancellationToken cancellationToken)
     {
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(1) FROM SchemaMigrations WHERE ScriptName = @ScriptName;";
+        cmd.CommandText = "SELECT COUNT(1) FROM dbo.SchemaMigrations WHERE ScriptName = @ScriptName;";
         cmd.Parameters.AddWithValue("@ScriptName", scriptName);
-        var count = (long)(await cmd.ExecuteScalarAsync(cancellationToken))!;
+        var count = (int)(await cmd.ExecuteScalarAsync(cancellationToken))!;
         return count > 0;
+    }
+
+    /// <summary>
+    /// "GO" is a client-side batch separator (sqlcmd/SSMS), not real T-SQL, so a script
+    /// with multiple GO-separated batches can't be sent to SqlCommand as one string.
+    /// </summary>
+    private static IEnumerable<string> SplitBatches(string sql)
+    {
+        var lines = sql.Replace("\r\n", "\n").Split('\n');
+        var batch = new StringBuilder();
+
+        foreach (var line in lines)
+        {
+            if (GoSeparatorPattern.IsMatch(line))
+            {
+                if (batch.Length > 0)
+                {
+                    yield return batch.ToString();
+                    batch.Clear();
+                }
+            }
+            else
+            {
+                batch.AppendLine(line);
+            }
+        }
+
+        if (batch.ToString().Trim().Length > 0)
+        {
+            yield return batch.ToString();
+        }
     }
 }

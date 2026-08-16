@@ -11,14 +11,14 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<RouteMaster>(
-            "SELECT * FROM RouteMaster WHERE RouteID = @RouteID", new { RouteID = routeId });
+            "SELECT * FROM dbo.RouteMaster WHERE RouteID = @RouteID", new { RouteID = routeId });
     }
 
     public async Task<IReadOnlyList<RouteMaster>> GetAllActiveAsync()
     {
         using var connection = connectionFactory.CreateConnection();
         var result = await connection.QueryAsync<RouteMaster>(
-            "SELECT * FROM RouteMaster WHERE IsActive = TRUE ORDER BY RouteName");
+            "SELECT * FROM dbo.RouteMaster WHERE IsActive = 1 ORDER BY RouteName");
         return result.ToList();
     }
 
@@ -26,13 +26,13 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM RouteMaster WHERE (@SearchTerm::text IS NULL OR RouteName ILIKE @SearchPattern);
+            SELECT COUNT(*) FROM dbo.RouteMaster WHERE (@SearchTerm IS NULL OR RouteName LIKE @SearchPattern);
 
-            SELECT * FROM RouteMaster
-            WHERE (@SearchTerm::text IS NULL OR RouteName ILIKE @SearchPattern)
+            SELECT * FROM dbo.RouteMaster
+            WHERE (@SearchTerm IS NULL OR RouteName LIKE @SearchPattern)
             ORDER BY
-                CASE WHEN @SortBy = 'routeName' AND NOT @SortDescending THEN RouteName END ASC,
-                CASE WHEN @SortBy = 'routeName' AND @SortDescending THEN RouteName END DESC,
+                CASE WHEN @SortBy = 'routeName' AND @SortDescending = 0 THEN RouteName END ASC,
+                CASE WHEN @SortBy = 'routeName' AND @SortDescending = 1 THEN RouteName END DESC,
                 CASE WHEN @SortBy IS NULL OR @SortBy <> 'routeName' THEN RouteName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -54,9 +54,9 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            INSERT INTO RouteMaster (RouteName, Description, IsActive)
-            VALUES (@RouteName, @Description, @IsActive)
-            RETURNING RouteID;
+            INSERT INTO dbo.RouteMaster (RouteName, Description, IsActive)
+            OUTPUT INSERTED.RouteID
+            VALUES (@RouteName, @Description, @IsActive);
             """;
         return await connection.QuerySingleAsync<int>(sql, route);
     }
@@ -65,8 +65,8 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            UPDATE RouteMaster
-            SET RouteName = @RouteName, Description = @Description, UpdatedAt = (now() AT TIME ZONE 'utc')
+            UPDATE dbo.RouteMaster
+            SET RouteName = @RouteName, Description = @Description, UpdatedAt = SYSUTCDATETIME()
             WHERE RouteID = @RouteID;
             """;
         await connection.ExecuteAsync(sql, route);
@@ -76,7 +76,7 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE RouteMaster SET IsActive = @IsActive, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE RouteID = @RouteID",
+            "UPDATE dbo.RouteMaster SET IsActive = @IsActive, UpdatedAt = SYSUTCDATETIME() WHERE RouteID = @RouteID",
             new { RouteID = routeId, IsActive = isActive });
     }
 
@@ -84,7 +84,7 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
-            "SELECT EXISTS (SELECT 1 FROM RouteMaster WHERE RouteName = @RouteName AND (@ExcludeRouteId::int IS NULL OR RouteID <> @ExcludeRouteId))",
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.RouteMaster WHERE RouteName = @RouteName AND (@ExcludeRouteId IS NULL OR RouteID <> @ExcludeRouteId)) THEN 1 ELSE 0 END",
             new { RouteName = routeName, ExcludeRouteId = excludeRouteId });
     }
 
@@ -92,7 +92,7 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM ShopMaster WHERE RouteID = @RouteID", new { RouteID = routeId });
+            "SELECT COUNT(*) FROM dbo.ShopMaster WHERE RouteID = @RouteID", new { RouteID = routeId });
     }
 
     public async Task<Dictionary<int, int>> GetShopCountBatchAsync(IEnumerable<int> routeIds)
@@ -102,7 +102,7 @@ public class RouteRepository(IDbConnectionFactory connectionFactory) : IRouteRep
 
         using var connection = connectionFactory.CreateConnection();
         var rows = await connection.QueryAsync<(int RouteID, int ShopCount)>(
-            "SELECT RouteID, COUNT(*) AS ShopCount FROM ShopMaster WHERE RouteID = ANY(@RouteIDs) GROUP BY RouteID",
+            "SELECT RouteID, COUNT(*) AS ShopCount FROM dbo.ShopMaster WHERE RouteID IN @RouteIDs GROUP BY RouteID",
             new { RouteIDs = ids });
         return rows.ToDictionary(r => r.RouteID, r => r.ShopCount);
     }

@@ -1,18 +1,19 @@
-DO $$
+USE FruitWholesaleDB;
+GO
+
+IF OBJECT_ID('dbo.RefreshTokens', 'U') IS NULL
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'refreshtokens') THEN
-        CREATE TABLE RefreshTokens (
-            RefreshTokenID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-            UserID INT NOT NULL,
-            TokenHash VARCHAR(128) NOT NULL,
-            ExpiresAt TIMESTAMP NOT NULL,
-            CreatedAt TIMESTAMP NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
-            RevokedAt TIMESTAMP NULL,
-            ReplacedByTokenHash VARCHAR(128) NULL,
-            CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserID) REFERENCES Users (UserID)
-        );
-        CREATE INDEX IX_RefreshTokens_TokenHash ON RefreshTokens (TokenHash);
-        CREATE INDEX IX_RefreshTokens_UserID ON RefreshTokens (UserID);
-    END IF;
+    CREATE TABLE dbo.RefreshTokens (
+        RefreshTokenID INT IDENTITY PRIMARY KEY,
+        UserID INT NOT NULL,
+        TokenHash NVARCHAR(128) NOT NULL,
+        ExpiresAt DATETIME2 NOT NULL,
+        CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_RefreshTokens_CreatedAt DEFAULT SYSUTCDATETIME(),
+        RevokedAt DATETIME2 NULL,
+        ReplacedByTokenHash NVARCHAR(128) NULL,
+        CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserID) REFERENCES dbo.Users (UserID)
+    );
+    CREATE INDEX IX_RefreshTokens_TokenHash ON dbo.RefreshTokens (TokenHash);
+    CREATE INDEX IX_RefreshTokens_UserID ON dbo.RefreshTokens (UserID);
 END
-$$;
+GO
