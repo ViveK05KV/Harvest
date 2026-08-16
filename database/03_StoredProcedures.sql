@@ -2,20 +2,18 @@
    Fruit Wholesale Management System
    03_StoredProcedures.sql
 
-   Stored procedures are used only where they provide a real benefit:
+   PL/pgSQL functions are used only where they provide a real benefit:
      - Recalculating running balances after a backdated edit/delete
-       (a set-based cursor operation that is far cheaper done in T-SQL
+       (a set-based operation that is far cheaper done in the database
        than round-tripping every row to the application).
      - The dashboard summary, which aggregates many tables in one
        round trip.
    All other CRUD operations are handled in the Infrastructure layer via
    Dapper so business logic stays in one place (C#) and is unit-testable.
    ===================================================================== */
-USE FruitWholesaleDB;
-GO
 
 -- =========================================================================
--- sp_RecalculateShopLedgerBalance
+-- sp_recalculate_shop_ledger_balance
 -- Recomputes RunningBalance for every ShopLedger row of a shop, in date
 -- order. The shop's OpeningBalance is booked as its own 'OpeningBalance'
 -- ledger row at shop-creation time, so this sums strictly from zero —
@@ -24,114 +22,82 @@ GO
 -- touches a shop's ledger with a backdated entry.
 --
 -- The opening-balance row is always ranked first regardless of its own
--- TransactionDate, same rule and rationale as sp_RecalculateCashLedgerBalance:
+-- TransactionDate, same rule and rationale as sp_recalculate_cash_ledger_balance:
 -- it can be an 'OpeningBalance' row (shop creation) or an 'Adjustment' row
 -- (first-ever "Adjust Balance" entry for a shop that had no opening
 -- balance set), and either way only the very first row for that shop
 -- (lowest LedgerID) qualifies, so a later Adjustment doesn't wrongly
 -- jump the queue.
 -- =========================================================================
-IF OBJECT_ID('dbo.sp_RecalculateShopLedgerBalance', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.sp_RecalculateShopLedgerBalance;
-GO
-CREATE PROCEDURE dbo.sp_RecalculateShopLedgerBalance
-    @ShopID INT
-AS
+CREATE OR REPLACE FUNCTION sp_recalculate_shop_ledger_balance(p_shopid INT) RETURNS void AS $$
+DECLARE
+    v_first_ledger_id BIGINT;
 BEGIN
-    SET NOCOUNT ON;
+    SELECT MIN(LedgerID) INTO v_first_ledger_id FROM ShopLedger WHERE ShopID = p_shopid;
 
-    DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.ShopLedger WHERE ShopID = @ShopID);
-
-    ;WITH Ordered AS
-    (
-        SELECT
-            LedgerID,
-            Debit,
-            Credit,
-            ROW_NUMBER() OVER (
-                ORDER BY
-                    CASE
-                        WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
-                        ELSE 1
-                    END,
-                    TransactionDate ASC,
-                    LedgerID ASC
-            ) AS rn
-        FROM dbo.ShopLedger
-        WHERE ShopID = @ShopID
-    )
-    SELECT * INTO #ShopLedgerCalc FROM Ordered;
-
-    UPDATE t
-    SET t.RunningBalance = c.NewBalance
-    FROM dbo.ShopLedger t
-    INNER JOIN
-    (
-        SELECT
-            LedgerID,
-            SUM(Debit - Credit) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewBalance
-        FROM #ShopLedgerCalc
-    ) c ON c.LedgerID = t.LedgerID;
-
-    DROP TABLE #ShopLedgerCalc;
-END
-GO
+    UPDATE ShopLedger t
+    SET RunningBalance = c.NewBalance
+    FROM (
+        SELECT LedgerID,
+               SUM(Debit - Credit) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewBalance
+        FROM (
+            SELECT LedgerID, Debit, Credit,
+                   ROW_NUMBER() OVER (
+                       ORDER BY
+                           CASE
+                               WHEN LedgerID = v_first_ledger_id AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                               ELSE 1
+                           END,
+                           TransactionDate ASC,
+                           LedgerID ASC
+                   ) AS rn
+            FROM ShopLedger
+            WHERE ShopID = p_shopid
+        ) Ordered
+    ) c
+    WHERE c.LedgerID = t.LedgerID;
+END;
+$$ LANGUAGE plpgsql;
 
 -- =========================================================================
--- sp_RecalculateSupplierLedgerBalance
--- Same approach as sp_RecalculateShopLedgerBalance: the supplier's
+-- sp_recalculate_supplier_ledger_balance
+-- Same approach as sp_recalculate_shop_ledger_balance: the supplier's
 -- OpeningBalance is booked as its own ledger row at supplier-creation
 -- time, so this sums strictly from zero, and the first-ever row for that
 -- supplier is always ranked first regardless of its own TransactionDate.
 -- =========================================================================
-IF OBJECT_ID('dbo.sp_RecalculateSupplierLedgerBalance', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.sp_RecalculateSupplierLedgerBalance;
-GO
-CREATE PROCEDURE dbo.sp_RecalculateSupplierLedgerBalance
-    @SupplierID INT
-AS
+CREATE OR REPLACE FUNCTION sp_recalculate_supplier_ledger_balance(p_supplierid INT) RETURNS void AS $$
+DECLARE
+    v_first_ledger_id BIGINT;
 BEGIN
-    SET NOCOUNT ON;
+    SELECT MIN(LedgerID) INTO v_first_ledger_id FROM SupplierLedger WHERE SupplierID = p_supplierid;
 
-    DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.SupplierLedger WHERE SupplierID = @SupplierID);
-
-    ;WITH Ordered AS
-    (
-        SELECT
-            LedgerID,
-            Debit,
-            Credit,
-            ROW_NUMBER() OVER (
-                ORDER BY
-                    CASE
-                        WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
-                        ELSE 1
-                    END,
-                    TransactionDate ASC,
-                    LedgerID ASC
-            ) AS rn
-        FROM dbo.SupplierLedger
-        WHERE SupplierID = @SupplierID
-    )
-    SELECT * INTO #SupplierLedgerCalc FROM Ordered;
-
-    UPDATE t
-    SET t.RunningBalance = c.NewBalance
-    FROM dbo.SupplierLedger t
-    INNER JOIN
-    (
-        SELECT
-            LedgerID,
-            SUM(Debit - Credit) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewBalance
-        FROM #SupplierLedgerCalc
-    ) c ON c.LedgerID = t.LedgerID;
-
-    DROP TABLE #SupplierLedgerCalc;
-END
-GO
+    UPDATE SupplierLedger t
+    SET RunningBalance = c.NewBalance
+    FROM (
+        SELECT LedgerID,
+               SUM(Debit - Credit) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewBalance
+        FROM (
+            SELECT LedgerID, Debit, Credit,
+                   ROW_NUMBER() OVER (
+                       ORDER BY
+                           CASE
+                               WHEN LedgerID = v_first_ledger_id AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                               ELSE 1
+                           END,
+                           TransactionDate ASC,
+                           LedgerID ASC
+                   ) AS rn
+            FROM SupplierLedger
+            WHERE SupplierID = p_supplierid
+        ) Ordered
+    ) c
+    WHERE c.LedgerID = t.LedgerID;
+END;
+$$ LANGUAGE plpgsql;
 
 -- =========================================================================
--- sp_RecalculateCashLedgerBalance
+-- sp_recalculate_cash_ledger_balance
 -- Recomputes RunningBalance for the entire CashLedger. The company's
 -- OpeningCashBalance is booked as its own 'OpeningBalance' CashLedger
 -- row when the company profile is created, so this sums strictly from
@@ -155,52 +121,37 @@ GO
 -- CashLedgerID) qualifies, so an ordinary Adjustment made later doesn't
 -- wrongly jump the queue.
 -- =========================================================================
-IF OBJECT_ID('dbo.sp_RecalculateCashLedgerBalance', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.sp_RecalculateCashLedgerBalance;
-GO
-CREATE PROCEDURE dbo.sp_RecalculateCashLedgerBalance
-AS
+CREATE OR REPLACE FUNCTION sp_recalculate_cash_ledger_balance() RETURNS void AS $$
+DECLARE
+    v_first_cash_ledger_id BIGINT;
 BEGIN
-    SET NOCOUNT ON;
+    SELECT MIN(CashLedgerID) INTO v_first_cash_ledger_id FROM CashLedger;
 
-    DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
-
-    ;WITH Ordered AS
-    (
-        SELECT
-            CashLedgerID,
-            CashIn,
-            CashOut,
-            ROW_NUMBER() OVER (
-                ORDER BY
-                    CASE
-                        WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
-                        ELSE 1
-                    END,
-                    TransactionDate ASC,
-                    CashLedgerID ASC
-            ) AS rn
-        FROM dbo.CashLedger
-    )
-    SELECT * INTO #CashLedgerCalc FROM Ordered;
-
-    UPDATE t
-    SET t.RunningBalance = c.NewBalance
-    FROM dbo.CashLedger t
-    INNER JOIN
-    (
-        SELECT
-            CashLedgerID,
-            SUM(CashIn - CashOut) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewBalance
-        FROM #CashLedgerCalc
-    ) c ON c.CashLedgerID = t.CashLedgerID;
-
-    DROP TABLE #CashLedgerCalc;
-END
-GO
+    UPDATE CashLedger t
+    SET RunningBalance = c.NewBalance
+    FROM (
+        SELECT CashLedgerID,
+               SUM(CashIn - CashOut) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewBalance
+        FROM (
+            SELECT CashLedgerID, CashIn, CashOut,
+                   ROW_NUMBER() OVER (
+                       ORDER BY
+                           CASE
+                               WHEN CashLedgerID = v_first_cash_ledger_id AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                               ELSE 1
+                           END,
+                           TransactionDate ASC,
+                           CashLedgerID ASC
+                   ) AS rn
+            FROM CashLedger
+        ) Ordered
+    ) c
+    WHERE c.CashLedgerID = t.CashLedgerID;
+END;
+$$ LANGUAGE plpgsql;
 
 -- =========================================================================
--- sp_RecalculateStockLedgerBalance
+-- sp_recalculate_stock_ledger_balance
 -- Same approach as the other ledgers: Purchase books QuantityIn, Supply
 -- books QuantityOut, and this recomputes RunningStock for every row of
 -- one fruit's StockLedger in date order, summing strictly from zero
@@ -210,119 +161,112 @@ GO
 -- ranked first regardless of its own TransactionDate, same rule as the
 -- other ledgers.
 -- =========================================================================
-IF OBJECT_ID('dbo.sp_RecalculateStockLedgerBalance', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.sp_RecalculateStockLedgerBalance;
-GO
-CREATE PROCEDURE dbo.sp_RecalculateStockLedgerBalance
-    @FruitID INT
-AS
+CREATE OR REPLACE FUNCTION sp_recalculate_stock_ledger_balance(p_fruitid INT) RETURNS void AS $$
+DECLARE
+    v_first_stock_ledger_id BIGINT;
 BEGIN
-    SET NOCOUNT ON;
+    SELECT MIN(StockLedgerID) INTO v_first_stock_ledger_id FROM StockLedger WHERE FruitID = p_fruitid;
 
-    DECLARE @FirstStockLedgerID BIGINT = (SELECT MIN(StockLedgerID) FROM dbo.StockLedger WHERE FruitID = @FruitID);
-
-    ;WITH Ordered AS
-    (
-        SELECT
-            StockLedgerID,
-            QuantityIn,
-            QuantityOut,
-            ROW_NUMBER() OVER (
-                ORDER BY
-                    CASE
-                        WHEN StockLedgerID = @FirstStockLedgerID AND TransactionType = 'Adjustment' THEN 0
-                        ELSE 1
-                    END,
-                    TransactionDate ASC,
-                    StockLedgerID ASC
-            ) AS rn
-        FROM dbo.StockLedger
-        WHERE FruitID = @FruitID
-    )
-    SELECT * INTO #StockLedgerCalc FROM Ordered;
-
-    UPDATE t
-    SET t.RunningStock = c.NewStock
-    FROM dbo.StockLedger t
-    INNER JOIN
-    (
-        SELECT
-            StockLedgerID,
-            SUM(QuantityIn - QuantityOut) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewStock
-        FROM #StockLedgerCalc
-    ) c ON c.StockLedgerID = t.StockLedgerID;
-
-    DROP TABLE #StockLedgerCalc;
-END
-GO
+    UPDATE StockLedger t
+    SET RunningStock = c.NewStock
+    FROM (
+        SELECT StockLedgerID,
+               SUM(QuantityIn - QuantityOut) OVER (ORDER BY rn ROWS UNBOUNDED PRECEDING) AS NewStock
+        FROM (
+            SELECT StockLedgerID, QuantityIn, QuantityOut,
+                   ROW_NUMBER() OVER (
+                       ORDER BY
+                           CASE
+                               WHEN StockLedgerID = v_first_stock_ledger_id AND TransactionType = 'Adjustment' THEN 0
+                               ELSE 1
+                           END,
+                           TransactionDate ASC,
+                           StockLedgerID ASC
+                   ) AS rn
+            FROM StockLedger
+            WHERE FruitID = p_fruitid
+        ) Ordered
+    ) c
+    WHERE c.StockLedgerID = t.StockLedgerID;
+END;
+$$ LANGUAGE plpgsql;
 
 -- =========================================================================
--- sp_GetDashboardSummary
+-- sp_get_dashboard_summary
 -- Single round-trip aggregate for the dashboard cards.
 -- =========================================================================
-IF OBJECT_ID('dbo.sp_GetDashboardSummary', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.sp_GetDashboardSummary;
-GO
-CREATE PROCEDURE dbo.sp_GetDashboardSummary
-    @Today DATE
-AS
+CREATE OR REPLACE FUNCTION sp_get_dashboard_summary(p_today DATE)
+RETURNS TABLE (
+    CurrentCashBalance    DECIMAL(18,2),
+    TodayCollection       DECIMAL(18,2),
+    TodaySales            DECIMAL(18,2),
+    TodayPurchases        DECIMAL(18,2),
+    TodayExpenses         DECIMAL(18,2),
+    CustomerOutstanding   DECIMAL(18,2),
+    SupplierOutstanding   DECIMAL(18,2),
+    NetBusinessWorth      DECIMAL(18,2)
+) AS $$
+DECLARE
+    v_first_cash_ledger_id BIGINT;
+    v_current_cash_balance DECIMAL(18,2);
+    v_today_collection DECIMAL(18,2);
+    v_today_sales DECIMAL(18,2);
+    v_today_purchases DECIMAL(18,2);
+    v_today_expenses DECIMAL(18,2);
+    v_customer_outstanding DECIMAL(18,2);
+    v_supplier_outstanding DECIMAL(18,2);
 BEGIN
-    SET NOCOUNT ON;
+    SELECT MIN(CashLedgerID) INTO v_first_cash_ledger_id FROM CashLedger;
 
-    DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
-    DECLARE @CurrentCashBalance DECIMAL(18,2) =
-        ISNULL((
-            SELECT TOP 1 RunningBalance
-            FROM dbo.CashLedger
-            ORDER BY
-                CASE
-                    WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
-                    ELSE 1
-                END DESC,
-                TransactionDate DESC,
-                CashLedgerID DESC
-        ), ISNULL((SELECT TOP 1 OpeningCashBalance FROM dbo.CompanySettings ORDER BY CompanyID), 0));
+    SELECT COALESCE((
+        SELECT RunningBalance
+        FROM CashLedger
+        ORDER BY
+            CASE
+                WHEN CashLedgerID = v_first_cash_ledger_id AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                ELSE 1
+            END DESC,
+            TransactionDate DESC,
+            CashLedgerID DESC
+        LIMIT 1
+    ), COALESCE((SELECT OpeningCashBalance FROM CompanySettings ORDER BY CompanyID LIMIT 1), 0))
+    INTO v_current_cash_balance;
 
-    DECLARE @TodayCollection DECIMAL(18,2) = ISNULL((SELECT SUM(AmountReceived) FROM dbo.Collections WHERE CollectionDate = @Today), 0);
-    DECLARE @TodaySales       DECIMAL(18,2) = ISNULL((SELECT SUM(TotalAmount) FROM dbo.Supply WHERE SupplyDate = @Today), 0);
-    DECLARE @TodayPurchases   DECIMAL(18,2) = ISNULL((SELECT SUM(TotalAmount) FROM dbo.Purchase WHERE PurchaseDate = @Today), 0);
-    DECLARE @TodayExpenses    DECIMAL(18,2) = ISNULL((SELECT SUM(Amount) FROM dbo.DailyExpense WHERE ExpenseDate = @Today), 0);
+    SELECT COALESCE(SUM(AmountReceived), 0) INTO v_today_collection FROM Collections WHERE CollectionDate = p_today;
+    SELECT COALESCE(SUM(TotalAmount), 0) INTO v_today_sales FROM Supply WHERE SupplyDate = p_today;
+    SELECT COALESCE(SUM(TotalAmount), 0) INTO v_today_purchases FROM Purchase WHERE PurchaseDate = p_today;
+    SELECT COALESCE(SUM(Amount), 0) INTO v_today_expenses FROM DailyExpense WHERE ExpenseDate = p_today;
 
-    DECLARE @CustomerOutstanding DECIMAL(18,2) = ISNULL((
-        SELECT SUM(latest.RunningBalance)
-        FROM dbo.ShopMaster s
-        OUTER APPLY (
-            SELECT TOP 1 RunningBalance
-            FROM dbo.ShopLedger sl
-            WHERE sl.ShopID = s.ShopID
-            ORDER BY sl.TransactionDate DESC, sl.LedgerID DESC
-        ) latest
-        WHERE s.IsActive = 1
-    ), 0);
+    SELECT COALESCE(SUM(latest.RunningBalance), 0) INTO v_customer_outstanding
+    FROM ShopMaster s
+    LEFT JOIN LATERAL (
+        SELECT sl.RunningBalance
+        FROM ShopLedger sl
+        WHERE sl.ShopID = s.ShopID
+        ORDER BY sl.TransactionDate DESC, sl.LedgerID DESC
+        LIMIT 1
+    ) latest ON TRUE
+    WHERE s.IsActive = TRUE;
 
-    DECLARE @SupplierOutstanding DECIMAL(18,2) = ISNULL((
-        SELECT SUM(latest.RunningBalance)
-        FROM dbo.SupplierMaster sp
-        OUTER APPLY (
-            SELECT TOP 1 RunningBalance
-            FROM dbo.SupplierLedger spl
-            WHERE spl.SupplierID = sp.SupplierID
-            ORDER BY spl.TransactionDate DESC, spl.LedgerID DESC
-        ) latest
-        WHERE sp.IsActive = 1
-    ), 0);
+    SELECT COALESCE(SUM(latest.RunningBalance), 0) INTO v_supplier_outstanding
+    FROM SupplierMaster sp
+    LEFT JOIN LATERAL (
+        SELECT spl.RunningBalance
+        FROM SupplierLedger spl
+        WHERE spl.SupplierID = sp.SupplierID
+        ORDER BY spl.TransactionDate DESC, spl.LedgerID DESC
+        LIMIT 1
+    ) latest ON TRUE
+    WHERE sp.IsActive = TRUE;
 
-    SELECT
-        @CurrentCashBalance    AS CurrentCashBalance,
-        @TodayCollection        AS TodayCollection,
-        @TodaySales              AS TodaySales,
-        @TodayPurchases          AS TodayPurchases,
-        @TodayExpenses            AS TodayExpenses,
-        @CustomerOutstanding      AS CustomerOutstanding,
-        @SupplierOutstanding      AS SupplierOutstanding,
-        (@CurrentCashBalance + @CustomerOutstanding - @SupplierOutstanding) AS NetBusinessWorth;
-END
-GO
-
-PRINT 'Stored procedures created successfully.';
-GO
+    RETURN QUERY SELECT
+        v_current_cash_balance,
+        v_today_collection,
+        v_today_sales,
+        v_today_purchases,
+        v_today_expenses,
+        v_customer_outstanding,
+        v_supplier_outstanding,
+        (v_current_cash_balance + v_customer_outstanding - v_supplier_outstanding);
+END;
+$$ LANGUAGE plpgsql;

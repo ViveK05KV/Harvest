@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Text.Json;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
@@ -13,15 +13,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         DateTime transactionDate, string transactionType, int? referenceId, decimal debit, decimal credit, string narration)
     {
         const string previousBalanceSql = """
-            SELECT TOP 1 RunningBalance FROM dbo.ShopLedger
+            SELECT RunningBalance FROM ShopLedger
             WHERE ShopID = @ShopID
             ORDER BY TransactionDate DESC, LedgerID DESC
+            LIMIT 1
             """;
         var previousBalance = await connection.QueryFirstOrDefaultAsync<decimal?>(previousBalanceSql, new { ShopID = shopId }, transaction) ?? 0m;
         var newBalance = previousBalance + debit - credit;
 
         const string insertSql = """
-            INSERT INTO dbo.ShopLedger (ShopID, TransactionDate, TransactionType, ReferenceID, Debit, Credit, RunningBalance, Narration)
+            INSERT INTO ShopLedger (ShopID, TransactionDate, TransactionType, ReferenceID, Debit, Credit, RunningBalance, Narration)
             VALUES (@ShopID, @TransactionDate, @TransactionType, @ReferenceID, @Debit, @Credit, @RunningBalance, @Narration);
             """;
         await connection.ExecuteAsync(insertSql, new
@@ -43,15 +44,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         DateTime transactionDate, string transactionType, int? referenceId, decimal debit, decimal credit, string narration)
     {
         const string previousBalanceSql = """
-            SELECT TOP 1 RunningBalance FROM dbo.SupplierLedger
+            SELECT RunningBalance FROM SupplierLedger
             WHERE SupplierID = @SupplierID
             ORDER BY TransactionDate DESC, LedgerID DESC
+            LIMIT 1
             """;
         var previousBalance = await connection.QueryFirstOrDefaultAsync<decimal?>(previousBalanceSql, new { SupplierID = supplierId }, transaction) ?? 0m;
         var newBalance = previousBalance + debit - credit;
 
         const string insertSql = """
-            INSERT INTO dbo.SupplierLedger (SupplierID, TransactionDate, TransactionType, ReferenceID, Debit, Credit, RunningBalance, Narration)
+            INSERT INTO SupplierLedger (SupplierID, TransactionDate, TransactionType, ReferenceID, Debit, Credit, RunningBalance, Narration)
             VALUES (@SupplierID, @TransactionDate, @TransactionType, @ReferenceID, @Debit, @Credit, @RunningBalance, @Narration);
             """;
         await connection.ExecuteAsync(insertSql, new
@@ -74,14 +76,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         string paymentMode, decimal cashIn, decimal cashOut, string narration)
     {
         const string previousBalanceSql = """
-            SELECT TOP 1 RunningBalance FROM dbo.CashLedger
+            SELECT RunningBalance FROM CashLedger
             ORDER BY TransactionDate DESC, CashLedgerID DESC
+            LIMIT 1
             """;
         var previousBalance = await connection.QueryFirstOrDefaultAsync<decimal?>(previousBalanceSql, transaction: transaction) ?? 0m;
         var newBalance = previousBalance + cashIn - cashOut;
 
         const string insertSql = """
-            INSERT INTO dbo.CashLedger (TransactionDate, TransactionType, ReferenceTable, ReferenceID, PaymentMode, CashIn, CashOut, RunningBalance, Narration)
+            INSERT INTO CashLedger (TransactionDate, TransactionType, ReferenceTable, ReferenceID, PaymentMode, CashIn, CashOut, RunningBalance, Narration)
             VALUES (@TransactionDate, @TransactionType, @ReferenceTable, @ReferenceID, @PaymentMode, @CashIn, @CashOut, @RunningBalance, @Narration);
             """;
         await connection.ExecuteAsync(insertSql, new
@@ -102,59 +105,57 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
     public Task RemoveShopLedgerEntriesForReferenceAsync(IDbConnection connection, IDbTransaction transaction, string transactionType, int referenceId) =>
         connection.ExecuteAsync(
-            "DELETE FROM dbo.ShopLedger WHERE TransactionType = @TransactionType AND ReferenceID = @ReferenceID",
+            "DELETE FROM ShopLedger WHERE TransactionType = @TransactionType AND ReferenceID = @ReferenceID",
             new { TransactionType = transactionType, ReferenceID = referenceId }, transaction);
 
     public Task RemoveSupplierLedgerEntriesForReferenceAsync(IDbConnection connection, IDbTransaction transaction, string transactionType, int referenceId) =>
         connection.ExecuteAsync(
-            "DELETE FROM dbo.SupplierLedger WHERE TransactionType = @TransactionType AND ReferenceID = @ReferenceID",
+            "DELETE FROM SupplierLedger WHERE TransactionType = @TransactionType AND ReferenceID = @ReferenceID",
             new { TransactionType = transactionType, ReferenceID = referenceId }, transaction);
 
     public Task RemoveCashLedgerEntriesForReferenceAsync(IDbConnection connection, IDbTransaction transaction, string referenceTable, int referenceId) =>
         connection.ExecuteAsync(
-            "DELETE FROM dbo.CashLedger WHERE ReferenceTable = @ReferenceTable AND ReferenceID = @ReferenceID",
+            "DELETE FROM CashLedger WHERE ReferenceTable = @ReferenceTable AND ReferenceID = @ReferenceID",
             new { ReferenceTable = referenceTable, ReferenceID = referenceId }, transaction);
 
     public Task<int> DeleteShopLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int shopId, long ledgerId) =>
         connection.ExecuteAsync(
-            "DELETE FROM dbo.ShopLedger WHERE LedgerID = @LedgerID AND ShopID = @ShopID AND TransactionType = 'Adjustment'",
+            "DELETE FROM ShopLedger WHERE LedgerID = @LedgerID AND ShopID = @ShopID AND TransactionType = 'Adjustment'",
             new { LedgerID = ledgerId, ShopID = shopId }, transaction);
 
     public Task<int> DeleteSupplierLedgerAdjustmentAsync(IDbConnection connection, IDbTransaction transaction, int supplierId, long ledgerId) =>
         connection.ExecuteAsync(
-            "DELETE FROM dbo.SupplierLedger WHERE LedgerID = @LedgerID AND SupplierID = @SupplierID AND TransactionType = 'Adjustment'",
+            "DELETE FROM SupplierLedger WHERE LedgerID = @LedgerID AND SupplierID = @SupplierID AND TransactionType = 'Adjustment'",
             new { LedgerID = ledgerId, SupplierID = supplierId }, transaction);
 
     public Task RecalculateShopLedgerAsync(IDbConnection connection, IDbTransaction transaction, int shopId) =>
-        connection.ExecuteAsync("dbo.sp_RecalculateShopLedgerBalance", new { ShopID = shopId },
-            transaction, commandType: CommandType.StoredProcedure);
+        connection.ExecuteAsync("SELECT sp_recalculate_shop_ledger_balance(@ShopID)", new { ShopID = shopId }, transaction);
 
     public Task RecalculateSupplierLedgerAsync(IDbConnection connection, IDbTransaction transaction, int supplierId) =>
-        connection.ExecuteAsync("dbo.sp_RecalculateSupplierLedgerBalance", new { SupplierID = supplierId },
-            transaction, commandType: CommandType.StoredProcedure);
+        connection.ExecuteAsync("SELECT sp_recalculate_supplier_ledger_balance(@SupplierID)", new { SupplierID = supplierId }, transaction);
 
     public Task RecalculateCashLedgerAsync(IDbConnection connection, IDbTransaction transaction) =>
-        connection.ExecuteAsync("dbo.sp_RecalculateCashLedgerBalance", transaction: transaction, commandType: CommandType.StoredProcedure);
+        connection.ExecuteAsync("SELECT sp_recalculate_cash_ledger_balance()", transaction: transaction);
 
     public async Task<decimal> GetShopOutstandingAsync(int shopId)
     {
         using var connection = connectionFactory.CreateConnection();
-        // Must rank rows the same way sp_RecalculateShopLedgerBalance does: the opening
+        // Must rank rows the same way sp_recalculate_shop_ledger_balance does: the opening
         // balance/adjustment row is forced first regardless of its own TransactionDate, so a
         // naive "latest TransactionDate" pick can land back on that row instead of the true
         // final one. See GetCurrentCashBalanceAsync for the same pattern on CashLedger.
         const string sql = """
-            DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.ShopLedger WHERE ShopID = @ShopID);
-            SELECT TOP 1 RunningBalance
-            FROM dbo.ShopLedger
+            SELECT RunningBalance
+            FROM ShopLedger
             WHERE ShopID = @ShopID
             ORDER BY
                 CASE
-                    WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    WHEN LedgerID = (SELECT MIN(LedgerID) FROM ShopLedger WHERE ShopID = @ShopID) AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
                     ELSE 1
                 END DESC,
                 TransactionDate DESC,
-                LedgerID DESC;
+                LedgerID DESC
+            LIMIT 1;
             """;
         return await connection.QueryFirstOrDefaultAsync<decimal?>(sql, new { ShopID = shopId }) ?? 0m;
     }
@@ -166,11 +167,11 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            ;WITH Ranked AS (
+            WITH Ranked AS (
                 SELECT ShopID, LedgerID, TransactionType, TransactionDate, RunningBalance,
                        MIN(LedgerID) OVER (PARTITION BY ShopID) AS FirstLedgerID
-                FROM dbo.ShopLedger
-                WHERE ShopID IN @ShopIDs
+                FROM ShopLedger
+                WHERE ShopID = ANY(@ShopIDs)
             )
             SELECT ShopID, RunningBalance
             FROM (
@@ -197,17 +198,17 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            DECLARE @FirstLedgerID BIGINT = (SELECT MIN(LedgerID) FROM dbo.SupplierLedger WHERE SupplierID = @SupplierID);
-            SELECT TOP 1 RunningBalance
-            FROM dbo.SupplierLedger
+            SELECT RunningBalance
+            FROM SupplierLedger
             WHERE SupplierID = @SupplierID
             ORDER BY
                 CASE
-                    WHEN LedgerID = @FirstLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    WHEN LedgerID = (SELECT MIN(LedgerID) FROM SupplierLedger WHERE SupplierID = @SupplierID) AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
                     ELSE 1
                 END DESC,
                 TransactionDate DESC,
-                LedgerID DESC;
+                LedgerID DESC
+            LIMIT 1;
             """;
         return await connection.QueryFirstOrDefaultAsync<decimal?>(sql, new { SupplierID = supplierId }) ?? 0m;
     }
@@ -219,11 +220,11 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            ;WITH Ranked AS (
+            WITH Ranked AS (
                 SELECT SupplierID, LedgerID, TransactionType, TransactionDate, RunningBalance,
                        MIN(LedgerID) OVER (PARTITION BY SupplierID) AS FirstLedgerID
-                FROM dbo.SupplierLedger
-                WHERE SupplierID IN @SupplierIDs
+                FROM SupplierLedger
+                WHERE SupplierID = ANY(@SupplierIDs)
             )
             SELECT SupplierID, RunningBalance
             FROM (
@@ -251,15 +252,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.ShopLedger
+            SELECT COUNT(*) FROM ShopLedger
             WHERE ShopID = @ShopID
-              AND (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate));
+              AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day');
 
-            SELECT * FROM dbo.ShopLedger
+            SELECT * FROM ShopLedger
             WHERE ShopID = @ShopID
-              AND (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
+              AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
             ORDER BY TransactionDate ASC, LedgerID ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -280,15 +281,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.SupplierLedger
+            SELECT COUNT(*) FROM SupplierLedger
             WHERE SupplierID = @SupplierID
-              AND (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate));
+              AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day');
 
-            SELECT * FROM dbo.SupplierLedger
+            SELECT * FROM SupplierLedger
             WHERE SupplierID = @SupplierID
-              AND (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
+              AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
             ORDER BY TransactionDate ASC, LedgerID ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -308,34 +309,32 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     public async Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, bool newestFirst, int pageNumber, int pageSize)
     {
         using var connection = connectionFactory.CreateConnection();
-        // The opening-balance row (see sp_RecalculateCashLedgerBalance for the exact rule - the
-        // very first CashLedger row ever, if it's an OpeningBalance or Adjustment entry) is always
-        // ranked first, independent of @NewestFirst - accounting ledgers anchor it at the top
-        // regardless of sort direction. RunningBalance itself is precomputed by that same
-        // procedure on every write, so reversing display order here is a pure re-sort: it never
+        // The opening-balance row (see sp_recalculate_cash_ledger_balance for the exact rule -
+        // the very first CashLedger row ever, if it's an OpeningBalance or Adjustment entry) is
+        // always ranked first, independent of @NewestFirst - accounting ledgers anchor it at the
+        // top regardless of sort direction. RunningBalance itself is precomputed by that same
+        // function on every write, so reversing display order here is a pure re-sort: it never
         // touches the stored balances, and paging in either direction stays consistent (Option A
         // from the ledger rewrite - calculate over the full filtered set, then paginate).
         const string sql = """
-            DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
+            SELECT COUNT(*) FROM CashLedger
+            WHERE (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
+              AND (@TransactionType::varchar IS NULL OR TransactionType = @TransactionType);
 
-            SELECT COUNT(*) FROM dbo.CashLedger
-            WHERE (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
-              AND (@TransactionType IS NULL OR TransactionType = @TransactionType);
-
-            SELECT * FROM dbo.CashLedger
-            WHERE (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
-              AND (@TransactionType IS NULL OR TransactionType = @TransactionType)
+            SELECT * FROM CashLedger
+            WHERE (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
+              AND (@TransactionType::varchar IS NULL OR TransactionType = @TransactionType)
             ORDER BY
                 CASE
-                    WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    WHEN CashLedgerID = (SELECT MIN(CashLedgerID) FROM CashLedger) AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
                     ELSE 1
                 END,
-                CASE WHEN @NewestFirst = 0 THEN TransactionDate END ASC,
-                CASE WHEN @NewestFirst = 1 THEN TransactionDate END DESC,
-                CASE WHEN @NewestFirst = 0 THEN CashLedgerID END ASC,
-                CASE WHEN @NewestFirst = 1 THEN CashLedgerID END DESC
+                CASE WHEN NOT @NewestFirst THEN TransactionDate END ASC,
+                CASE WHEN @NewestFirst THEN TransactionDate END DESC,
+                CASE WHEN NOT @NewestFirst THEN CashLedgerID END ASC,
+                CASE WHEN @NewestFirst THEN CashLedgerID END DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
@@ -355,21 +354,21 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     public async Task<decimal> GetCurrentCashBalanceAsync()
     {
         using var connection = connectionFactory.CreateConnection();
-        // Must rank rows the same way sp_RecalculateCashLedgerBalance does: the opening
+        // Must rank rows the same way sp_recalculate_cash_ledger_balance does: the opening
         // balance/adjustment row is forced first regardless of its own TransactionDate (it can be
         // stamped with today's date even though it represents the earliest balance), so a naive
         // "latest TransactionDate" pick can land back on that row instead of the true final one.
         const string sql = """
-            DECLARE @FirstCashLedgerID BIGINT = (SELECT MIN(CashLedgerID) FROM dbo.CashLedger);
-            SELECT TOP 1 RunningBalance
-            FROM dbo.CashLedger
+            SELECT RunningBalance
+            FROM CashLedger
             ORDER BY
                 CASE
-                    WHEN CashLedgerID = @FirstCashLedgerID AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    WHEN CashLedgerID = (SELECT MIN(CashLedgerID) FROM CashLedger) AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
                     ELSE 1
                 END DESC,
                 TransactionDate DESC,
-                CashLedgerID DESC;
+                CashLedgerID DESC
+            LIMIT 1;
             """;
         return await connection.QueryFirstOrDefaultAsync<decimal?>(sql) ?? 0m;
     }
@@ -379,15 +378,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         decimal quantityIn, decimal quantityOut, string narration)
     {
         const string previousStockSql = """
-            SELECT TOP 1 RunningStock FROM dbo.StockLedger
+            SELECT RunningStock FROM StockLedger
             WHERE FruitID = @FruitID
             ORDER BY TransactionDate DESC, StockLedgerID DESC
+            LIMIT 1
             """;
         var previousStock = await connection.QueryFirstOrDefaultAsync<decimal?>(previousStockSql, new { FruitID = fruitId }, transaction) ?? 0m;
         var newStock = previousStock + quantityIn - quantityOut;
 
         const string insertSql = """
-            INSERT INTO dbo.StockLedger (FruitID, TransactionDate, TransactionType, ReferenceTable, ReferenceID, QuantityIn, QuantityOut, RunningStock, Narration)
+            INSERT INTO StockLedger (FruitID, TransactionDate, TransactionType, ReferenceTable, ReferenceID, QuantityIn, QuantityOut, RunningStock, Narration)
             VALUES (@FruitID, @TransactionDate, @TransactionType, @ReferenceTable, @ReferenceID, @QuantityIn, @QuantityOut, @RunningStock, @Narration);
             """;
         await connection.ExecuteAsync(insertSql, new
@@ -408,12 +408,11 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
     public Task RemoveStockLedgerEntriesForReferenceAsync(IDbConnection connection, IDbTransaction transaction, string referenceTable, int referenceId) =>
         connection.ExecuteAsync(
-            "DELETE FROM dbo.StockLedger WHERE ReferenceTable = @ReferenceTable AND ReferenceID = @ReferenceID",
+            "DELETE FROM StockLedger WHERE ReferenceTable = @ReferenceTable AND ReferenceID = @ReferenceID",
             new { ReferenceTable = referenceTable, ReferenceID = referenceId }, transaction);
 
     public Task RecalculateStockLedgerAsync(IDbConnection connection, IDbTransaction transaction, int fruitId) =>
-        connection.ExecuteAsync("dbo.sp_RecalculateStockLedgerBalance", new { FruitID = fruitId },
-            transaction, commandType: CommandType.StoredProcedure);
+        connection.ExecuteAsync("SELECT sp_recalculate_stock_ledger_balance(@FruitID)", new { FruitID = fruitId }, transaction);
 
     public async Task RecalculateFruitCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId)
     {
@@ -432,32 +431,32 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         const string eventsSql = """
             SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
                    p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.TotalAmount / pi.Quantity AS UnitCost
-            FROM dbo.PurchaseItems pi
-            INNER JOIN dbo.Purchase p ON p.PurchaseID = pi.PurchaseID
+            FROM PurchaseItems pi
+            INNER JOIN Purchase p ON p.PurchaseID = pi.PurchaseID
             WHERE pi.FruitID = @FruitID
 
             UNION ALL
 
             SELECT 'SHOP_RETURN' AS EventType, sri.ShopReturnItemID AS ItemID, sr.ReturnDate AS TransactionDate,
                    sr.CreatedAt AS ParentCreatedAt, sri.Quantity, sri.CostBasis AS UnitCost
-            FROM dbo.ShopReturnItems sri
-            INNER JOIN dbo.ShopReturns sr ON sr.ShopReturnID = sri.ShopReturnID
+            FROM ShopReturnItems sri
+            INNER JOIN ShopReturns sr ON sr.ShopReturnID = sri.ShopReturnID
             WHERE sri.FruitID = @FruitID
 
             UNION ALL
 
             SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
                    s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS UnitCost
-            FROM dbo.SupplyItems si
-            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            FROM SupplyItems si
+            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
             WHERE si.FruitID = @FruitID
 
             UNION ALL
 
             SELECT 'SUPPLIER_RETURN' AS EventType, sri2.SupplierReturnItemID AS ItemID, sr2.ReturnDate AS TransactionDate,
                    sr2.CreatedAt AS ParentCreatedAt, sri2.Quantity, NULL AS UnitCost
-            FROM dbo.SupplierReturnItems sri2
-            INNER JOIN dbo.SupplierReturns sr2 ON sr2.SupplierReturnID = sri2.SupplierReturnID
+            FROM SupplierReturnItems sri2
+            INNER JOIN SupplierReturns sr2 ON sr2.SupplierReturnID = sri2.SupplierReturnID
             WHERE sri2.FruitID = @FruitID
 
             ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
@@ -499,27 +498,25 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             }
         }
 
-        // Batched as a single set-based UPDATE per table (via OPENJSON) instead of one
+        // Batched as a single set-based UPDATE per table (via jsonb_to_recordset) instead of one
         // round trip per changed row — a fruit's full transaction history can be large,
         // and this recalculation runs on every Purchase/Supply/Return write.
-        await BatchUpdateCostBasisAsync(connection, transaction, "dbo.SupplyItems", "SupplyItemID", supplyCostBasis);
-        await BatchUpdateCostBasisAsync(connection, transaction, "dbo.SupplierReturnItems", "SupplierReturnItemID", supplierReturnCostBasis);
+        await BatchUpdateCostBasisAsync(connection, transaction, "SupplyItems", "SupplyItemID", supplyCostBasis);
+        await BatchUpdateCostBasisAsync(connection, transaction, "SupplierReturnItems", "SupplierReturnItemID", supplierReturnCostBasis);
 
         const string upsertSql = """
-            UPDATE dbo.FruitCostBasis SET QuantityOnHand = @QuantityOnHand, AverageCost = @AverageCost, UpdatedAt = SYSUTCDATETIME()
-            WHERE FruitID = @FruitID;
-
-            IF @@ROWCOUNT = 0
-                INSERT INTO dbo.FruitCostBasis (FruitID, QuantityOnHand, AverageCost, UpdatedAt)
-                VALUES (@FruitID, @QuantityOnHand, @AverageCost, SYSUTCDATETIME());
+            INSERT INTO FruitCostBasis (FruitID, QuantityOnHand, AverageCost, UpdatedAt)
+            VALUES (@FruitID, @QuantityOnHand, @AverageCost, (now() AT TIME ZONE 'utc'))
+            ON CONFLICT (FruitID) DO UPDATE
+            SET QuantityOnHand = EXCLUDED.QuantityOnHand, AverageCost = EXCLUDED.AverageCost, UpdatedAt = EXCLUDED.UpdatedAt;
             """;
         await connection.ExecuteAsync(upsertSql, new { FruitID = fruitId, QuantityOnHand = quantityOnHand, AverageCost = averageCost }, transaction);
     }
 
     /// <summary>
-    /// Applies a {ItemID -&gt; CostBasis} map to a table in one round trip via OPENJSON,
-    /// instead of one UPDATE per row. table/idColumn are always call-site literals
-    /// (never user input), so interpolating them into the SQL text here is safe.
+    /// Applies a {ItemID -&gt; CostBasis} map to a table in one round trip via
+    /// jsonb_to_recordset, instead of one UPDATE per row. table/idColumn are always call-site
+    /// literals (never user input), so interpolating them into the SQL text here is safe.
     /// </summary>
     private static async Task BatchUpdateCostBasisAsync(
         IDbConnection connection, IDbTransaction transaction, string table, string idColumn, IReadOnlyDictionary<int, decimal> costBasisByItemId)
@@ -529,12 +526,13 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             return;
         }
 
-        var json = JsonSerializer.Serialize(costBasisByItemId.Select(kvp => new { ItemID = kvp.Key, CostBasis = kvp.Value }));
+        // Lowercase keys: Postgres folds the unquoted jsonb_to_recordset column list to lowercase,
+        // and its json field matching is case-sensitive against that folded name.
+        var json = JsonSerializer.Serialize(costBasisByItemId.Select(kvp => new { itemid = kvp.Key, costbasis = kvp.Value }));
         var sql = $"""
-            UPDATE t SET t.CostBasis = j.CostBasis
-            FROM {table} t
-            INNER JOIN OPENJSON(@Json) WITH (ItemID INT '$.ItemID', CostBasis DECIMAL(18,4) '$.CostBasis') j
-                ON j.ItemID = t.{idColumn};
+            UPDATE {table} AS t SET CostBasis = j.CostBasis
+            FROM jsonb_to_recordset(@Json::jsonb) AS j(ItemID int, CostBasis numeric(18,4))
+            WHERE j.ItemID = t.{idColumn};
             """;
         await connection.ExecuteAsync(sql, new { Json = json }, transaction);
     }
@@ -553,7 +551,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<decimal?>(
-            "SELECT TOP 1 RunningStock FROM dbo.StockLedger WHERE FruitID = @FruitID ORDER BY TransactionDate DESC, StockLedgerID DESC",
+            "SELECT RunningStock FROM StockLedger WHERE FruitID = @FruitID ORDER BY TransactionDate DESC, StockLedgerID DESC LIMIT 1",
             new { FruitID = fruitId }) ?? 0m;
     }
 
@@ -562,12 +560,12 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
             SELECT sl.FruitID, sl.RunningStock
-            FROM dbo.StockLedger sl
+            FROM StockLedger sl
             INNER JOIN (
-                SELECT FruitID, MAX(TransactionDate) AS MaxDate FROM dbo.StockLedger GROUP BY FruitID
+                SELECT FruitID, MAX(TransactionDate) AS MaxDate FROM StockLedger GROUP BY FruitID
             ) latestDate ON latestDate.FruitID = sl.FruitID AND latestDate.MaxDate = sl.TransactionDate
             INNER JOIN (
-                SELECT FruitID, MAX(StockLedgerID) AS MaxID FROM dbo.StockLedger GROUP BY FruitID
+                SELECT FruitID, MAX(StockLedgerID) AS MaxID FROM StockLedger GROUP BY FruitID
             ) latestId ON latestId.FruitID = sl.FruitID AND latestId.MaxID = sl.StockLedgerID;
             """;
         var rows = await connection.QueryAsync<(int FruitID, decimal RunningStock)>(sql);
@@ -577,9 +575,9 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     public async Task RecalculateFruitBoxesAsync(IDbConnection connection, IDbTransaction transaction, int fruitId)
     {
         var tracksByBox = await connection.ExecuteScalarAsync<bool>(
-            "SELECT TracksByBox FROM dbo.FruitMaster WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
+            "SELECT TracksByBox FROM FruitMaster WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
 
-        await connection.ExecuteAsync("DELETE FROM dbo.FruitBoxes WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
+        await connection.ExecuteAsync("DELETE FROM FruitBoxes WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
         if (!tracksByBox) return;
 
         // Purchase (box-in) and Supply (kg-out) events, chronologically - same event-replay
@@ -590,32 +588,32 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         const string eventsSql = """
             SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
                    p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.BoxCount, p.PurchaseID
-            FROM dbo.PurchaseItems pi
-            INNER JOIN dbo.Purchase p ON p.PurchaseID = pi.PurchaseID
+            FROM PurchaseItems pi
+            INNER JOIN Purchase p ON p.PurchaseID = pi.PurchaseID
             WHERE pi.FruitID = @FruitID AND pi.BoxCount IS NOT NULL AND pi.BoxCount > 0
 
             UNION ALL
 
             SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
                    s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS BoxCount, NULL AS PurchaseID
-            FROM dbo.SupplyItems si
-            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            FROM SupplyItems si
+            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
             WHERE si.FruitID = @FruitID
 
             UNION ALL
 
             SELECT 'PURCHASE' AS EventType, ri.ShopReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
                    r.CreatedAt AS ParentCreatedAt, ri.Quantity, ri.BoxCount, NULL AS PurchaseID
-            FROM dbo.ShopReturnItems ri
-            INNER JOIN dbo.ShopReturns r ON r.ShopReturnID = ri.ShopReturnID
+            FROM ShopReturnItems ri
+            INNER JOIN ShopReturns r ON r.ShopReturnID = ri.ShopReturnID
             WHERE ri.FruitID = @FruitID AND ri.BoxCount IS NOT NULL AND ri.BoxCount > 0
 
             UNION ALL
 
             SELECT 'SUPPLY' AS EventType, ri.SupplierReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
                    r.CreatedAt AS ParentCreatedAt, ri.Quantity, NULL AS BoxCount, NULL AS PurchaseID
-            FROM dbo.SupplierReturnItems ri
-            INNER JOIN dbo.SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
+            FROM SupplierReturnItems ri
+            INNER JOIN SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
             WHERE ri.FruitID = @FruitID
 
             ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
@@ -669,17 +667,19 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
         if (boxes.Count == 0) return;
 
-        // Single set-based INSERT via OPENJSON instead of one round trip per box -
+        // Single set-based INSERT via jsonb_to_recordset instead of one round trip per box -
         // a box-tracked fruit's full replay can produce hundreds of rows per write.
-        var json = JsonSerializer.Serialize(boxes.Select(b => new { b.PurchaseID, b.InitialWeightKg, b.RemainingWeightKg, b.Status }));
+        // Lowercase keys: Postgres folds the unquoted jsonb_to_recordset column list to lowercase,
+        // and its json field matching is case-sensitive against that folded name.
+        var json = JsonSerializer.Serialize(boxes.Select(b => new { purchaseid = b.PurchaseID, initialweightkg = b.InitialWeightKg, remainingweightkg = b.RemainingWeightKg, status = b.Status }));
         const string insertSql = """
-            INSERT INTO dbo.FruitBoxes (FruitID, PurchaseID, InitialWeightKg, RemainingWeightKg, Status)
+            INSERT INTO FruitBoxes (FruitID, PurchaseID, InitialWeightKg, RemainingWeightKg, Status)
             SELECT @FruitID, PurchaseID, InitialWeightKg, RemainingWeightKg, Status
-            FROM OPENJSON(@Json) WITH (
-                PurchaseID INT '$.PurchaseID',
-                InitialWeightKg DECIMAL(18,4) '$.InitialWeightKg',
-                RemainingWeightKg DECIMAL(18,4) '$.RemainingWeightKg',
-                Status NVARCHAR(10) '$.Status'
+            FROM jsonb_to_recordset(@Json::jsonb) AS x(
+                PurchaseID int,
+                InitialWeightKg numeric(18,4),
+                RemainingWeightKg numeric(18,4),
+                Status varchar(10)
             );
             """;
         await connection.ExecuteAsync(insertSql, new { FruitID = fruitId, Json = json }, transaction);
@@ -711,7 +711,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             SELECT FruitID,
                    SUM(CASE WHEN Status = 'Full' THEN 1 ELSE 0 END) AS FullBoxCount,
                    MAX(CASE WHEN Status = 'Opened' THEN RemainingWeightKg END) AS OpenedBoxRemainingKg
-            FROM dbo.FruitBoxes
+            FROM FruitBoxes
             GROUP BY FruitID;
             """;
         var rows = await connection.QueryAsync<(int FruitID, int FullBoxCount, decimal? OpenedBoxRemainingKg)>(sql);
@@ -722,15 +722,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.StockLedger
+            SELECT COUNT(*) FROM StockLedger
             WHERE FruitID = @FruitID
-              AND (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate));
+              AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day');
 
-            SELECT * FROM dbo.StockLedger
+            SELECT * FROM StockLedger
             WHERE FruitID = @FruitID
-              AND (@FromDate IS NULL OR TransactionDate >= @FromDate)
-              AND (@ToDate IS NULL OR TransactionDate < DATEADD(DAY, 1, @ToDate))
+              AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
+              AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
             ORDER BY TransactionDate ASC, StockLedgerID ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;

@@ -11,14 +11,14 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<Employee>(
-            "SELECT * FROM dbo.EmployeeMaster WHERE EmployeeID = @EmployeeID", new { EmployeeID = employeeId });
+            "SELECT * FROM EmployeeMaster WHERE EmployeeID = @EmployeeID", new { EmployeeID = employeeId });
     }
 
     public async Task<IReadOnlyList<Employee>> GetAllActiveAsync()
     {
         using var connection = connectionFactory.CreateConnection();
         var result = await connection.QueryAsync<Employee>(
-            "SELECT * FROM dbo.EmployeeMaster WHERE IsActive = 1 ORDER BY FullName");
+            "SELECT * FROM EmployeeMaster WHERE IsActive = TRUE ORDER BY FullName");
         return result.ToList();
     }
 
@@ -26,14 +26,14 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.EmployeeMaster
-            WHERE (@SearchTerm IS NULL OR FullName LIKE @SearchPattern OR Phone LIKE @SearchPattern);
+            SELECT COUNT(*) FROM EmployeeMaster
+            WHERE (@SearchTerm::text IS NULL OR FullName ILIKE @SearchPattern OR Phone ILIKE @SearchPattern);
 
-            SELECT * FROM dbo.EmployeeMaster
-            WHERE (@SearchTerm IS NULL OR FullName LIKE @SearchPattern OR Phone LIKE @SearchPattern)
+            SELECT * FROM EmployeeMaster
+            WHERE (@SearchTerm::text IS NULL OR FullName ILIKE @SearchPattern OR Phone ILIKE @SearchPattern)
             ORDER BY
-                CASE WHEN @SortBy = 'fullName' AND @SortDescending = 0 THEN FullName END ASC,
-                CASE WHEN @SortBy = 'fullName' AND @SortDescending = 1 THEN FullName END DESC,
+                CASE WHEN @SortBy = 'fullName' AND NOT @SortDescending THEN FullName END ASC,
+                CASE WHEN @SortBy = 'fullName' AND @SortDescending THEN FullName END DESC,
                 CASE WHEN @SortBy IS NULL OR @SortBy <> 'fullName' THEN FullName END ASC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -55,9 +55,9 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            INSERT INTO dbo.EmployeeMaster (FullName, Phone, Address, IsActive)
-            OUTPUT INSERTED.EmployeeID
-            VALUES (@FullName, @Phone, @Address, @IsActive);
+            INSERT INTO EmployeeMaster (FullName, Phone, Address, IsActive)
+            VALUES (@FullName, @Phone, @Address, @IsActive)
+            RETURNING EmployeeID;
             """;
         return await connection.QuerySingleAsync<int>(sql, employee);
     }
@@ -66,8 +66,8 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            UPDATE dbo.EmployeeMaster
-            SET FullName = @FullName, Phone = @Phone, Address = @Address, UpdatedAt = SYSUTCDATETIME()
+            UPDATE EmployeeMaster
+            SET FullName = @FullName, Phone = @Phone, Address = @Address, UpdatedAt = (now() AT TIME ZONE 'utc')
             WHERE EmployeeID = @EmployeeID;
             """;
         await connection.ExecuteAsync(sql, employee);
@@ -77,7 +77,7 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            "UPDATE dbo.EmployeeMaster SET IsActive = @IsActive, UpdatedAt = SYSUTCDATETIME() WHERE EmployeeID = @EmployeeID",
+            "UPDATE EmployeeMaster SET IsActive = @IsActive, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE EmployeeID = @EmployeeID",
             new { EmployeeID = employeeId, IsActive = isActive });
     }
 }

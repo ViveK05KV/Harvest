@@ -1,4 +1,3 @@
-using System.Data;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.Dashboard;
@@ -12,7 +11,7 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
     {
         using var connection = connectionFactory.CreateConnection();
         var result = await connection.QuerySingleAsync<DashboardSummaryDto>(
-            "dbo.sp_GetDashboardSummary", new { Today = today.Date }, commandType: CommandType.StoredProcedure);
+            "SELECT * FROM sp_get_dashboard_summary(@Today::date)", new { Today = today.Date });
         return result;
     }
 
@@ -20,10 +19,10 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT FORMAT(SupplyDate, 'yyyy-MM') AS Month, SUM(TotalAmount) AS Amount
-            FROM dbo.Supply
-            WHERE SupplyDate >= DATEADD(MONTH, -@Months, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
-            GROUP BY FORMAT(SupplyDate, 'yyyy-MM')
+            SELECT TO_CHAR(SupplyDate, 'YYYY-MM') AS Month, SUM(TotalAmount) AS Amount
+            FROM Supply
+            WHERE SupplyDate >= (DATE_TRUNC('month', CURRENT_DATE) - MAKE_INTERVAL(months => @Months))
+            GROUP BY TO_CHAR(SupplyDate, 'YYYY-MM')
             ORDER BY Month;
             """;
         var result = await connection.QueryAsync<MonthlyAmountDto>(sql, new { Months = months });
@@ -34,10 +33,10 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT FORMAT(CollectionDate, 'yyyy-MM') AS Month, SUM(AmountReceived) AS Amount
-            FROM dbo.Collections
-            WHERE CollectionDate >= DATEADD(MONTH, -@Months, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
-            GROUP BY FORMAT(CollectionDate, 'yyyy-MM')
+            SELECT TO_CHAR(CollectionDate, 'YYYY-MM') AS Month, SUM(AmountReceived) AS Amount
+            FROM Collections
+            WHERE CollectionDate >= (DATE_TRUNC('month', CURRENT_DATE) - MAKE_INTERVAL(months => @Months))
+            GROUP BY TO_CHAR(CollectionDate, 'YYYY-MM')
             ORDER BY Month;
             """;
         var result = await connection.QueryAsync<MonthlyAmountDto>(sql, new { Months = months });
@@ -49,8 +48,8 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
             SELECT c.CategoryName AS Category, SUM(e.Amount) AS Amount
-            FROM dbo.DailyExpense e
-            INNER JOIN dbo.ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
+            FROM DailyExpense e
+            INNER JOIN ExpenseCategory c ON c.ExpenseCategoryID = e.ExpenseCategoryID
             WHERE e.ExpenseDate BETWEEN @FromDate AND @ToDate
             GROUP BY c.CategoryName
             ORDER BY Amount DESC;
@@ -63,13 +62,14 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT TOP (@Top) f.FruitName, SUM(si.Quantity) AS TotalQuantity, SUM(si.TotalAmount) AS TotalAmount
-            FROM dbo.SupplyItems si
-            INNER JOIN dbo.FruitMaster f ON f.FruitID = si.FruitID
-            INNER JOIN dbo.Supply s ON s.SupplyID = si.SupplyID
+            SELECT f.FruitName, SUM(si.Quantity) AS TotalQuantity, SUM(si.TotalAmount) AS TotalAmount
+            FROM SupplyItems si
+            INNER JOIN FruitMaster f ON f.FruitID = si.FruitID
+            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
             WHERE s.SupplyDate BETWEEN @FromDate AND @ToDate
             GROUP BY f.FruitName
-            ORDER BY TotalAmount DESC;
+            ORDER BY TotalAmount DESC
+            LIMIT @Top;
             """;
         var result = await connection.QueryAsync<TopFruitDto>(sql, new { Top = top, FromDate = fromDate, ToDate = toDate });
         return result.ToList();
@@ -79,12 +79,13 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT TOP (@Top) sh.ShopName, SUM(s.TotalAmount) AS TotalAmount
-            FROM dbo.Supply s
-            INNER JOIN dbo.ShopMaster sh ON sh.ShopID = s.ShopID
+            SELECT sh.ShopName, SUM(s.TotalAmount) AS TotalAmount
+            FROM Supply s
+            INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
             WHERE s.SupplyDate BETWEEN @FromDate AND @ToDate
             GROUP BY sh.ShopName
-            ORDER BY TotalAmount DESC;
+            ORDER BY TotalAmount DESC
+            LIMIT @Top;
             """;
         var result = await connection.QueryAsync<TopCustomerDto>(sql, new { Top = top, FromDate = fromDate, ToDate = toDate });
         return result.ToList();
@@ -112,14 +113,14 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
         var (spine, byMonth) = BuildSpine(period);
         var fromDate = spine[0].Date;
         var toDate = byMonth ? spine[^1].Date.AddMonths(1).AddDays(-1) : spine[^1].Date;
-        var bucketFormat = byMonth ? "yyyy-MM" : "yyyy-MM-dd";
+        var bucketFormat = byMonth ? "YYYY-MM" : "YYYY-MM-DD";
 
         using var connection = connectionFactory.CreateConnection();
         var sql = $"""
-            SELECT FORMAT({dateColumn}, '{bucketFormat}') AS BucketKey, SUM({amountColumn}) AS Amount
-            FROM dbo.{table}
+            SELECT TO_CHAR({dateColumn}, '{bucketFormat}') AS BucketKey, SUM({amountColumn}) AS Amount
+            FROM {table}
             WHERE {dateColumn} >= @FromDate AND {dateColumn} <= @ToDate
-            GROUP BY FORMAT({dateColumn}, '{bucketFormat}');
+            GROUP BY TO_CHAR({dateColumn}, '{bucketFormat}');
             """;
         var rows = await connection.QueryAsync<(string BucketKey, decimal Amount)>(sql, new { FromDate = fromDate, ToDate = toDate });
         var byKey = rows.ToDictionary(r => r.BucketKey, r => r.Amount);

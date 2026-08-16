@@ -2,7 +2,7 @@ using FluentValidation;
 using FruitWholesale.Shared.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 
 namespace FruitWholesale.Api.Middleware;
 
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         FluentValidation.ValidationException fluentValidation => (StatusCodes.Status400BadRequest, "Validation Failed", "One or more validation errors occurred.",
             fluentValidation.Errors.GroupBy(e => e.PropertyName).ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())),
         UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "Forbidden", "You do not have permission to perform this action.", null),
-        SqlException sql when sql.Number is 2601 or 2627 =>
+        PostgresException pg when pg.SqlState == PostgresErrorCodes.UniqueViolation =>
             (StatusCodes.Status409Conflict, "Conflict", "A record with the same value already exists. Please refresh and try again.", null),
         _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred. Please try again later.", null)
     };

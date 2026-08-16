@@ -1,6 +1,6 @@
 using System.Data;
 using FruitWholesale.Application.Common.Interfaces;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.Extensions.Configuration;
 
 namespace FruitWholesale.Infrastructure.Persistence;
@@ -15,5 +15,5 @@ public class SqlConnectionFactory : IDbConnectionFactory
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
     }
 
-    public IDbConnection CreateConnection() => new SqlConnection(_connectionString);
+    public IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
 }

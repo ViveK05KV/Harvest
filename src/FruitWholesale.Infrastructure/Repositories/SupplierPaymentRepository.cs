@@ -13,8 +13,8 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT sp.*, s.SupplierName FROM dbo.SupplierPayments sp
-            INNER JOIN dbo.SupplierMaster s ON s.SupplierID = sp.SupplierID
+            SELECT sp.*, s.SupplierName FROM SupplierPayments sp
+            INNER JOIN SupplierMaster s ON s.SupplierID = sp.SupplierID
             WHERE sp.SupplierPaymentID = @SupplierPaymentID;
             """;
         return await connection.QueryFirstOrDefaultAsync<SupplierPayment>(sql, new { SupplierPaymentID = supplierPaymentId });
@@ -24,19 +24,19 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.SupplierPayments sp
-            INNER JOIN dbo.SupplierMaster s ON s.SupplierID = sp.SupplierID
-            WHERE (@SupplierID IS NULL OR sp.SupplierID = @SupplierID)
-              AND (@FromDate IS NULL OR sp.PaymentDate >= @FromDate)
-              AND (@ToDate IS NULL OR sp.PaymentDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR s.SupplierName LIKE @SearchPattern OR sp.ReferenceNumber LIKE @SearchPattern);
+            SELECT COUNT(*) FROM SupplierPayments sp
+            INNER JOIN SupplierMaster s ON s.SupplierID = sp.SupplierID
+            WHERE (@SupplierID::int IS NULL OR sp.SupplierID = @SupplierID)
+              AND (@FromDate::date IS NULL OR sp.PaymentDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR sp.PaymentDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR s.SupplierName ILIKE @SearchPattern OR sp.ReferenceNumber ILIKE @SearchPattern);
 
-            SELECT sp.*, s.SupplierName FROM dbo.SupplierPayments sp
-            INNER JOIN dbo.SupplierMaster s ON s.SupplierID = sp.SupplierID
-            WHERE (@SupplierID IS NULL OR sp.SupplierID = @SupplierID)
-              AND (@FromDate IS NULL OR sp.PaymentDate >= @FromDate)
-              AND (@ToDate IS NULL OR sp.PaymentDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR s.SupplierName LIKE @SearchPattern OR sp.ReferenceNumber LIKE @SearchPattern)
+            SELECT sp.*, s.SupplierName FROM SupplierPayments sp
+            INNER JOIN SupplierMaster s ON s.SupplierID = sp.SupplierID
+            WHERE (@SupplierID::int IS NULL OR sp.SupplierID = @SupplierID)
+              AND (@FromDate::date IS NULL OR sp.PaymentDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR sp.PaymentDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR s.SupplierName ILIKE @SearchPattern OR sp.ReferenceNumber ILIKE @SearchPattern)
             ORDER BY sp.PaymentDate DESC, sp.SupplierPaymentID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -63,9 +63,9 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             const string insertSql = """
-                INSERT INTO dbo.SupplierPayments (PaymentDate, SupplierID, AmountPaid, DiscountAmount, PaymentMode, ReferenceNumber, Remarks, CreatedBy)
-                OUTPUT INSERTED.SupplierPaymentID
-                VALUES (@PaymentDate, @SupplierID, @AmountPaid, @DiscountAmount, @PaymentMode, @ReferenceNumber, @Remarks, @CreatedBy);
+                INSERT INTO SupplierPayments (PaymentDate, SupplierID, AmountPaid, DiscountAmount, PaymentMode, ReferenceNumber, Remarks, CreatedBy)
+                VALUES (@PaymentDate, @SupplierID, @AmountPaid, @DiscountAmount, @PaymentMode, @ReferenceNumber, @Remarks, @CreatedBy)
+                RETURNING SupplierPaymentID;
                 """;
             var paymentId = await connection.QuerySingleAsync<int>(insertSql, payment, transaction);
 
@@ -97,13 +97,13 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             var oldSupplierId = await connection.ExecuteScalarAsync<int>(
-                "SELECT SupplierID FROM dbo.SupplierPayments WHERE SupplierPaymentID = @SupplierPaymentID", new { payment.SupplierPaymentID }, transaction);
+                "SELECT SupplierID FROM SupplierPayments WHERE SupplierPaymentID = @SupplierPaymentID", new { payment.SupplierPaymentID }, transaction);
 
             const string updateSql = """
-                UPDATE dbo.SupplierPayments
+                UPDATE SupplierPayments
                 SET PaymentDate = @PaymentDate, SupplierID = @SupplierID, AmountPaid = @AmountPaid,
                     DiscountAmount = @DiscountAmount, PaymentMode = @PaymentMode, ReferenceNumber = @ReferenceNumber,
-                    Remarks = @Remarks, UpdatedAt = SYSUTCDATETIME()
+                    Remarks = @Remarks, UpdatedAt = (now() AT TIME ZONE 'utc')
                 WHERE SupplierPaymentID = @SupplierPaymentID;
                 """;
             await connection.ExecuteAsync(updateSql, payment, transaction);
@@ -141,11 +141,11 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
         try
         {
             var supplierId = await connection.ExecuteScalarAsync<int>(
-                "SELECT SupplierID FROM dbo.SupplierPayments WHERE SupplierPaymentID = @SupplierPaymentID", new { SupplierPaymentID = supplierPaymentId }, transaction);
+                "SELECT SupplierID FROM SupplierPayments WHERE SupplierPaymentID = @SupplierPaymentID", new { SupplierPaymentID = supplierPaymentId }, transaction);
 
             await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.SupplierPayment, supplierPaymentId);
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.SupplierPayments, supplierPaymentId);
-            await connection.ExecuteAsync("DELETE FROM dbo.SupplierPayments WHERE SupplierPaymentID = @SupplierPaymentID", new { SupplierPaymentID = supplierPaymentId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM SupplierPayments WHERE SupplierPaymentID = @SupplierPaymentID", new { SupplierPaymentID = supplierPaymentId }, transaction);
 
             await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, supplierId);
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
@@ -168,6 +168,6 @@ public class SupplierPaymentRepository(IDbConnectionFactory connectionFactory, I
     // its narration needs the counterparty's name spelled out rather than just an internal ID.
     private static async Task<string> SupplierNameAsync(IDbConnection connection, IDbTransaction transaction, int supplierId) =>
         await connection.QueryFirstOrDefaultAsync<string>(
-            "SELECT SupplierName FROM dbo.SupplierMaster WHERE SupplierID = @SupplierID", new { SupplierID = supplierId }, transaction)
+            "SELECT SupplierName FROM SupplierMaster WHERE SupplierID = @SupplierID", new { SupplierID = supplierId }, transaction)
         ?? "Unknown Supplier";
 }
