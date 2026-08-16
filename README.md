@@ -7,8 +7,8 @@ A production-ready ERP for a fruit wholesale business: supply/purchase invoicing
 | Layer | Technology |
 |---|---|
 | Backend API | ASP.NET Core **10** Web API (see note below), C# |
-| Data access | Dapper + Microsoft.Data.SqlClient (no ORM) |
-| Database | SQL Server |
+| Data access | Dapper + Npgsql (no ORM) |
+| Database | PostgreSQL |
 | Auth | JWT Bearer |
 | Validation | FluentValidation (via a global MVC action filter) |
 | Mapping | AutoMapper |
@@ -60,11 +60,11 @@ Dependency direction is strictly inward: `Api → Infrastructure → Application
 This is the core business rule of the whole system, so it's worth explaining how it's implemented:
 
 - **`ILedgerService`** (`Application/Common/Interfaces`, implemented in `Infrastructure/Services/LedgerService.cs`) is the only code path allowed to write to `ShopLedger`, `SupplierLedger`, and `CashLedger`.
-- Every transactional repository (`SupplyRepository`, `PurchaseRepository`, `CollectionRepository`, `SupplierPaymentRepository`, `DailyExpenseRepository`, and the master-data repositories for opening balances) opens **one SQL transaction**, writes its own table(s), calls `ILedgerService` to add/remove the matching ledger row(s) inside that same transaction, then calls the matching `sp_Recalculate*Balance` stored procedure before committing.
-- Recalculation (not just appending a running total) is what makes backdated entries, edits, and deletes correct — the stored procs re-derive `RunningBalance` for every row of the affected shop/supplier (or the whole cash ledger) in one set-based pass, in `(TransactionDate, LedgerID)` order.
-- Opening balances (`ShopMaster.OpeningBalance`, `SupplierMaster.OpeningBalance`, `CompanySettings.OpeningCashBalance`) are booked as their own `OpeningBalance`-type ledger row at creation time — never added a second time by the recalculation procs (an earlier bug during development double-counted this; see the stored procedures for the fix and comment explaining why they sum from zero).
+- Every transactional repository (`SupplyRepository`, `PurchaseRepository`, `CollectionRepository`, `SupplierPaymentRepository`, `DailyExpenseRepository`, and the master-data repositories for opening balances) opens **one SQL transaction**, writes its own table(s), calls `ILedgerService` to add/remove the matching ledger row(s) inside that same transaction, then calls the matching `sp_recalculate_*_ledger_balance` PL/pgSQL function before committing.
+- Recalculation (not just appending a running total) is what makes backdated entries, edits, and deletes correct — the functions re-derive `RunningBalance` for every row of the affected shop/supplier (or the whole cash ledger) in one set-based pass, in `(TransactionDate, LedgerID)` order.
+- Opening balances (`ShopMaster.OpeningBalance`, `SupplierMaster.OpeningBalance`, `CompanySettings.OpeningCashBalance`) are booked as their own `OpeningBalance`-type ledger row at creation time — never added a second time by the recalculation functions (an earlier bug during development double-counted this; see the functions for the fix and comment explaining why they sum from zero).
 - The only way to touch `CashLedger` outside of an automatic transaction is `POST /api/companysettings/cash-adjustment` (Admin/Accountant only), which books an explicit `Adjustment` row — this matches the business rule "CashLedger must never be edited manually except Opening Balance and Cash Adjustment."
-- The same pattern extends to stock: `StockLedger` tracks fruit quantity, with `sp_RecalculateStockLedgerBalance` recomputing `RunningStock` the same way. Every Purchase item books `QuantityIn`, every Supply item books `QuantityOut`, both inside the existing Purchase/Supply transaction — so stock, the supplier/shop ledger, and the source document always commit or roll back together. `POST /api/stock/adjustment` (Admin/Manager only) is the manual-correction escape hatch, mirroring Cash Adjustment.
+- The same pattern extends to stock: `StockLedger` tracks fruit quantity, with `sp_recalculate_stock_ledger_balance` recomputing `RunningStock` the same way. Every Purchase item books `QuantityIn`, every Supply item books `QuantityOut`, both inside the existing Purchase/Supply transaction — so stock, the supplier/shop ledger, and the source document always commit or roll back together. `POST /api/stock/adjustment` (Admin/Manager only) is the manual-correction escape hatch, mirroring Cash Adjustment.
 
 ## Routes, Employees & Stock
 
@@ -77,21 +77,21 @@ This is the core business rule of the whole system, so it's worth explaining how
 
 ### 1. Database
 
-Requires a local or reachable SQL Server instance (Windows Authentication by default).
+Requires a local or reachable PostgreSQL instance. Create the database first (`createdb FruitWholesaleDB` or `CREATE DATABASE "FruitWholesaleDB";` from `psql`), then run the bootstrap scripts against it:
 
 ```bash
 cd database
-sqlcmd -S localhost -E -i 01_CreateDatabase_Tables.sql
-sqlcmd -S localhost -E -i 02_Indexes.sql
-sqlcmd -S localhost -E -i 03_StoredProcedures.sql
-sqlcmd -S localhost -E -i 04_SeedData.sql
+psql -U postgres -h localhost -d FruitWholesaleDB -f 01_CreateDatabase_Tables.sql
+psql -U postgres -h localhost -d FruitWholesaleDB -f 02_Indexes.sql
+psql -U postgres -h localhost -d FruitWholesaleDB -f 03_StoredProcedures.sql
+psql -U postgres -h localhost -d FruitWholesaleDB -f 04_SeedData.sql
 ```
 
 All scripts are idempotent — re-running them drops and recreates cleanly. `04_SeedData.sql` seeds **only the admin login** — no demo company profile, fruits, or expense categories; add those yourself once you're logged in. `05_ClearData.sql` is a standalone reset: run it any time to wipe every table back to empty except the admin user, without dropping/recreating the schema.
 
-Everything after this initial bootstrap (`06_*.sql` onward) is handled differently — see [Database Migrations](#database-migrations) under Deployment.
+Everything after this initial bootstrap (`06_*.sql` onward) is historical record from the SQL Server era and predates the Postgres port — see [Database Migrations](#database-migrations) under Deployment for how new migrations are added going forward (currently just `26_AddRefreshTokens.sql`, applied automatically by `MigrationRunner` on API startup).
 
-Update `src/FruitWholesale.Api/appsettings.json` → `ConnectionStrings:DefaultConnection` if your SQL Server isn't `localhost` with Windows auth.
+Update `src/FruitWholesale.Api/appsettings.json` → `ConnectionStrings:DefaultConnection` if your Postgres instance isn't `localhost:5432` with user `postgres`/password `postgres`.
 
 ### 2. Backend API
 

@@ -12,13 +12,13 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT r.*, sp.SupplierName, p.InvoiceNo AS PurchaseInvoiceNo FROM dbo.SupplierReturns r
-            INNER JOIN dbo.SupplierMaster sp ON sp.SupplierID = r.SupplierID
-            LEFT JOIN dbo.Purchase p ON p.PurchaseID = r.PurchaseID
+            SELECT r.*, sp.SupplierName, p.InvoiceNo AS PurchaseInvoiceNo FROM SupplierReturns r
+            INNER JOIN SupplierMaster sp ON sp.SupplierID = r.SupplierID
+            LEFT JOIN Purchase p ON p.PurchaseID = r.PurchaseID
             WHERE r.SupplierReturnID = @SupplierReturnID;
 
-            SELECT ri.*, f.FruitName, f.Unit FROM dbo.SupplierReturnItems ri
-            INNER JOIN dbo.FruitMaster f ON f.FruitID = ri.FruitID
+            SELECT ri.*, f.FruitName, f.Unit FROM SupplierReturnItems ri
+            INNER JOIN FruitMaster f ON f.FruitID = ri.FruitID
             WHERE ri.SupplierReturnID = @SupplierReturnID;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new { SupplierReturnID = supplierReturnId });
@@ -32,20 +32,20 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COUNT(*) FROM dbo.SupplierReturns r
-            INNER JOIN dbo.SupplierMaster sp ON sp.SupplierID = r.SupplierID
-            WHERE (@SupplierID IS NULL OR r.SupplierID = @SupplierID)
-              AND (@FromDate IS NULL OR r.ReturnDate >= @FromDate)
-              AND (@ToDate IS NULL OR r.ReturnDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR r.ReferenceNo LIKE @SearchPattern OR sp.SupplierName LIKE @SearchPattern);
+            SELECT COUNT(*) FROM SupplierReturns r
+            INNER JOIN SupplierMaster sp ON sp.SupplierID = r.SupplierID
+            WHERE (@SupplierID::int IS NULL OR r.SupplierID = @SupplierID)
+              AND (@FromDate::date IS NULL OR r.ReturnDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR r.ReturnDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR r.ReferenceNo ILIKE @SearchPattern OR sp.SupplierName ILIKE @SearchPattern);
 
-            SELECT r.*, sp.SupplierName, p.InvoiceNo AS PurchaseInvoiceNo FROM dbo.SupplierReturns r
-            INNER JOIN dbo.SupplierMaster sp ON sp.SupplierID = r.SupplierID
-            LEFT JOIN dbo.Purchase p ON p.PurchaseID = r.PurchaseID
-            WHERE (@SupplierID IS NULL OR r.SupplierID = @SupplierID)
-              AND (@FromDate IS NULL OR r.ReturnDate >= @FromDate)
-              AND (@ToDate IS NULL OR r.ReturnDate <= @ToDate)
-              AND (@SearchTerm IS NULL OR r.ReferenceNo LIKE @SearchPattern OR sp.SupplierName LIKE @SearchPattern)
+            SELECT r.*, sp.SupplierName, p.InvoiceNo AS PurchaseInvoiceNo FROM SupplierReturns r
+            INNER JOIN SupplierMaster sp ON sp.SupplierID = r.SupplierID
+            LEFT JOIN Purchase p ON p.PurchaseID = r.PurchaseID
+            WHERE (@SupplierID::int IS NULL OR r.SupplierID = @SupplierID)
+              AND (@FromDate::date IS NULL OR r.ReturnDate >= @FromDate)
+              AND (@ToDate::date IS NULL OR r.ReturnDate <= @ToDate)
+              AND (@SearchTerm::text IS NULL OR r.ReferenceNo ILIKE @SearchPattern OR sp.SupplierName ILIKE @SearchPattern)
             ORDER BY r.ReturnDate DESC, r.SupplierReturnID DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
@@ -74,14 +74,14 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
             supplierReturn.TotalAmount = supplierReturn.Items.Sum(i => i.TotalAmount);
 
             const string insertSql = """
-                INSERT INTO dbo.SupplierReturns (ReturnDate, SupplierID, PurchaseID, ReferenceNo, Remarks, TotalAmount, CreatedBy)
-                OUTPUT INSERTED.SupplierReturnID
-                VALUES (@ReturnDate, @SupplierID, @PurchaseID, @ReferenceNo, @Remarks, @TotalAmount, @CreatedBy);
+                INSERT INTO SupplierReturns (ReturnDate, SupplierID, PurchaseID, ReferenceNo, Remarks, TotalAmount, CreatedBy)
+                VALUES (@ReturnDate, @SupplierID, @PurchaseID, @ReferenceNo, @Remarks, @TotalAmount, @CreatedBy)
+                RETURNING SupplierReturnID;
                 """;
             var supplierReturnId = await connection.QuerySingleAsync<int>(insertSql, supplierReturn, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.SupplierReturnItems (SupplierReturnID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
+                INSERT INTO SupplierReturnItems (SupplierReturnID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
                 VALUES (@SupplierReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in supplierReturn.Items)
@@ -124,24 +124,24 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
         try
         {
             var oldSupplierId = await connection.ExecuteScalarAsync<int>(
-                "SELECT SupplierID FROM dbo.SupplierReturns WHERE SupplierReturnID = @SupplierReturnID", new { supplierReturn.SupplierReturnID }, transaction);
+                "SELECT SupplierID FROM SupplierReturns WHERE SupplierReturnID = @SupplierReturnID", new { supplierReturn.SupplierReturnID }, transaction);
             var oldFruitIds = (await connection.QueryAsync<int>(
-                "SELECT DISTINCT FruitID FROM dbo.SupplierReturnItems WHERE SupplierReturnID = @SupplierReturnID", new { supplierReturn.SupplierReturnID }, transaction)).ToList();
+                "SELECT DISTINCT FruitID FROM SupplierReturnItems WHERE SupplierReturnID = @SupplierReturnID", new { supplierReturn.SupplierReturnID }, transaction)).ToList();
 
             supplierReturn.TotalAmount = supplierReturn.Items.Sum(i => i.TotalAmount);
 
             const string updateSql = """
-                UPDATE dbo.SupplierReturns
+                UPDATE SupplierReturns
                 SET ReturnDate = @ReturnDate, SupplierID = @SupplierID, PurchaseID = @PurchaseID, ReferenceNo = @ReferenceNo,
-                    Remarks = @Remarks, TotalAmount = @TotalAmount, UpdatedAt = SYSUTCDATETIME()
+                    Remarks = @Remarks, TotalAmount = @TotalAmount, UpdatedAt = (now() AT TIME ZONE 'utc')
                 WHERE SupplierReturnID = @SupplierReturnID;
                 """;
             await connection.ExecuteAsync(updateSql, supplierReturn, transaction);
 
-            await connection.ExecuteAsync("DELETE FROM dbo.SupplierReturnItems WHERE SupplierReturnID = @SupplierReturnID", new { supplierReturn.SupplierReturnID }, transaction);
+            await connection.ExecuteAsync("DELETE FROM SupplierReturnItems WHERE SupplierReturnID = @SupplierReturnID", new { supplierReturn.SupplierReturnID }, transaction);
 
             const string insertItemSql = """
-                INSERT INTO dbo.SupplierReturnItems (SupplierReturnID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
+                INSERT INTO SupplierReturnItems (SupplierReturnID, FruitID, Quantity, UnitPrice, TotalAmount, BoxCount)
                 VALUES (@SupplierReturnID, @FruitID, @Quantity, @UnitPrice, @TotalAmount, @BoxCount);
                 """;
             foreach (var item in supplierReturn.Items)
@@ -191,13 +191,13 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
         try
         {
             var supplierId = await connection.ExecuteScalarAsync<int>(
-                "SELECT SupplierID FROM dbo.SupplierReturns WHERE SupplierReturnID = @SupplierReturnID", new { SupplierReturnID = supplierReturnId }, transaction);
+                "SELECT SupplierID FROM SupplierReturns WHERE SupplierReturnID = @SupplierReturnID", new { SupplierReturnID = supplierReturnId }, transaction);
             var fruitIds = (await connection.QueryAsync<int>(
-                "SELECT DISTINCT FruitID FROM dbo.SupplierReturnItems WHERE SupplierReturnID = @SupplierReturnID", new { SupplierReturnID = supplierReturnId }, transaction)).ToList();
+                "SELECT DISTINCT FruitID FROM SupplierReturnItems WHERE SupplierReturnID = @SupplierReturnID", new { SupplierReturnID = supplierReturnId }, transaction)).ToList();
 
             await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.SupplierReturn, supplierReturnId);
             await ledgerService.RemoveStockLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.SupplierReturns, supplierReturnId);
-            await connection.ExecuteAsync("DELETE FROM dbo.SupplierReturns WHERE SupplierReturnID = @SupplierReturnID", new { SupplierReturnID = supplierReturnId }, transaction);
+            await connection.ExecuteAsync("DELETE FROM SupplierReturns WHERE SupplierReturnID = @SupplierReturnID", new { SupplierReturnID = supplierReturnId }, transaction);
             await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, supplierId);
             foreach (var fruitId in fruitIds)
             {
@@ -219,7 +219,7 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
-            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.SupplierReturns WHERE ReferenceNo = @ReferenceNo AND (@ExcludeSupplierReturnId IS NULL OR SupplierReturnID <> @ExcludeSupplierReturnId)) THEN 1 ELSE 0 END",
+            "SELECT EXISTS (SELECT 1 FROM SupplierReturns WHERE ReferenceNo = @ReferenceNo AND (@ExcludeSupplierReturnId::int IS NULL OR SupplierReturnID <> @ExcludeSupplierReturnId))",
             new { ReferenceNo = referenceNo, ExcludeSupplierReturnId = excludeSupplierReturnId });
     }
 
@@ -227,8 +227,8 @@ public class SupplierReturnRepository(IDbConnectionFactory connectionFactory, IL
     {
         using var connection = connectionFactory.CreateConnection();
         var maxSeq = await connection.ExecuteScalarAsync<int?>("""
-            SELECT MAX(TRY_CAST(SUBSTRING(ReferenceNo, 4, 20) AS INT))
-            FROM dbo.SupplierReturns
+            SELECT MAX(CASE WHEN SUBSTRING(ReferenceNo FROM 4) ~ '^[0-9]+$' THEN CAST(SUBSTRING(ReferenceNo FROM 4) AS INT) ELSE NULL END)
+            FROM SupplierReturns
             WHERE ReferenceNo LIKE 'PRT%'
             """);
         return $"PRT{(maxSeq ?? 0) + 1:D6}";
