@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -8,6 +8,7 @@
          startup without it. Run culture-invariant so no ICU is required (safe for this
          JSON API — it doesn't do culture-specific parsing/formatting). -->
     <InvariantGlobalization>true</InvariantGlobalization>
+    <UserSecretsId>6015b0d8-f6e9-4bee-b3ab-aa300282abc4</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,8 +38,7 @@
        named 'bootstrap'. On a self-contained RID publish (how the Lambda package is built),
        rename the apphost to 'bootstrap'. It still loads FruitWholesale.Api.dll beside it.
        Guarded on RuntimeIdentifier so local dev builds/runs are unaffected. -->
-  <Target Name="RenameApphostToBootstrap" AfterTargets="Publish"
-          Condition="'$(RuntimeIdentifier)' != '' And Exists('$(PublishDir)$(AssemblyName)')">
+  <Target Name="RenameApphostToBootstrap" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)' != '' And Exists('$(PublishDir)$(AssemblyName)')">
     <Move SourceFiles="$(PublishDir)$(AssemblyName)" DestinationFiles="$(PublishDir)bootstrap" OverwriteReadOnlyFiles="true" />
     <Exec Command="chmod +x &quot;$(PublishDir)bootstrap&quot;" Condition="'$(OS)' != 'Windows_NT'" />
   </Target>

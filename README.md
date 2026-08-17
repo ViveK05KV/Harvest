@@ -95,6 +95,16 @@ Update `src/FruitWholesale.Api/appsettings.json` → `ConnectionStrings:DefaultC
 
 ### 2. Backend API
 
+The JWT signing secret is **not** in `appsettings.json` — it is supplied at runtime so it never
+reaches source control. Set your local one once, before the first run:
+
+```bash
+cd src/FruitWholesale.Api
+dotnet user-secrets set "Jwt:Secret" "$(openssl rand -base64 64 | tr -d '\n')"
+```
+
+Then:
+
 ```bash
 dotnet build FruitWholesale.slnx
 dotnet run --project src/FruitWholesale.Api/FruitWholesale.Api.csproj --urls http://localhost:5080
@@ -104,7 +114,9 @@ Swagger UI: http://localhost:5080/swagger
 
 **Default login:** `admin` / `Admin@123` (change it from Settings → Change Password after first login).
 
-> The JWT signing secret in `appsettings.json` is a real random value generated for this environment — rotate it before any real deployment, and never commit production secrets.
+> Startup fails with a clear message if the secret is missing or shorter than 32 bytes. Deployed
+> environments supply it as the `Jwt__Secret` environment variable (set on the Lambda, not in the
+> repo). Rotating it invalidates every issued token, so all users are signed out.
 
 ### 3. Frontend
 
