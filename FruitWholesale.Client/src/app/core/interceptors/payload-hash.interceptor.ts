@@ -32,16 +32,22 @@ async function withPayloadHash(req: HttpRequest<unknown>): Promise<HttpRequest<u
     return req;
   }
 
+  // Angular only guesses Content-Type from the body it is handed, and the body is about to be
+  // replaced with its serialized form. An object would have been detected as application/json, but
+  // the JSON string replacing it would be detected as text/plain — which the API rejects with 415.
+  // So the original request's content type is resolved here, while the original body is still in
+  // place, and set explicitly on the clone.
+  let contentType = req.headers.get('Content-Type') ?? req.detectContentTypeHeader();
+
   // FormData and Blob bodies are turned into bytes via Response so that the boundary and encoding
-  // are fixed before hashing; the matching Content-Type has to travel with them.
+  // are fixed before hashing; that Content-Type (which carries the boundary) wins.
   let body: ArrayBuffer | string;
-  let contentType: string | null = null;
 
   if (typeof serialized === 'string') {
     body = serialized;
   } else {
     const response = new Response(serialized as BodyInit);
-    contentType = response.headers.get('Content-Type');
+    contentType = response.headers.get('Content-Type') ?? contentType;
     body = await response.arrayBuffer();
   }
 
@@ -51,9 +57,10 @@ async function withPayloadHash(req: HttpRequest<unknown>): Promise<HttpRequest<u
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
-  const headers = req.headers.set('x-amz-content-sha256', hash);
-  return req.clone({
-    body,
-    headers: contentType && !req.headers.has('Content-Type') ? headers.set('Content-Type', contentType) : headers
-  });
+  let headers = req.headers.set('x-amz-content-sha256', hash);
+  if (contentType) {
+    headers = headers.set('Content-Type', contentType);
+  }
+
+  return req.clone({ body, headers });
 }
