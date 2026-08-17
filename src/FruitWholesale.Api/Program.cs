@@ -7,6 +7,7 @@ using FruitWholesale.Application;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -71,7 +72,15 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.FromMinutes(1)
     };
 });
-builder.Services.AddAuthorization();
+// Pin authorization to the JWT scheme so a principal from any other source — notably the IAM
+// identity the Lambda adapter derives from the function URL's SigV4 authorizer — can never satisfy
+// [Authorize]. See EdgeIdentityMiddleware.
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -123,6 +132,10 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseCors("Default");
+
+// Must run before authentication: restores the JWT that CloudFront's OAC signing displaces, and
+// discards the IAM principal the Lambda adapter would otherwise leave on the request.
+app.UseMiddleware<EdgeIdentityMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
