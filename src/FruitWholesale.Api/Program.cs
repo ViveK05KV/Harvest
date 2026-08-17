@@ -31,6 +31,17 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing.");
 
+// The signing key is deliberately absent from appsettings.json so it never lands in source control.
+// Deployed environments supply it as the Jwt__Secret environment variable; locally it comes from
+// user-secrets. Fail loudly here rather than booting with a weak or empty key. HS256 needs at least
+// 256 bits of key material.
+if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || Encoding.UTF8.GetByteCount(jwtSettings.Secret) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Secret is missing or too short (needs at least 32 bytes). Set the Jwt__Secret environment " +
+        "variable in deployed environments, or run: dotnet user-secrets set \"Jwt:Secret\" \"<value>\"");
+}
+
 builder.Services
     .AddControllers(options => options.Filters.Add<ValidationFilter>())
     .ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true);
