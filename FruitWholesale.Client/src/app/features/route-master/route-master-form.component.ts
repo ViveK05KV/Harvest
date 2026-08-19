@@ -1,16 +1,15 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { RouteMaster } from '../../core/models/master-data.model';
 
 @Component({
   selector: 'app-route-master-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule],
-  templateUrl: './route-master-form.component.html'
+  imports: [ReactiveFormsModule, MatDialogModule, MatIconModule],
+  templateUrl: './route-master-form.component.html',
+  styleUrl: './route-master-form.component.scss'
 })
 export class RouteMasterFormComponent {
   private readonly fb = inject(FormBuilder);
@@ -21,6 +20,10 @@ export class RouteMasterFormComponent {
     routeName: [this.data?.routeName ?? '', [Validators.required, Validators.maxLength(150)]],
     description: [this.data?.description ?? '']
   });
+
+  cancel(): void {
+    this.dialogRef.close();
+  }
 
   save(): void {
     if (this.form.invalid) {

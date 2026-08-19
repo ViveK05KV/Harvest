@@ -1,18 +1,7 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { LedgerService } from './ledger.service';
 import { SupplierMasterService } from '../supplier-master/supplier-master.service';
 import { SupplierLedgerEntry, ledgerParticulars } from '../../core/models/ledger.model';
@@ -21,29 +10,13 @@ import { PaginationRequest } from '../../core/models/common.model';
 import { ExportService } from '../../core/services/export.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
-import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supplier-ledger',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatProgressBarModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule
-  ],
-  templateUrl: './supplier-ledger.component.html'
+  imports: [CurrencyPipe, DatePipe, MatIconModule, MatProgressBarModule],
+  templateUrl: './supplier-ledger.component.html',
+  styleUrl: './supplier-ledger.component.scss'
 })
 export class SupplierLedgerComponent implements OnInit {
   private readonly ledgerService = inject(LedgerService);
@@ -52,28 +25,34 @@ export class SupplierLedgerComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  readonly displayedColumns = ['transactionDate', 'particulars', 'purchase', 'payment', 'runningBalance', 'actions'];
   readonly particulars = ledgerParticulars;
   readonly suppliers = signal<SupplierMaster[]>([]);
   readonly items = signal<SupplierLedgerEntry[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
 
-  supplierId: number | null = null;
-  supplierSearch = '';
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  readonly pageIndex = signal(0);
+  readonly pageSize = 20;
 
-  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 20 };
+  supplierId: number | null = null;
+  fromDate: string | null = null;
+  toDate: string | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
+
+  readonly rangeLabel = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return 'No entries';
+    const start = this.pageIndex() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
 
   ngOnInit(): void {
     this.supplierService.getAllActive().subscribe((suppliers) => {
       this.suppliers.set(suppliers);
       if (suppliers.length > 0) {
         this.supplierId = suppliers[0].supplierID;
-        this.supplierSearch = suppliers[0].supplierName;
         this.load();
       }
     });
@@ -89,63 +68,52 @@ export class SupplierLedgerComponent implements OnInit {
     return netBalance >= 0;
   }
 
+  isOpeningRow(row: SupplierLedgerEntry, index: number): boolean {
+    return this.pageIndex() === 0 && index === 0 && (row.transactionType === 'OpeningBalance' || row.transactionType === 'Adjustment');
+  }
+
   netBalanceTooltip(supplier: SupplierMaster): string {
     return supplier.linkedShopID
       ? `Combined position with linked Shop: ${supplier.linkedShopName}`
       : `Outstanding balance owed to ${supplier.supplierName}`;
   }
 
-  onFilterChange(): void {
-    if (!this.supplierId) return;
-    this.request.pageNumber = 1;
-    this.paginator?.firstPage();
-    this.load();
-  }
-
-  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.suppliers();
-    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
-  }
-
-  readonly displaySupplier = (value: unknown): string =>
-    typeof value === 'number' ? (this.suppliers().find((s) => s.supplierID === value)?.supplierName ?? '') : typeof value === 'string' ? value : '';
-
-  onSupplierFilterSelected(event: MatAutocompleteSelectedEvent): void {
-    const supplierId = event.option.value as number | null;
-    this.supplierId = supplierId;
-    this.supplierSearch = supplierId == null ? '' : (this.suppliers().find((s) => s.supplierID === supplierId)?.supplierName ?? '');
+  onSupplierChange(value: string): void {
+    this.supplierId = value ? Number(value) : null;
     this.onFilterChange();
   }
 
-  // Match the Shop Ledger interaction: clicking/focusing a settled selection
-  // clears its text so the full supplier list is immediately available.
-  onSupplierSearchFocus(): void {
-    if (this.supplierSearch !== (this.selectedSupplier()?.supplierName ?? '')) return;
-    this.supplierSearch = '';
+  onFilterChange(): void {
+    if (!this.supplierId) return;
+    this.request.pageNumber = 1;
+    this.pageIndex.set(0);
+    this.load();
   }
 
-  // Typing away from the settled supplier name must clear the stale supplierId
-  // and the table - otherwise the field shows different text while the ledger
-  // below silently stays on whatever supplier was previously selected.
-  onSupplierSearchInput(): void {
-    this.supplierId = null;
-    this.items.set([]);
-    this.totalCount.set(0);
+  clearFilters(): void {
+    this.fromDate = null;
+    this.toDate = null;
+    this.onFilterChange();
   }
 
-  onPage(event: PageEvent): void {
-    this.request.pageNumber = event.pageIndex + 1;
-    this.request.pageSize = event.pageSize;
+  prevPage(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((i) => i - 1);
+    this.request.pageNumber = this.pageIndex() + 1;
+    this.load();
+  }
+
+  nextPage(): void {
+    if ((this.pageIndex() + 1) * this.pageSize >= this.totalCount()) return;
+    this.pageIndex.update((i) => i + 1);
+    this.request.pageNumber = this.pageIndex() + 1;
     this.load();
   }
 
   load(): void {
     if (!this.supplierId) return;
     this.loading.set(true);
-    const from = this.fromDate ? toIso(this.fromDate) : null;
-    const to = this.toDate ? toIso(this.toDate) : null;
-    this.ledgerService.getSupplierLedger(this.supplierId, this.request, from, to).subscribe({
+    this.ledgerService.getSupplierLedger(this.supplierId, this.request, this.fromDate, this.toDate).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

@@ -1,227 +1,181 @@
-<div class="page-toolbar">
-  <h1>Profit Calculator</h1>
+<div class="page-heading"><h1>Profit Calculator</h1></div>
 
-  @if (activeTab() !== 0) {
-    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-      <mat-label>From</mat-label>
-      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" [min]="minProfitDate" [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)" (dateChange)="onFilterChange()" />
-      <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
-      <mat-datepicker #fromPicker [startAt]="minProfitDate"></mat-datepicker>
-    </mat-form-field>
-
-    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-      <mat-label>To</mat-label>
-      <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)" (dateChange)="onFilterChange()" />
-      <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
-      <mat-datepicker #toPicker></mat-datepicker>
-    </mat-form-field>
-  }
-
-  @if (activeTab() === 1 || activeTab() === 2) {
-    <mat-button-toggle-group [(ngModel)]="tillToday" (change)="onTillTodayChange()">
-      <mat-button-toggle [value]="false">Date Range</mat-button-toggle>
-      <mat-button-toggle [value]="true">Till Today</mat-button-toggle>
-    </mat-button-toggle-group>
-  }
-
-  @if (activeTab() === 1 || activeTab() === 3) {
-    <mat-form-field subscriptSizing="dynamic" style="width: 200px">
-      <mat-label>Shop {{ activeTab() === 1 ? '(for daily breakdown)' : '(optional filter)' }}</mat-label>
+@if (activeTab() !== 0) {
+  <div class="filter-bar filter-bar--card">
+    <label class="field">
+      <span class="field-label">From</span>
       <input
-        matInput
-        [(ngModel)]="selectedShopSearch"
-        placeholder="Search shop"
-        [matAutocomplete]="selectedShopFilterAuto"
-        (focus)="onSelectedShopSearchFocus()"
-        (click)="onSelectedShopSearchFocus()"
-        (input)="onSelectedShopSearchInput()"
+        type="date"
+        [value]="fromDate"
+        [min]="minProfitDateStr"
+        [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)"
+        (change)="fromDate = $any($event.target).value; onFilterChange()"
+        (click)="$any($event.target).showPicker?.()"
       />
-      <mat-autocomplete #selectedShopFilterAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onSelectedShopFilterSelected($event)">
-        <mat-option [value]="null">All Shops</mat-option>
-        @for (shop of filteredShops(selectedShopSearch); track shop.shopID) {
-          <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
-        }
-      </mat-autocomplete>
-    </mat-form-field>
-  }
+    </label>
 
-  <span class="spacer"></span>
+    <label class="field">
+      <span class="field-label">To</span>
+      <input
+        type="date"
+        [value]="toDate"
+        [disabled]="tillToday && (activeTab() === 1 || activeTab() === 2)"
+        (change)="toDate = $any($event.target).value; onFilterChange()"
+        (click)="$any($event.target).showPicker?.()"
+      />
+    </label>
+
+    @if (activeTab() === 1 || activeTab() === 2) {
+      <label class="field">
+        <span class="field-label">Range</span>
+        <div class="mode-row">
+          <button type="button" class="mode-btn" [class.mode-btn--active]="!tillToday" (click)="setTillToday(false)">Date Range</button>
+          <button type="button" class="mode-btn" [class.mode-btn--active]="tillToday" (click)="setTillToday(true)">Till Today</button>
+        </div>
+      </label>
+    }
+
+    @if (activeTab() === 1 || activeTab() === 3) {
+      <label class="field" style="min-width: 190px">
+        <span class="field-label">Shop {{ activeTab() === 1 ? '(for daily breakdown)' : '(optional filter)' }}</span>
+        <select [value]="selectedShopId ?? ''" (change)="onShopChange($any($event.target).value)">
+          <option value="">All shops</option>
+          @for (shop of shops(); track shop.shopID) {
+            <option [value]="shop.shopID">{{ shop.shopName }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    <span class="spacer"></span>
+  </div>
+}
+
+<div class="tab-nav">
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 0" (click)="onTabChange(0)">Business Total</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 1" (click)="onTabChange(1)">By Shop</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 2" (click)="onTabChange(2)">By Fruit</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 3" (click)="onTabChange(3)">By Shop &amp; Fruit</button>
 </div>
 
 @if (loading()) {
   <mat-progress-bar mode="indeterminate" />
 }
 
-<mat-tab-group (selectedIndexChange)="onTabChange($event)">
-  <mat-tab label="Business Total">
+@switch (activeTab()) {
+  @case (0) {
     @if (businessTotal(); as total) {
-      <div class="table-container" style="display: flex; gap: 16px; flex-wrap: wrap; padding: 16px 0">
-        <mat-card style="flex: 1; min-width: 200px">
-          <mat-card-subtitle>Total Revenue (Till Date)</mat-card-subtitle>
-          <mat-card-title>{{ total.revenue | currency: 'INR' : 'symbol' : '1.0-0' }}</mat-card-title>
-        </mat-card>
-        <mat-card style="flex: 1; min-width: 200px">
-          <mat-card-subtitle>Total Cost of Goods</mat-card-subtitle>
-          <mat-card-title>{{ total.cost | currency: 'INR' : 'symbol' : '1.0-0' }}</mat-card-title>
-        </mat-card>
-        <mat-card style="flex: 1; min-width: 200px">
-          <mat-card-subtitle>Total Profit (Till Date)</mat-card-subtitle>
-          <mat-card-title [style.color]="total.profit < 0 ? '#c62828' : '#2e7d32'">
-            {{ total.profit | currency: 'INR' : 'symbol' : '1.0-0' }}
-          </mat-card-title>
-        </mat-card>
-        <mat-card style="flex: 1; min-width: 200px">
-          <mat-card-subtitle>Margin</mat-card-subtitle>
-          <mat-card-title [style.color]="total.marginPercent < 0 ? '#c62828' : '#2e7d32'">
-            {{ total.marginPercent | number: '1.2-2' }}%
-          </mat-card-title>
-        </mat-card>
+      <div class="stat-cards">
+        <div class="stat-card stat-card--dark">
+          <span class="stat-kicker">Revenue</span>
+          <span class="stat-value">{{ total.revenue | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+          <span class="stat-sub">Total revenue, till date</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-kicker">Cost of Goods</span>
+          <span class="stat-value">{{ total.cost | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+          <span class="stat-sub">Total cost, till date</span>
+        </div>
+        <div class="stat-card" [class.stat-card--positive]="total.profit >= 0" [class.stat-card--negative]="total.profit < 0">
+          <span class="stat-kicker">Profit</span>
+          <span class="stat-value">{{ total.profit | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+          <span class="stat-sub">Total profit, till date</span>
+        </div>
+        <div class="stat-card" [class.stat-card--positive]="total.marginPercent >= 0" [class.stat-card--negative]="total.marginPercent < 0">
+          <span class="stat-kicker">Margin</span>
+          <span class="stat-value">{{ total.marginPercent | number: '1.2-2' }}%</span>
+          <span class="stat-sub">Profit as % of revenue</span>
+        </div>
       </div>
     }
-  </mat-tab>
-
-  <mat-tab label="By Shop">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="shopSummary()">
-        <ng-container matColumnDef="shopName">
-          <th mat-header-cell *matHeaderCellDef>Shop</th>
-          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="revenue">
-          <th mat-header-cell *matHeaderCellDef>Revenue</th>
-          <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="cost">
-          <th mat-header-cell *matHeaderCellDef>Cost</th>
-          <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="profit">
-          <th mat-header-cell *matHeaderCellDef>Profit</th>
-          <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
-            <strong>{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</strong>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="marginPercent">
-          <th mat-header-cell *matHeaderCellDef>Margin</th>
-          <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
-            {{ row.marginPercent | number: '1.2-2' }}%
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="shopSummaryColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: shopSummaryColumns"></tr>
-      </table>
+  }
+  @case (1) {
+    <div class="list-card">
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead><tr><th>Shop</th><th class="amount-column">Revenue</th><th class="amount-column">Cost</th><th class="amount-column">Profit</th><th class="amount-column">Margin</th></tr></thead>
+          <tbody>
+            @for (row of shopSummary(); track row.shopName) {
+              <tr>
+                <td class="strong-cell">{{ row.shopName }}</td>
+                <td class="mono-cell amount-column">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.profit >= 0" [class.negative-cell]="row.profit < 0">{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column" [class.positive-cell]="row.marginPercent >= 0" [class.negative-cell]="row.marginPercent < 0">{{ row.marginPercent | number: '1.2-2' }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && shopSummary().length === 0) { <div class="empty-state"><p>No shop profit data for this range.</p></div> }
+      </div>
     </div>
 
     @if (selectedShopId) {
-      <h3 style="margin: 16px 0 8px">Day-by-Day Profit</h3>
-      <div class="table-container tab-table">
-        <table mat-table [dataSource]="shopDaily()">
-          <ng-container matColumnDef="date">
-            <th mat-header-cell *matHeaderCellDef>Date</th>
-            <td mat-cell *matCellDef="let row">{{ row.date | date: 'dd-MMM-yyyy' }}</td>
-          </ng-container>
-          <ng-container matColumnDef="revenue">
-            <th mat-header-cell *matHeaderCellDef>Revenue</th>
-            <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-          </ng-container>
-          <ng-container matColumnDef="cost">
-            <th mat-header-cell *matHeaderCellDef>Cost</th>
-            <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-          </ng-container>
-          <ng-container matColumnDef="profit">
-            <th mat-header-cell *matHeaderCellDef>Profit</th>
-            <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
-              {{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="marginPercent">
-            <th mat-header-cell *matHeaderCellDef>Margin</th>
-            <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
-              {{ row.marginPercent | number: '1.2-2' }}%
-            </td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="shopDailyColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: shopDailyColumns"></tr>
-        </table>
+      <div class="section-heading">Day-by-Day Profit</div>
+      <div class="list-card">
+        <div class="table-scroll">
+          <table class="mock-table">
+            <thead><tr><th>Date</th><th class="amount-column">Revenue</th><th class="amount-column">Cost</th><th class="amount-column">Profit</th><th class="amount-column">Margin</th></tr></thead>
+            <tbody>
+              @for (row of shopDaily(); track row.date) {
+                <tr>
+                  <td class="mono-cell muted-cell">{{ row.date | date: 'dd MMM yyyy' }}</td>
+                  <td class="mono-cell amount-column">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                  <td class="mono-cell amount-column">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                  <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.profit >= 0" [class.negative-cell]="row.profit < 0">{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                  <td class="mono-cell amount-column" [class.positive-cell]="row.marginPercent >= 0" [class.negative-cell]="row.marginPercent < 0">{{ row.marginPercent | number: '1.2-2' }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (!loading() && shopDaily().length === 0) { <div class="empty-state"><p>No daily profit data for this shop.</p></div> }
+        </div>
       </div>
     }
-  </mat-tab>
-
-  <mat-tab label="By Fruit">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="fruitSummary()">
-        <ng-container matColumnDef="fruitName">
-          <th mat-header-cell *matHeaderCellDef>Fruit</th>
-          <td mat-cell *matCellDef="let row">{{ row.fruitName }} ({{ row.unit }})</td>
-        </ng-container>
-        <ng-container matColumnDef="quantitySold">
-          <th mat-header-cell *matHeaderCellDef>Quantity Sold</th>
-          <td mat-cell *matCellDef="let row">{{ row.quantitySold | number: '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="revenue">
-          <th mat-header-cell *matHeaderCellDef>Revenue</th>
-          <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="cost">
-          <th mat-header-cell *matHeaderCellDef>Cost</th>
-          <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="profit">
-          <th mat-header-cell *matHeaderCellDef>Profit</th>
-          <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
-            <strong>{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</strong>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="marginPercent">
-          <th mat-header-cell *matHeaderCellDef>Margin</th>
-          <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
-            {{ row.marginPercent | number: '1.2-2' }}%
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="fruitSummaryColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: fruitSummaryColumns"></tr>
-      </table>
+  }
+  @case (2) {
+    <div class="list-card">
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead><tr><th>Fruit</th><th class="amount-column">Quantity Sold</th><th class="amount-column">Revenue</th><th class="amount-column">Cost</th><th class="amount-column">Profit</th><th class="amount-column">Margin</th></tr></thead>
+          <tbody>
+            @for (row of fruitSummary(); track row.fruitName) {
+              <tr>
+                <td class="strong-cell">{{ row.fruitName }} ({{ row.unit }})</td>
+                <td class="mono-cell amount-column">{{ row.quantitySold | number: '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.profit >= 0" [class.negative-cell]="row.profit < 0">{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column" [class.positive-cell]="row.marginPercent >= 0" [class.negative-cell]="row.marginPercent < 0">{{ row.marginPercent | number: '1.2-2' }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && fruitSummary().length === 0) { <div class="empty-state"><p>No fruit profit data for this range.</p></div> }
+      </div>
     </div>
-  </mat-tab>
-
-  <mat-tab label="By Shop &amp; Fruit">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="shopFruit()">
-        <ng-container matColumnDef="shopName">
-          <th mat-header-cell *matHeaderCellDef>Shop</th>
-          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="fruitName">
-          <th mat-header-cell *matHeaderCellDef>Fruit</th>
-          <td mat-cell *matCellDef="let row">{{ row.fruitName }} ({{ row.unit }})</td>
-        </ng-container>
-        <ng-container matColumnDef="quantitySold">
-          <th mat-header-cell *matHeaderCellDef>Quantity Sold</th>
-          <td mat-cell *matCellDef="let row">{{ row.quantitySold | number: '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="revenue">
-          <th mat-header-cell *matHeaderCellDef>Revenue</th>
-          <td mat-cell *matCellDef="let row">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="cost">
-          <th mat-header-cell *matHeaderCellDef>Cost</th>
-          <td mat-cell *matCellDef="let row">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="profit">
-          <th mat-header-cell *matHeaderCellDef>Profit</th>
-          <td mat-cell *matCellDef="let row" [style.color]="row.profit < 0 ? '#c62828' : '#2e7d32'">
-            <strong>{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</strong>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="marginPercent">
-          <th mat-header-cell *matHeaderCellDef>Margin</th>
-          <td mat-cell *matCellDef="let row" [style.color]="row.marginPercent < 0 ? '#c62828' : '#2e7d32'">
-            {{ row.marginPercent | number: '1.2-2' }}%
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="shopFruitColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: shopFruitColumns"></tr>
-      </table>
+  }
+  @case (3) {
+    <div class="list-card">
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead><tr><th>Shop</th><th>Fruit</th><th class="amount-column">Quantity Sold</th><th class="amount-column">Revenue</th><th class="amount-column">Cost</th><th class="amount-column">Profit</th><th class="amount-column">Margin</th></tr></thead>
+          <tbody>
+            @for (row of shopFruit(); track row.shopName + row.fruitName) {
+              <tr>
+                <td>{{ row.shopName }}</td>
+                <td class="strong-cell">{{ row.fruitName }} ({{ row.unit }})</td>
+                <td class="mono-cell amount-column">{{ row.quantitySold | number: '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.profit >= 0" [class.negative-cell]="row.profit < 0">{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column" [class.positive-cell]="row.marginPercent >= 0" [class.negative-cell]="row.marginPercent < 0">{{ row.marginPercent | number: '1.2-2' }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && shopFruit().length === 0) { <div class="empty-state"><p>No shop &amp; fruit profit data for this range.</p></div> }
+      </div>
     </div>
-  </mat-tab>
-</mat-tab-group>
+  }
+}

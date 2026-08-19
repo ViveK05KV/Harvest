@@ -1,53 +1,43 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
 import { ShopMasterService } from '../shop-master/shop-master.service';
+import { LedgerService } from '../ledgers/ledger.service';
 import { ShopMaster } from '../../core/models/master-data.model';
 import { Collection } from '../../core/models/transactions.model';
-import { PAYMENT_MODES } from '../../core/models/common.model';
+import { ShopLedgerEntry } from '../../core/models/ledger.model';
+import { PAYMENT_MODES, PaymentMode } from '../../core/models/common.model';
 import { toIso } from '../../core/utils/date.util';
+
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
 @Component({
   selector: 'app-collection-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatCheckboxModule
-  ],
-  templateUrl: './collection-form.component.html'
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatDialogModule, MatIconModule],
+  templateUrl: './collection-form.component.html',
+  styleUrl: './collection-form.component.scss'
 })
 export class CollectionFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly shopService = inject(ShopMasterService);
+  private readonly ledgerService = inject(LedgerService);
   readonly dialogRef = inject(MatDialogRef<CollectionFormComponent>);
   readonly data = inject<Collection | null>(MAT_DIALOG_DATA);
 
   readonly paymentModes = PAYMENT_MODES;
+  readonly quickAmounts = QUICK_AMOUNTS;
   readonly shops = signal<ShopMaster[]>([]);
+  readonly recentActivity = signal<ShopLedgerEntry[]>([]);
 
   readonly form = this.fb.nonNullable.group({
-    collectionDate: [this.data ? new Date(this.data.collectionDate) : new Date(), Validators.required],
+    collectionDate: [this.data ? this.data.collectionDate.slice(0, 10) : toIso(new Date()), Validators.required],
     shopID: this.fb.control<number | null>(this.data?.shopID ?? null, Validators.required),
-    shopSearch: this.fb.nonNullable.control<string>(''),
     amountReceived: [this.data?.amountReceived ?? 0, [Validators.required, Validators.min(0.01)]],
     discountAmount: [this.data?.discountAmount ?? 0, [Validators.min(0)]],
-    paymentMode: [this.data?.paymentMode ?? 'Cash', Validators.required],
+    paymentMode: this.fb.nonNullable.control<PaymentMode>(this.data?.paymentMode ?? 'Cash', Validators.required),
     isTemporary: [this.getInitialIsTemporary()],
     referenceNumber: [this.data?.referenceNumber ?? ''],
     remarks: [this.data?.remarks ?? '']
@@ -60,73 +50,60 @@ export class CollectionFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.form.patchValue({ isTemporary: this.getInitialIsTemporary() });
-
     if (this.data?.temporaryStatus === 'Settled') {
       this.form.controls.isTemporary.disable();
     }
 
-    this.shopService.getAllActive().subscribe((shops) => {
-      this.shops.set(shops);
-      if (this.data?.shopID) {
-        this.form.patchValue({ shopSearch: this.shopNameById(this.data.shopID) });
-      }
-    });
-  }
+    this.shopService.getAllActive().subscribe((shops) => this.shops.set(shops));
 
-  shopNameById(shopID: number | null): string {
-    return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
-  }
-
-  readonly displayShop = (value: unknown): string =>
-    typeof value === 'number' ? this.shopNameById(value) : typeof value === 'string' ? value : '';
-
-  filteredShops(search: string | null | undefined): ShopMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.shops();
-    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
-  }
-
-  // MatAutocomplete refocuses the trigger input right after an option is
-  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
-  // can't immediately clear the name onShopSelected just wrote.
-  private shopJustSelected = false;
-
-  onShopSelected(event: MatAutocompleteSelectedEvent): void {
-    const shopID = event.option.value as number;
-    this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
-    this.shopJustSelected = true;
-  }
-
-  onShopSearchFocus(): void {
-    if (this.shopJustSelected) {
-      this.shopJustSelected = false;
-      return;
-    }
-    const selectedShopName = this.shopNameById(this.form.controls.shopID.value);
-    const currentValue = this.form.controls.shopSearch.value;
-
-    if (selectedShopName && currentValue === selectedShopName) {
-      this.form.controls.shopSearch.setValue('');
+    if (this.data?.shopID) {
+      this.loadRecentActivity(this.data.shopID);
     }
   }
 
-  // Typing away from the settled shop name must invalidate the stale shopID -
-  // otherwise the form stays "valid" with the old shop while the field shows
-  // different text, and save() would silently post against the wrong shop.
-  onShopSearchInput(): void {
-    this.form.controls.shopID.setValue(null);
+  selectedShop(): ShopMaster | null {
+    const id = this.form.controls.shopID.value;
+    return this.shops().find((s) => s.shopID === id) ?? null;
   }
 
-  // Blur fires before mat-option's mousedown/click finishes selecting -
-  // defer so onShopSelected can patch shopID first, otherwise a mouse
-  // click on a filtered option gets wiped by this clearing the text.
-  onShopSearchBlur(): void {
-    setTimeout(() => {
-      if (this.form.controls.shopID.value === null) {
-        this.form.controls.shopSearch.setValue('');
-      }
+  receivingTotal(): number {
+    const raw = this.form.getRawValue();
+    return (Number(raw.amountReceived) || 0) + (Number(raw.discountAmount) || 0);
+  }
+
+  balanceAfter(): number {
+    const shop = this.selectedShop();
+    return shop ? shop.currentOutstanding - this.receivingTotal() : 0;
+  }
+
+  onShopChange(value: string): void {
+    const shopID = value ? Number(value) : null;
+    this.form.controls.shopID.setValue(shopID);
+    this.recentActivity.set([]);
+    if (shopID) this.loadRecentActivity(shopID);
+  }
+
+  private loadRecentActivity(shopId: number): void {
+    this.ledgerService.getShopLedger(shopId, { pageNumber: 1, pageSize: 4 }).subscribe({
+      next: (result) => this.recentActivity.set(result.items)
     });
+  }
+
+  setQuickAmount(amount: number): void {
+    this.form.controls.amountReceived.setValue(amount);
+  }
+
+  setPaymentMode(mode: PaymentMode): void {
+    this.form.controls.paymentMode.setValue(mode);
+  }
+
+  toggleTemporary(): void {
+    if (this.form.controls.isTemporary.disabled) return;
+    this.form.controls.isTemporary.setValue(!this.form.controls.isTemporary.value);
+  }
+
+  cancel(): void {
+    this.dialogRef.close();
   }
 
   save(): void {
@@ -134,11 +111,10 @@ export class CollectionFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const { shopSearch, isTemporary, ...raw } = this.form.getRawValue();
+    const { isTemporary, ...raw } = this.form.getRawValue();
     const isTemporaryDeposit = Boolean(isTemporary);
     this.dialogRef.close({
       ...raw,
-      collectionDate: toIso(raw.collectionDate as unknown as Date),
       collectionType: isTemporaryDeposit ? 'Temporary' : 'Normal',
       temporaryStatus: isTemporaryDeposit ? 'Pending' : 'None'
     });

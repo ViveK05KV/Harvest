@@ -1,105 +1,83 @@
-<div class="page-toolbar">
-  <h1>Employee Salary</h1>
+<div class="page-heading"><h1>Salary Management</h1></div>
 
-  <mat-form-field subscriptSizing="dynamic" style="width: 220px">
-    <mat-label>Filter by Employee</mat-label>
-    <input
-      matInput
-      [(ngModel)]="employeeSearch"
-      placeholder="Search employee"
-      [matAutocomplete]="employeeFilterAuto"
-      (focus)="onEmployeeSearchFocus()"
-      (click)="onEmployeeSearchFocus()"
-      (input)="onEmployeeSearchInput()"
-    />
-      <mat-autocomplete #employeeFilterAuto="matAutocomplete" [displayWith]="displayEmployee" (optionSelected)="onEmployeeFilterSelected($event)">
-      <mat-option [value]="null">All Employees</mat-option>
-      @for (employee of filteredEmployees(employeeSearch); track employee.employeeID) {
-        <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
-      }
-    </mat-autocomplete>
-  </mat-form-field>
+<div class="list-card">
+  <div class="filter-bar">
+    <label class="field" style="min-width: 190px">
+      <span class="field-label">Employee</span>
+      <select [value]="employeeId ?? ''" (change)="onEmployeeChange($any($event.target).value)">
+        <option value="">All employees</option>
+        @for (employee of employees(); track employee.employeeID) {
+          <option [value]="employee.employeeID">{{ employee.fullName }}</option>
+        }
+      </select>
+    </label>
 
-  <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-    <mat-label>From</mat-label>
-    <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" (dateChange)="onFilterChange()" />
-    <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
-    <mat-datepicker #fromPicker></mat-datepicker>
-  </mat-form-field>
+    <label class="field">
+      <span class="field-label">From</span>
+      <input type="date" [value]="fromDate ?? ''" (change)="fromDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+    </label>
 
-  <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-    <mat-label>To</mat-label>
-    <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" (dateChange)="onFilterChange()" />
-    <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
-    <mat-datepicker #toPicker></mat-datepicker>
-  </mat-form-field>
+    <label class="field">
+      <span class="field-label">To</span>
+      <input type="date" [value]="toDate ?? ''" (change)="toDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+    </label>
 
-  <span class="spacer"></span>
+    <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
 
-  <button mat-flat-button color="primary" (click)="openCreate()">
-    <mat-icon>add</mat-icon>
-    New Work Entry
-  </button>
-</div>
+    <span class="spacer"></span>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>New Work Entry
+    </button>
+  </div>
 
-<div class="table-container">
-  <table mat-table [dataSource]="items()">
-    <ng-container matColumnDef="workDate">
-      <th mat-header-cell *matHeaderCellDef>Date</th>
-      <td mat-cell *matCellDef="let row">{{ row.workDate | date: 'dd-MMM-yyyy' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="employeeName">
-      <th mat-header-cell *matHeaderCellDef>Employee</th>
-      <td mat-cell *matCellDef="let row">{{ row.employeeName }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="jobType">
-      <th mat-header-cell *matHeaderCellDef>Job Done</th>
-      <td mat-cell *matCellDef="let row"><mat-chip>{{ row.jobType }}</mat-chip></td>
-    </ng-container>
-
-    <ng-container matColumnDef="routeName">
-      <th mat-header-cell *matHeaderCellDef>Route</th>
-      <td mat-cell *matCellDef="let row">{{ row.routeName || '-' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="amount">
-      <th mat-header-cell *matHeaderCellDef>Amount</th>
-      <td mat-cell *matCellDef="let row">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="paymentMode">
-      <th mat-header-cell *matHeaderCellDef>Mode</th>
-      <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
-          <mat-icon>edit</mat-icon>
-        </button>
-        <button mat-icon-button matTooltip="Delete" (click)="deleteItem(row)">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-
-  @if (!loading() && items().length === 0) {
-    <div class="empty-state">
-      <mat-icon>payments</mat-icon>
-      <p>No work entries recorded yet.</p>
-    </div>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
   }
-</div>
 
-<mat-paginator [length]="totalCount()" [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" (page)="onPage($event)"></mat-paginator>
+  <div class="table-scroll">
+    <table class="mock-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Employee</th>
+          <th>Job Type</th>
+          <th>Route</th>
+          <th class="amount-column">Amount</th>
+          <th>Mode</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items(); track row.employeeWorkLogID) {
+          <tr>
+            <td class="mono-cell muted-cell">{{ row.workDate | date: 'dd MMM yyyy' }}</td>
+            <td class="strong-cell">{{ row.employeeName }}</td>
+            <td><span class="mode-chip">{{ row.jobType }}</span></td>
+            <td class="muted-cell">{{ row.routeName || '—' }}</td>
+            <td class="mono-cell amount-column negative-cell">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+            <td><span class="mode-chip">{{ row.paymentMode }}</span></td>
+            <td class="row-actions">
+              <button type="button" class="row-icon-btn" (click)="openEdit(row)" title="Edit"><mat-icon>edit</mat-icon></button>
+              <button type="button" class="row-icon-btn" (click)="deleteItem(row)" title="Delete"><mat-icon>delete</mat-icon></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!loading() && items().length === 0) {
+      <div class="empty-state">
+        <mat-icon>work_history</mat-icon>
+        <p>No work entries recorded yet.</p>
+      </div>
+    }
+  </div>
+
+  <div class="table-footer">
+    <span class="footer-label">{{ rangeLabel() }}</span>
+    <span class="pager">
+      <button type="button" class="pager-btn" [disabled]="pageIndex() === 0" (click)="prevPage()"><mat-icon>chevron_left</mat-icon></button>
+      <button type="button" class="pager-btn" [disabled]="(pageIndex() + 1) * pageSize >= totalCount()" (click)="nextPage()"><mat-icon>chevron_right</mat-icon></button>
+    </span>
+  </div>
+</div>

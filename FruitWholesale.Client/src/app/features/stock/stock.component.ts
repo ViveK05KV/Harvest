@@ -1,11 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
 import { StockService } from './stock.service';
 import { StockAdjustmentFormComponent } from './stock-adjustment-form.component';
@@ -19,8 +14,9 @@ const LOW_STOCK_THRESHOLD = 10;
 @Component({
   selector: 'app-stock',
   standalone: true,
-  imports: [MatTableModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressBarModule, MatChipsModule, MatSortModule],
+  imports: [MatIconModule, MatProgressBarModule],
   templateUrl: './stock.component.html',
+  styleUrl: './stock.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StockComponent implements OnInit {
@@ -29,16 +25,15 @@ export class StockComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   readonly authService = inject(AuthService);
 
-  readonly displayedColumns = ['fruitName', 'currentStock', 'unit', 'boxes', 'actions'];
   readonly items = signal<CurrentStock[]>([]);
   readonly loading = signal(false);
-  readonly sortState = signal<Sort>({ active: '', direction: '' });
+  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
 
   readonly sortedItems = computed(() => {
-    const sort = this.sortState();
+    const direction = this.sortDirection();
     const items = this.items();
-    if (sort.active !== 'currentStock' || !sort.direction) return items;
-    const factor = sort.direction === 'asc' ? 1 : -1;
+    if (!direction) return items;
+    const factor = direction === 'asc' ? 1 : -1;
     return [...items].sort((a, b) => (a.currentStock - b.currentStock) * factor);
   });
 
@@ -59,8 +54,8 @@ export class StockComponent implements OnInit {
     });
   }
 
-  onSortChange(sort: Sort): void {
-    this.sortState.set(sort);
+  toggleSort(): void {
+    this.sortDirection.update((d) => (d === '' ? 'asc' : d === 'asc' ? 'desc' : ''));
   }
 
   isLow(stock: CurrentStock): boolean {
@@ -86,7 +81,7 @@ export class StockComponent implements OnInit {
 
   openAdjustment(): void {
     this.dialog
-      .open(StockAdjustmentFormComponent, { width: '440px' })
+      .open(StockAdjustmentFormComponent, { width: '480px', maxWidth: '95vw', autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

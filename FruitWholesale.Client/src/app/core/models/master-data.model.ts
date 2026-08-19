@@ -131,6 +131,8 @@ export interface CompanySettings {
   gstNo?: string;
   logoUrl?: string;
   openingCashBalance: number;
+  reportsVisibleToManagers: boolean;
+  profitVisibleToManagers: boolean;
 }
 
 export interface SaveCompanySettings {

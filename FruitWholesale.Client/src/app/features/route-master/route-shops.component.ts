@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
+import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { ShopMasterService } from '../shop-master/shop-master.service';
@@ -9,11 +8,13 @@ import { RouteMaster, ShopMaster } from '../../core/models/master-data.model';
 @Component({
   selector: 'app-route-shops',
   standalone: true,
-  imports: [MatDialogModule, MatListModule, MatProgressSpinnerModule, MatIconModule],
-  templateUrl: './route-shops.component.html'
+  imports: [MatDialogModule, MatProgressSpinnerModule, MatIconModule],
+  templateUrl: './route-shops.component.html',
+  styleUrl: './route-shops.component.scss'
 })
 export class RouteShopsComponent implements OnInit {
   private readonly shopService = inject(ShopMasterService);
+  private readonly dialogRef = inject(MatDialogRef<RouteShopsComponent>);
   readonly route = inject<RouteMaster>(MAT_DIALOG_DATA);
 
   readonly loading = signal(true);
@@ -27,5 +28,9 @@ export class RouteShopsComponent implements OnInit {
       },
       error: () => this.loading.set(false)
     });
+  }
+
+  close(): void {
+    this.dialogRef.close();
   }
 }

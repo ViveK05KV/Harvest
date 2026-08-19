@@ -1,18 +1,7 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { DailyExpenseService } from './daily-expense.service';
 import { DailyExpenseFormComponent } from './daily-expense-form.component';
@@ -22,29 +11,13 @@ import { ExpenseCategory } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
-import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-daily-expense-list',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatDatepickerModule,
-    MatNativeDateModule
-  ],
-  templateUrl: './daily-expense-list.component.html'
+  imports: [CurrencyPipe, DatePipe, MatIconModule, MatProgressBarModule],
+  templateUrl: './daily-expense-list.component.html',
+  styleUrl: './daily-expense-list.component.scss'
 })
 export class DailyExpenseListComponent implements OnInit {
   private readonly service = inject(DailyExpenseService);
@@ -53,41 +26,68 @@ export class DailyExpenseListComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  readonly displayedColumns = ['expenseDate', 'categoryName', 'paidTo', 'amount', 'paymentMode', 'actions'];
   readonly items = signal<DailyExpense[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
   readonly categories = signal<ExpenseCategory[]>([]);
 
-  categoryId: number | null = null;
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  readonly pageIndex = signal(0);
+  readonly pageSize = 10;
 
-  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10 };
+  categoryId: number | null = null;
+  fromDate: string | null = null;
+  toDate: string | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
+
+  readonly rangeLabel = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return 'No expenses';
+    const start = this.pageIndex() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
 
   ngOnInit(): void {
     this.categoryService.getAllActive().subscribe((categories) => this.categories.set(categories));
     this.load();
   }
 
+  onCategoryChange(value: string): void {
+    this.categoryId = value ? Number(value) : null;
+    this.onFilterChange();
+  }
+
   onFilterChange(): void {
     this.request.pageNumber = 1;
+    this.pageIndex.set(0);
     this.load();
   }
 
-  onPage(event: PageEvent): void {
-    this.request.pageNumber = event.pageIndex + 1;
-    this.request.pageSize = event.pageSize;
+  clearFilters(): void {
+    this.categoryId = null;
+    this.fromDate = null;
+    this.toDate = null;
+    this.onFilterChange();
+  }
+
+  prevPage(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((i) => i - 1);
+    this.request.pageNumber = this.pageIndex() + 1;
+    this.load();
+  }
+
+  nextPage(): void {
+    if ((this.pageIndex() + 1) * this.pageSize >= this.totalCount()) return;
+    this.pageIndex.update((i) => i + 1);
+    this.request.pageNumber = this.pageIndex() + 1;
     this.load();
   }
 
   load(): void {
     this.loading.set(true);
-    const from = this.fromDate ? toIso(this.fromDate) : null;
-    const to = this.toDate ? toIso(this.toDate) : null;
-    this.service.getPaged(this.request, this.categoryId, from, to).subscribe({
+    this.service.getPaged(this.request, this.categoryId, this.fromDate, this.toDate).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);
@@ -99,7 +99,7 @@ export class DailyExpenseListComponent implements OnInit {
 
   openCreate(): void {
     this.dialog
-      .open(DailyExpenseFormComponent, { width: '480px', data: null })
+      .open(DailyExpenseFormComponent, { width: '520px', maxWidth: '95vw', data: null, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -114,7 +114,7 @@ export class DailyExpenseListComponent implements OnInit {
 
   openEdit(item: DailyExpense): void {
     this.dialog
-      .open(DailyExpenseFormComponent, { width: '480px', data: item })
+      .open(DailyExpenseFormComponent, { width: '520px', maxWidth: '95vw', data: item, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

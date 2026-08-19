@@ -13,6 +13,8 @@ public interface ICompanySettingsService
     Task<CompanySettingsDto> SaveAsync(UpsertCompanySettingsDto dto);
     Task<Result> ApplyCashAdjustmentAsync(CashAdjustmentDto dto);
     Task<Result<CompanySettingsDto>> UpdateLogoAsync(string logoUrl);
+    Task<Result<CompanySettingsDto>> SetReportsVisibilityAsync(bool visible);
+    Task<Result<CompanySettingsDto>> SetProfitVisibilityAsync(bool visible);
 }
 
 public class CompanySettingsService(
@@ -64,6 +66,32 @@ public class CompanySettingsService(
 
         await companySettingsRepository.UpdateLogoAsync(existing.CompanyID, logoUrl);
         existing.LogoUrl = logoUrl;
+        return Result.Success(mapper.Map<CompanySettingsDto>(existing));
+    }
+
+    public async Task<Result<CompanySettingsDto>> SetReportsVisibilityAsync(bool visible)
+    {
+        var existing = await companySettingsRepository.GetAsync();
+        if (existing is null)
+        {
+            return Result.Failure<CompanySettingsDto>("Save the company profile first.");
+        }
+
+        await companySettingsRepository.SetReportsVisibleToManagersAsync(existing.CompanyID, visible);
+        existing.ReportsVisibleToManagers = visible;
+        return Result.Success(mapper.Map<CompanySettingsDto>(existing));
+    }
+
+    public async Task<Result<CompanySettingsDto>> SetProfitVisibilityAsync(bool visible)
+    {
+        var existing = await companySettingsRepository.GetAsync();
+        if (existing is null)
+        {
+            return Result.Failure<CompanySettingsDto>("Save the company profile first.");
+        }
+
+        await companySettingsRepository.SetProfitVisibleToManagersAsync(existing.CompanyID, visible);
+        existing.ProfitVisibleToManagers = visible;
         return Result.Success(mapper.Map<CompanySettingsDto>(existing));
     }
 

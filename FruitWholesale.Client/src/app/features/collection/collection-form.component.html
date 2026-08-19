@@ -1,85 +1,121 @@
-<h2 mat-dialog-title>{{ data ? 'Edit Collection' : 'New Collection' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Customer (Shop)</mat-label>
-      <input
-        matInput
-        formControlName="shopSearch"
-        placeholder="Search shop"
-        [matAutocomplete]="shopAuto"
-        (focus)="onShopSearchFocus()"
-        (click)="onShopSearchFocus()"
-        (input)="onShopSearchInput()"
-        (blur)="onShopSearchBlur()"
-        [attr.autocomplete]="'off'"
-      />
-        <mat-autocomplete #shopAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
-        @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
-          <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
+<div class="modal-header">
+  <div>
+    <h2>{{ data ? 'Edit Collection' : 'Record a collection' }}</h2>
+    <p>Cash goes in today; the shop ledger reduces by amount plus discount.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <div class="modal-main">
+    <label class="field">
+      <span class="field-label">Customer</span>
+      <select class="field-input" [value]="form.value.shopID ?? ''" (change)="onShopChange($any($event.target).value)">
+        <option value="">Select a shop</option>
+        @for (shop of shops(); track shop.shopID) {
+          <option [value]="shop.shopID">{{ shop.shopName }}</option>
         }
-      </mat-autocomplete>
+      </select>
       @if (form.controls.shopID.touched && form.controls.shopID.hasError('required')) {
-        <mat-error>Shop is required</mat-error>
+        <span class="field-error">Shop is required</span>
       }
-    </mat-form-field>
+    </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Date</mat-label>
-      <input matInput [matDatepicker]="picker" formControlName="collectionDate" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">Amount received</span>
+        <span class="amount-input">
+          <span class="rupee">₹</span>
+          <input type="number" formControlName="amountReceived" />
+        </span>
+      </label>
+      <label class="field">
+        <span class="field-label">Discount given</span>
+        <span class="amount-input">
+          <span class="rupee">₹</span>
+          <input type="number" formControlName="discountAmount" />
+        </span>
+      </label>
+    </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Amount</mat-label>
-      <input matInput type="number" formControlName="amountReceived" />
-      @if (form.controls.amountReceived.touched && form.controls.amountReceived.invalid) {
-        <mat-error>Enter a valid amount</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Discount Given</mat-label>
-      <input matInput type="number" formControlName="discountAmount" />
-      <mat-hint>Optional — reduces the shop's outstanding in addition to the amount received</mat-hint>
-      @if (form.controls.discountAmount.touched && form.controls.discountAmount.invalid) {
-        <mat-error>Discount cannot be negative</mat-error>
-      }
-    </mat-form-field>
-
-    <div class="full-width" style="margin-bottom: 12px;">
-      <mat-checkbox formControlName="isTemporary">
-        Temporary deposit
-      </mat-checkbox>
-      @if (form.controls.isTemporary.value) {
-        <div style="margin-top: 8px; color: #7c4dff; font-size: 0.95rem;">
-          This adds cash today but does not reduce the shop balance until you settle the deposit.
-        </div>
+    <div class="quick-amounts">
+      @for (amount of quickAmounts; track amount) {
+        <button type="button" class="quick-amount-btn" (click)="setQuickAmount(amount)">₹{{ amount | number: '1.0-0' }}</button>
       }
     </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Payment Mode</mat-label>
-      <mat-select formControlName="paymentMode">
+    <label class="field">
+      <span class="field-label">Payment mode</span>
+      <div class="mode-row">
         @for (mode of paymentModes; track mode) {
-          <mat-option [value]="mode">{{ mode }}</mat-option>
+          <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.paymentMode === mode" (click)="setPaymentMode(mode)">{{ mode }}</button>
         }
-      </mat-select>
-    </mat-form-field>
+      </div>
+    </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Reference Number</mat-label>
-      <input matInput formControlName="referenceNumber" />
-    </mat-form-field>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">Date</span>
+        <input class="field-input" type="date" formControlName="collectionDate" (click)="$any($event.target).showPicker?.()" />
+      </label>
+      <label class="field">
+        <span class="field-label">Reference no</span>
+        <input class="field-input" formControlName="referenceNumber" placeholder="UPI / cheque no" />
+      </label>
+    </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Remarks</mat-label>
-      <textarea matInput formControlName="remarks" rows="2"></textarea>
-    </mat-form-field>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+    <label class="field">
+      <span class="field-label">Remarks</span>
+      <textarea class="field-input" formControlName="remarks" rows="2" placeholder="Optional"></textarea>
+    </label>
+
+    <button type="button" class="temp-toggle" [class.temp-toggle--active]="form.value.isTemporary" (click)="toggleTemporary()">
+      <span class="temp-toggle-box">
+        @if (form.value.isTemporary) {
+          <mat-icon>check</mat-icon>
+        }
+      </span>
+      <span class="temp-toggle-text">
+        <span class="temp-toggle-title">Temporary deposit</span>
+        <span class="temp-toggle-sub">Adds cash today but leaves the shop balance untouched until you settle it.</span>
+      </span>
+    </button>
+  </div>
+
+  <div class="modal-side">
+    @if (selectedShop(); as shop) {
+      <div class="shop-summary">
+        <span class="shop-summary-name">{{ shop.shopName }}</span>
+        <div class="shop-summary-rows">
+          <div class="shop-summary-row"><span>Outstanding now</span><strong class="mono-cell">{{ shop.currentOutstanding | number: '1.0-0' }}</strong></div>
+          <div class="shop-summary-row"><span>Receiving</span><strong class="mono-cell receiving">−{{ receivingTotal() | number: '1.0-0' }}</strong></div>
+          <div class="shop-summary-row shop-summary-row--total"><span>Balance after</span><strong class="mono-cell">{{ balanceAfter() | number: '1.0-0' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-kicker">Recent activity</span>
+        <div class="activity-rows">
+          @for (a of recentActivity(); track a.ledgerID) {
+            <div class="activity-row">
+              <span class="activity-detail">
+                <span class="activity-label">{{ a.narration || a.transactionType }}</span>
+                <span class="activity-date">{{ a.transactionDate | date: 'dd MMM' }}</span>
+              </span>
+              <span class="mono-cell" [class.receiving]="a.credit > 0">{{ (a.debit > 0 ? a.debit : a.credit) | number: '1.0-0' }}</span>
+            </div>
+          } @empty {
+            <span class="muted">No recent activity.</span>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="shop-summary shop-summary--empty">Select a shop to see its balance.</div>
+    }
+
+    <span class="spacer"></span>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save collection</button>
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+  </div>
 </form>

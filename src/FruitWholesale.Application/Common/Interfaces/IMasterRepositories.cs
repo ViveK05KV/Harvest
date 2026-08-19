@@ -9,6 +9,8 @@ public interface ICompanySettingsRepository
     Task<int> CreateAsync(CompanySettings settings);
     Task UpdateAsync(CompanySettings settings);
     Task UpdateLogoAsync(int companyId, string logoUrl);
+    Task SetReportsVisibleToManagersAsync(int companyId, bool visible);
+    Task SetProfitVisibleToManagersAsync(int companyId, bool visible);
 }
 
 public interface IUserRepository
@@ -21,6 +23,7 @@ public interface IUserRepository
     Task SetActiveAsync(int userId, bool isActive);
     Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null);
     Task ChangePasswordAsync(int userId, string newPasswordHash);
+    Task ChangeUsernameAsync(int userId, string newUsername);
 }
 
 public interface IRefreshTokenRepository
@@ -70,6 +73,8 @@ public interface IExpenseCategoryRepository
     Task<int> CreateAsync(ExpenseCategory category);
     Task UpdateAsync(ExpenseCategory category);
     Task SetActiveAsync(int expenseCategoryId, bool isActive);
+    Task<bool> IsInUseAsync(int expenseCategoryId);
+    Task DeleteAsync(int expenseCategoryId);
 }
 
 public interface IRouteRepository

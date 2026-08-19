@@ -1,20 +1,9 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { SupplyService } from './supply.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
@@ -24,31 +13,13 @@ import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 import { ExportService } from '../../core/services/export.service';
-import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-supply-list',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    FormsModule,
-    RouterLink,
-    MatTableModule,
-    MatPaginatorModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatMenuModule
-  ],
-  templateUrl: './supply-list.component.html'
+  imports: [CurrencyPipe, DatePipe, RouterLink, MatIconModule, MatMenuModule, MatProgressBarModule],
+  templateUrl: './supply-list.component.html',
+  styleUrl: './supply-list.component.scss'
 })
 export class SupplyListComponent implements OnInit {
   private readonly service = inject(SupplyService);
@@ -58,27 +29,35 @@ export class SupplyListComponent implements OnInit {
   private readonly exportService = inject(ExportService);
   private readonly router = inject(Router);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  readonly displayedColumns = ['supplyDate', 'invoiceNo', 'shopName', 'totalAmount', 'actions'];
   readonly items = signal<SupplyListItem[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
   readonly shops = signal<ShopMaster[]>([]);
 
-  shopId: number | null = null;
-  shopSearch = '';
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  readonly pageIndex = signal(0);
+  readonly pageSize = 10;
 
-  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10, searchTerm: '' };
+  searchTerm = '';
+  shopId: number | null = null;
+  fromDate: string | null = null;
+  toDate: string | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize, searchTerm: '' };
   private readonly searchSubject = new Subject<string>();
+
+  readonly rangeLabel = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return 'No invoices';
+    const start = this.pageIndex() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
 
   constructor() {
     this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe((term) => {
       this.request.searchTerm = term;
       this.request.pageNumber = 1;
-      this.paginator.firstPage();
+      this.pageIndex.set(0);
       this.load();
     });
   }
@@ -89,53 +68,47 @@ export class SupplyListComponent implements OnInit {
   }
 
   onSearch(term: string): void {
+    this.searchTerm = term;
     this.searchSubject.next(term);
+  }
+
+  onShopChange(value: string): void {
+    this.shopId = value ? Number(value) : null;
+    this.onFilterChange();
   }
 
   onFilterChange(): void {
     this.request.pageNumber = 1;
+    this.pageIndex.set(0);
     this.load();
   }
 
-  filteredShops(search: string | null | undefined): ShopMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.shops();
-    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
-  }
-
-  readonly displayShop = (value: unknown): string =>
-    typeof value === 'number' ? (this.shops().find((s) => s.shopID === value)?.shopName ?? '') : typeof value === 'string' ? value : '';
-
-  onShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
-    const shopId = event.option.value as number | null;
-    this.shopId = shopId;
-    this.shopSearch = shopId == null ? '' : (this.shops().find((s) => s.shopID === shopId)?.shopName ?? '');
-    this.onFilterChange();
-  }
-
-  onShopSearchFocus(): void {
-    if (this.shopSearch === (this.shops().find((s) => s.shopID === this.shopId)?.shopName ?? '')) this.shopSearch = '';
-  }
-
-  // Typing away from the settled shop name must clear the stale filter and
-  // reload - otherwise the field shows different text while the table silently
-  // stays filtered by whatever shop was previously selected.
-  onShopSearchInput(): void {
+  clearFilters(): void {
+    this.searchTerm = '';
     this.shopId = null;
+    this.fromDate = null;
+    this.toDate = null;
+    this.request.searchTerm = '';
     this.onFilterChange();
   }
 
-  onPage(event: PageEvent): void {
-    this.request.pageNumber = event.pageIndex + 1;
-    this.request.pageSize = event.pageSize;
+  prevPage(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((i) => i - 1);
+    this.request.pageNumber = this.pageIndex() + 1;
+    this.load();
+  }
+
+  nextPage(): void {
+    if ((this.pageIndex() + 1) * this.pageSize >= this.totalCount()) return;
+    this.pageIndex.update((i) => i + 1);
+    this.request.pageNumber = this.pageIndex() + 1;
     this.load();
   }
 
   load(): void {
     this.loading.set(true);
-    const from = this.fromDate ? toIso(this.fromDate) : null;
-    const to = this.toDate ? toIso(this.toDate) : null;
-    this.service.getPaged(this.request, this.shopId, from, to).subscribe({
+    this.service.getPaged(this.request, this.shopId, this.fromDate, this.toDate).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

@@ -70,4 +70,20 @@ public class CompanySettingsRepository(IDbConnectionFactory connectionFactory, I
             "UPDATE CompanySettings SET LogoUrl = @LogoUrl, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE CompanyID = @CompanyID",
             new { LogoUrl = logoUrl, CompanyID = companyId });
     }
+
+    public async Task SetReportsVisibleToManagersAsync(int companyId, bool visible)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            "UPDATE CompanySettings SET ReportsVisibleToManagers = @Visible, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE CompanyID = @CompanyID",
+            new { Visible = visible, CompanyID = companyId });
+    }
+
+    public async Task SetProfitVisibleToManagersAsync(int companyId, bool visible)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            "UPDATE CompanySettings SET ProfitVisibleToManagers = @Visible, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE CompanyID = @CompanyID",
+            new { Visible = visible, CompanyID = companyId });
+    }
 }

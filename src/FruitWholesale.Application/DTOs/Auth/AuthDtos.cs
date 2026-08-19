@@ -23,6 +23,12 @@ public class ChangePasswordRequestDto
     public string NewPassword { get; set; } = string.Empty;
 }
 
+public class ChangeUsernameRequestDto
+{
+    public string NewUsername { get; set; } = string.Empty;
+    public string CurrentPassword { get; set; } = string.Empty;
+}
+
 public class RefreshRequestDto
 {
     public string RefreshToken { get; set; } = string.Empty;

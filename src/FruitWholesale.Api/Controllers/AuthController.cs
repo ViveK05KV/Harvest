@@ -38,4 +38,11 @@ public class AuthController(IAuthService authService, ICurrentUserService curren
         var result = await authService.ChangePasswordAsync(currentUserService.UserId!.Value, request);
         return FromResult(result);
     }
+
+    [HttpPost("change-username")]
+    public async Task<ActionResult<string>> ChangeUsername(ChangeUsernameRequestDto request)
+    {
+        var result = await authService.ChangeUsernameAsync(currentUserService.UserId!.Value, request);
+        return FromResult(result);
+    }
 }

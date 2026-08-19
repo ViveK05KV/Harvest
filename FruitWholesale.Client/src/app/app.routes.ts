@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { roleGuard, homeGuard } from './core/guards/role.guard';
+import { roleGuard, homeGuard, reportsGuard, profitGuard } from './core/guards/role.guard';
 
 // Staff can access only Supply, Shop Returns, Collections, and Stock (all unguarded below);
 // everything else requires Admin/Manager/Accountant.
@@ -160,12 +160,12 @@ export const routes: Routes = [
       {
         path: 'reports',
         loadComponent: () => import('./features/reports/reports.component').then((m) => m.ReportsComponent),
-        canActivate: [roleGuard('Admin')]
+        canActivate: [reportsGuard]
       },
       {
         path: 'profit',
         loadComponent: () => import('./features/profit/profit.component').then((m) => m.ProfitComponent),
-        canActivate: [roleGuard('Admin')]
+        canActivate: [profitGuard]
       },
       {
         path: 'users',
@@ -173,9 +173,11 @@ export const routes: Routes = [
         canActivate: [roleGuard('Admin')]
       },
       {
+        // No role guard: every authenticated user lands here to change their
+        // own password/username. SettingsComponent hides the admin-only
+        // cards (company profile, cash adjustment, report visibility) itself.
         path: 'settings',
-        loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
-        canActivate: [roleGuard('Admin')]
+        loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent)
       }
     ]
   },

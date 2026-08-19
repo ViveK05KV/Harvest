@@ -95,4 +95,12 @@ public class UserRepository(IDbConnectionFactory connectionFactory) : IUserRepos
             "UPDATE Users SET PasswordHash = @PasswordHash, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE UserID = @UserID",
             new { UserID = userId, PasswordHash = newPasswordHash });
     }
+
+    public async Task ChangeUsernameAsync(int userId, string newUsername)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            "UPDATE Users SET Username = @Username, UpdatedAt = (now() AT TIME ZONE 'utc') WHERE UserID = @UserID",
+            new { UserID = userId, Username = newUsername });
+    }
 }

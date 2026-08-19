@@ -16,6 +16,7 @@ public interface IExpenseCategoryService
     Task<Result<ExpenseCategoryDto>> CreateAsync(CreateExpenseCategoryDto dto);
     Task<Result<ExpenseCategoryDto>> UpdateAsync(UpdateExpenseCategoryDto dto);
     Task SetActiveAsync(int expenseCategoryId, bool isActive);
+    Task<Result> DeleteAsync(int expenseCategoryId);
 }
 
 public class ExpenseCategoryService(IExpenseCategoryRepository repository, IMapper mapper) : IExpenseCategoryService
@@ -58,5 +59,16 @@ public class ExpenseCategoryService(IExpenseCategoryRepository repository, IMapp
     {
         _ = await repository.GetByIdAsync(expenseCategoryId) ?? throw new NotFoundException(nameof(ExpenseCategory), expenseCategoryId);
         await repository.SetActiveAsync(expenseCategoryId, isActive);
+    }
+
+    public async Task<Result> DeleteAsync(int expenseCategoryId)
+    {
+        _ = await repository.GetByIdAsync(expenseCategoryId) ?? throw new NotFoundException(nameof(ExpenseCategory), expenseCategoryId);
+        if (await repository.IsInUseAsync(expenseCategoryId))
+        {
+            return Result.Failure("This category has expenses recorded against it and can't be deleted. Deactivate it instead.");
+        }
+        await repository.DeleteAsync(expenseCategoryId);
+        return Result.Success();
     }
 }

@@ -1,67 +1,93 @@
-<div class="page-toolbar">
-  <h1>Users</h1>
-  <mat-form-field subscriptSizing="dynamic" class="search-field">
-    <mat-icon matPrefix>search</mat-icon>
-    <input matInput placeholder="Search users..." (input)="onSearch($any($event.target).value)" />
-  </mat-form-field>
-  <button mat-flat-button color="primary" (click)="openCreate()">
-    <mat-icon>add</mat-icon>
-    Add User
-  </button>
-</div>
+<div class="page-heading"><h1>Users</h1></div>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
+<div class="list-card">
+  <div class="filter-bar">
+    <label class="field" style="min-width: 190px">
+      <span class="field-label">Search</span>
+      <span class="field-input">
+        <mat-icon>search</mat-icon>
+        <input type="text" [value]="searchTerm()" (input)="onSearch($any($event.target).value)" placeholder="Username or name" />
+      </span>
+    </label>
 
-<div class="table-container">
-  <table mat-table [dataSource]="items()">
-    <ng-container matColumnDef="fullName">
-      <th mat-header-cell *matHeaderCellDef>Full Name</th>
-      <td mat-cell *matCellDef="let row">{{ row.fullName }}</td>
-    </ng-container>
+    <label class="field" style="min-width: 150px">
+      <span class="field-label">Role</span>
+      <select [value]="roleFilter()" (change)="onRoleFilter($any($event.target).value)">
+        <option value="all">All roles</option>
+        @for (role of roles; track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </label>
 
-    <ng-container matColumnDef="username">
-      <th mat-header-cell *matHeaderCellDef>Username</th>
-      <td mat-cell *matCellDef="let row">{{ row.username }}</td>
-    </ng-container>
+    <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
 
-    <ng-container matColumnDef="role">
-      <th mat-header-cell *matHeaderCellDef>Role</th>
-      <td mat-cell *matCellDef="let row"><mat-chip>{{ row.role }}</mat-chip></td>
-    </ng-container>
+    <span class="spacer"></span>
 
-    <ng-container matColumnDef="createdAt">
-      <th mat-header-cell *matHeaderCellDef>Created</th>
-      <td mat-cell *matCellDef="let row">{{ row.createdAt | date: 'dd-MMM-yyyy' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="isActive">
-      <th mat-header-cell *matHeaderCellDef>Status</th>
-      <td mat-cell *matCellDef="let row">
-        <mat-slide-toggle [checked]="row.isActive" (change)="toggleActive(row)"></mat-slide-toggle>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
-          <mat-icon>edit</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-
-  @if (!loading() && items().length === 0) {
-    <div class="empty-state">
-      <mat-icon>manage_accounts</mat-icon>
-      <p>No users found.</p>
+    <div class="stats-box">
+      <span class="stat">
+        <span class="stat-label">Users</span>
+        <span class="stat-value">{{ filteredItems().length }}</span>
+      </span>
+      <span class="stat">
+        <span class="stat-label">Admins</span>
+        <span class="stat-value">{{ adminCount() }}</span>
+      </span>
     </div>
-  }
-</div>
 
-<mat-paginator [length]="totalCount()" [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" (page)="onPage($event)"></mat-paginator>
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>Add User
+    </button>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <div class="table-scroll">
+    <table class="mock-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Full Name</th>
+          <th>Role</th>
+          <th>Created</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of filteredItems(); track row.userID) {
+          <tr>
+            <td class="mono-cell strong-cell">{{ row.username }}</td>
+            <td>{{ row.fullName }}</td>
+            <td><span class="mode-chip">{{ row.role }}</span></td>
+            <td class="mono-cell muted-cell">{{ row.createdAt | date: 'dd-MMM-yyyy' }}</td>
+            <td>
+              <button type="button" class="status-pill status-tag" [class.status-tag--green]="row.isActive" [class.status-tag--gray]="!row.isActive" (click)="toggleActive(row)">
+                {{ row.isActive ? 'Active' : 'Inactive' }}
+              </button>
+            </td>
+            <td class="row-actions">
+              <button type="button" class="row-icon-btn" title="Edit" (click)="openEdit(row)"><mat-icon>edit</mat-icon></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!loading() && filteredItems().length === 0) {
+      <div class="empty-state">
+        <mat-icon>manage_accounts</mat-icon>
+        <p>No users match these filters.</p>
+      </div>
+    }
+  </div>
+
+  <div class="table-footer">
+    <span class="footer-label">{{ rangeLabel() }}</span>
+    <span class="pager">
+      <button type="button" class="pager-btn" [disabled]="request.pageNumber === 1" (click)="prevPage()"><mat-icon>chevron_left</mat-icon></button>
+      <button type="button" class="pager-btn" [disabled]="request.pageNumber * request.pageSize >= totalCount()" (click)="nextPage()"><mat-icon>chevron_right</mat-icon></button>
+    </span>
+  </div>
+</div>

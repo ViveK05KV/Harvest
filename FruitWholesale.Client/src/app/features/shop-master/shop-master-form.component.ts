@@ -1,11 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { RouteMasterService } from '../route-master/route-master.service';
 import { SupplierMasterService } from '../supplier-master/supplier-master.service';
 import { RouteMaster, ShopMaster, SupplierMaster } from '../../core/models/master-data.model';
@@ -13,16 +9,9 @@ import { RouteMaster, ShopMaster, SupplierMaster } from '../../core/models/maste
 @Component({
   selector: 'app-shop-master-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatButtonModule
-  ],
-  templateUrl: './shop-master-form.component.html'
+  imports: [ReactiveFormsModule, MatDialogModule, MatIconModule],
+  templateUrl: './shop-master-form.component.html',
+  styleUrl: './shop-master-form.component.scss'
 })
 export class ShopMasterFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -43,75 +32,16 @@ export class ShopMasterFormComponent implements OnInit {
     openingBalance: [{ value: this.data?.openingBalance ?? 0, disabled: this.isEdit }, [Validators.min(0)]],
     creditLimit: [this.data?.creditLimit ?? 0, [Validators.min(0)]],
     routeID: this.fb.control<number | null>(this.data?.routeID ?? null),
-    linkedSupplierID: this.fb.control<number | null>(this.data?.linkedSupplierID ?? null),
-    linkedSupplierSearch: this.fb.nonNullable.control<string>('')
+    linkedSupplierID: this.fb.control<number | null>(this.data?.linkedSupplierID ?? null)
   });
 
   ngOnInit(): void {
     this.routeService.getAllActive().subscribe((routes) => this.routes.set(routes));
-    this.supplierService.getAllActive().subscribe((suppliers) => {
-      this.suppliers.set(suppliers);
-      if (this.data?.linkedSupplierID) {
-        this.form.controls.linkedSupplierSearch.setValue(this.supplierNameById(this.data.linkedSupplierID));
-      }
-    });
+    this.supplierService.getAllActive().subscribe((suppliers) => this.suppliers.set(suppliers));
   }
 
-  supplierNameById(supplierID: number | null): string {
-    return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
-  }
-
-  readonly displaySupplier = (value: unknown): string =>
-    typeof value === 'number' ? this.supplierNameById(value) : typeof value === 'string' ? value : '';
-
-  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.suppliers();
-    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
-  }
-
-  // MatAutocomplete refocuses the trigger input right after an option is
-  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
-  // can't immediately clear the name onLinkedSupplierSelected just wrote.
-  private linkedSupplierJustSelected = false;
-
-  onLinkedSupplierSelected(event: MatAutocompleteSelectedEvent): void {
-    const linkedSupplierID = event.option.value as number;
-    this.form.patchValue({ linkedSupplierID, linkedSupplierSearch: this.supplierNameById(linkedSupplierID) });
-    this.linkedSupplierJustSelected = true;
-  }
-
-  onLinkedSupplierSearchFocus(): void {
-    if (this.linkedSupplierJustSelected) {
-      this.linkedSupplierJustSelected = false;
-      return;
-    }
-    if (this.form.controls.linkedSupplierSearch.value === this.supplierNameById(this.form.controls.linkedSupplierID.value)) {
-      this.form.controls.linkedSupplierSearch.setValue('');
-    }
-  }
-
-  clearLinkedSupplier(): void {
-    this.form.patchValue({ linkedSupplierID: null, linkedSupplierSearch: '' });
-  }
-
-  // Typing away from the settled supplier name must invalidate the stale
-  // linkedSupplierID - otherwise save() would silently keep the old link while
-  // the field shows different text.
-  onLinkedSupplierSearchInput(): void {
-    this.form.controls.linkedSupplierID.setValue(null);
-  }
-
-  // Blur fires before mat-option's mousedown/click finishes selecting -
-  // defer so onLinkedSupplierSelected can patch linkedSupplierID first,
-  // otherwise a mouse click on a filtered option gets wiped by this
-  // clearing the text.
-  onLinkedSupplierSearchBlur(): void {
-    setTimeout(() => {
-      if (this.form.controls.linkedSupplierID.value === null) {
-        this.form.controls.linkedSupplierSearch.setValue('');
-      }
-    });
+  cancel(): void {
+    this.dialogRef.close();
   }
 
   save(): void {
@@ -119,7 +49,6 @@ export class ShopMasterFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const { linkedSupplierSearch, ...raw } = this.form.getRawValue();
-    this.dialogRef.close(raw);
+    this.dialogRef.close(this.form.getRawValue());
   }
 }

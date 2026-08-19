@@ -1,59 +1,54 @@
-<div class="page-toolbar">
-  <h1>Stock</h1>
-  <span class="spacer"></span>
-  @if (canAdjust) {
-    <button mat-flat-button color="primary" (click)="openAdjustment()">
-      <mat-icon>tune</mat-icon>
-      Stock Adjustment
-    </button>
+<div class="page-heading"><h1>Inventory</h1></div>
+
+<div class="list-card">
+  <div class="filter-bar">
+    <span class="spacer"></span>
+    @if (canAdjust) {
+      <button type="button" class="btn-primary" (click)="openAdjustment()">
+        <mat-icon>tune</mat-icon>Stock Adjustment
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
   }
-</div>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
-
-<div class="table-container">
-  <table mat-table [dataSource]="sortedItems()" matSort (matSortChange)="onSortChange($event)">
-    <ng-container matColumnDef="fruitName">
-      <th mat-header-cell *matHeaderCellDef>Fruit</th>
-      <td mat-cell *matCellDef="let row">{{ row.fruitName }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="currentStock">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Current Stock</th>
-      <td mat-cell *matCellDef="let row">
-        <mat-chip [color]="isLow(row) ? 'warn' : undefined" highlighted>{{ row.currentStock }}</mat-chip>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="unit">
-      <th mat-header-cell *matHeaderCellDef>Unit</th>
-      <td mat-cell *matCellDef="let row">{{ row.unit }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="boxes">
-      <th mat-header-cell *matHeaderCellDef>Boxes</th>
-      <td mat-cell *matCellDef="let row">{{ row.tracksByBox ? boxSummary(row) : '—' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button matTooltip="View Ledger" (click)="viewLedger(row)">
-          <mat-icon>history</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-
-  @if (!loading() && items().length === 0) {
-    <div class="empty-state">
-      <mat-icon>inventory_2</mat-icon>
-      <p>No fruits found. Add fruits in Fruit Master to start tracking stock.</p>
-    </div>
-  }
+  <div class="table-scroll">
+    <table class="mock-table">
+      <thead>
+        <tr>
+          <th>Fruit</th>
+          <th class="amount-column sortable" (click)="toggleSort()">
+            Current Stock
+            <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : sortDirection() === 'desc' ? 'arrow_downward' : 'unfold_more' }}</mat-icon>
+          </th>
+          <th>Unit</th>
+          <th>Boxes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of sortedItems(); track row.fruitID) {
+          <tr>
+            <td class="strong-cell">{{ row.fruitName }}</td>
+            <td class="amount-column">
+              <span class="status-tag" [class.status-tag--red]="isLow(row)" [class.status-tag--gray]="!isLow(row)">{{ row.currentStock }}</span>
+            </td>
+            <td class="muted-cell">{{ row.unit }}</td>
+            <td class="mono-cell muted-cell">{{ row.tracksByBox ? boxSummary(row) : '—' }}</td>
+            <td class="row-actions">
+              <button type="button" class="row-icon-btn" title="View Ledger" (click)="viewLedger(row)"><mat-icon>history</mat-icon></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!loading() && items().length === 0) {
+      <div class="empty-state">
+        <mat-icon>inventory_2</mat-icon>
+        <p>No fruits found. Add fruits in Fruit Master to start tracking stock.</p>
+      </div>
+    }
+  </div>
 </div>

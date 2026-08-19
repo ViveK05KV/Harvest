@@ -1,16 +1,15 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { Employee } from '../../core/models/master-data.model';
 
 @Component({
   selector: 'app-employee-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule],
-  templateUrl: './employee-form.component.html'
+  imports: [ReactiveFormsModule, MatDialogModule, MatIconModule],
+  templateUrl: './employee-form.component.html',
+  styleUrl: './employee-form.component.scss'
 })
 export class EmployeeFormComponent {
   private readonly fb = inject(FormBuilder);
@@ -22,6 +21,10 @@ export class EmployeeFormComponent {
     phone: [this.data?.phone ?? '', [Validators.maxLength(20)]],
     address: [this.data?.address ?? '']
   });
+
+  cancel(): void {
+    this.dialogRef.close();
+  }
 
   save(): void {
     if (this.form.invalid) {

@@ -1,19 +1,7 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { EmployeeWorkLogService } from './employee-work-log.service';
 import { EmployeeWorkLogFormComponent } from './employee-work-log-form.component';
@@ -22,30 +10,13 @@ import { Employee, EmployeeWorkLog } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
-import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-employee-work-log-list',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatDatepickerModule,
-    MatNativeDateModule
-  ],
-  templateUrl: './employee-work-log-list.component.html'
+  imports: [CurrencyPipe, DatePipe, MatIconModule, MatProgressBarModule],
+  templateUrl: './employee-work-log-list.component.html',
+  styleUrl: './employee-work-log-list.component.scss'
 })
 export class EmployeeWorkLogListComponent implements OnInit {
   private readonly service = inject(EmployeeWorkLogService);
@@ -54,70 +25,68 @@ export class EmployeeWorkLogListComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  readonly displayedColumns = ['workDate', 'employeeName', 'jobType', 'routeName', 'amount', 'paymentMode', 'actions'];
   readonly items = signal<EmployeeWorkLog[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
   readonly employees = signal<Employee[]>([]);
 
-  employeeId: number | null = null;
-  employeeSearch = '';
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  readonly pageIndex = signal(0);
+  readonly pageSize = 10;
 
-  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10 };
+  employeeId: number | null = null;
+  fromDate: string | null = null;
+  toDate: string | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
+
+  readonly rangeLabel = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return 'No entries';
+    const start = this.pageIndex() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
 
   ngOnInit(): void {
     this.employeeService.getAllActive().subscribe((employees) => this.employees.set(employees));
     this.load();
   }
 
+  onEmployeeChange(value: string): void {
+    this.employeeId = value ? Number(value) : null;
+    this.onFilterChange();
+  }
+
   onFilterChange(): void {
     this.request.pageNumber = 1;
+    this.pageIndex.set(0);
     this.load();
   }
 
-  filteredEmployees(search: string | null | undefined): Employee[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.employees();
-    return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
-  }
-
-  readonly displayEmployee = (value: unknown): string =>
-    typeof value === 'number' ? (this.employees().find((e) => e.employeeID === value)?.fullName ?? '') : typeof value === 'string' ? value : '';
-
-  onEmployeeFilterSelected(event: MatAutocompleteSelectedEvent): void {
-    const employeeId = event.option.value as number | null;
-    this.employeeId = employeeId;
-    this.employeeSearch = employeeId == null ? '' : (this.employees().find((e) => e.employeeID === employeeId)?.fullName ?? '');
-    this.onFilterChange();
-  }
-
-  onEmployeeSearchFocus(): void {
-    if (this.employeeSearch === (this.employees().find((e) => e.employeeID === this.employeeId)?.fullName ?? '')) this.employeeSearch = '';
-  }
-
-  // Typing away from the settled employee name must clear the stale filter and
-  // reload - otherwise the field shows different text while the table silently
-  // stays filtered by whatever employee was previously selected.
-  onEmployeeSearchInput(): void {
+  clearFilters(): void {
     this.employeeId = null;
+    this.fromDate = null;
+    this.toDate = null;
     this.onFilterChange();
   }
 
-  onPage(event: PageEvent): void {
-    this.request.pageNumber = event.pageIndex + 1;
-    this.request.pageSize = event.pageSize;
+  prevPage(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((i) => i - 1);
+    this.request.pageNumber = this.pageIndex() + 1;
+    this.load();
+  }
+
+  nextPage(): void {
+    if ((this.pageIndex() + 1) * this.pageSize >= this.totalCount()) return;
+    this.pageIndex.update((i) => i + 1);
+    this.request.pageNumber = this.pageIndex() + 1;
     this.load();
   }
 
   load(): void {
     this.loading.set(true);
-    const from = this.fromDate ? toIso(this.fromDate) : null;
-    const to = this.toDate ? toIso(this.toDate) : null;
-    this.service.getPaged(this.request, this.employeeId, from, to).subscribe({
+    this.service.getPaged(this.request, this.employeeId, this.fromDate, this.toDate).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);
@@ -129,7 +98,7 @@ export class EmployeeWorkLogListComponent implements OnInit {
 
   openCreate(): void {
     this.dialog
-      .open(EmployeeWorkLogFormComponent, { width: '480px', data: null, autoFocus: 'dialog' })
+      .open(EmployeeWorkLogFormComponent, { width: '520px', maxWidth: '95vw', data: null, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -144,7 +113,7 @@ export class EmployeeWorkLogListComponent implements OnInit {
 
   openEdit(item: EmployeeWorkLog): void {
     this.dialog
-      .open(EmployeeWorkLogFormComponent, { width: '480px', data: item, autoFocus: 'dialog' })
+      .open(EmployeeWorkLogFormComponent, { width: '520px', maxWidth: '95vw', data: item, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

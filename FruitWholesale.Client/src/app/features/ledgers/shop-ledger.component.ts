@@ -1,19 +1,7 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { LedgerService } from './ledger.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { ShopLedgerEntry, ledgerParticulars } from '../../core/models/ledger.model';
@@ -27,25 +15,9 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-shop-ledger',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatProgressBarModule,
-    MatIconModule,
-    MatButtonModule,
-    MatMenuModule,
-    MatTooltipModule
-  ],
-  templateUrl: './shop-ledger.component.html'
+  imports: [CurrencyPipe, DatePipe, MatIconModule, MatProgressBarModule],
+  templateUrl: './shop-ledger.component.html',
+  styleUrl: './shop-ledger.component.scss'
 })
 export class ShopLedgerComponent implements OnInit {
   private readonly ledgerService = inject(LedgerService);
@@ -54,28 +26,34 @@ export class ShopLedgerComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  readonly displayedColumns = ['transactionDate', 'particulars', 'sale', 'received', 'runningBalance', 'actions'];
   readonly particulars = ledgerParticulars;
   readonly shops = signal<ShopMaster[]>([]);
   readonly items = signal<ShopLedgerEntry[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
 
-  shopId: number | null = null;
-  shopSearch = '';
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  readonly pageIndex = signal(0);
+  readonly pageSize = 20;
 
-  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 20 };
+  shopId: number | null = null;
+  fromDate: string | null = null;
+  toDate: string | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
+
+  readonly rangeLabel = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return 'No entries';
+    const start = this.pageIndex() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
 
   ngOnInit(): void {
     this.shopService.getAllActive().subscribe((shops) => {
       this.shops.set(shops);
       if (shops.length > 0) {
         this.shopId = shops[0].shopID;
-        this.shopSearch = shops[0].shopName;
         this.load();
       }
     });
@@ -91,59 +69,52 @@ export class ShopLedgerComponent implements OnInit {
     return netBalance >= 0;
   }
 
+  isOpeningRow(row: ShopLedgerEntry, index: number): boolean {
+    return this.pageIndex() === 0 && index === 0 && (row.transactionType === 'OpeningBalance' || row.transactionType === 'Adjustment');
+  }
+
   netBalanceTooltip(shop: ShopMaster): string {
     return shop.linkedSupplierID
       ? `Combined position with linked Supplier: ${shop.linkedSupplierName}`
       : `${shop.shopName}'s outstanding balance`;
   }
 
-  onFilterChange(): void {
-    if (!this.shopId) return;
-    this.request.pageNumber = 1;
-    this.paginator?.firstPage();
-    this.load();
-  }
-
-  filteredShops(search: string | null | undefined): ShopMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.shops();
-    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
-  }
-
-  readonly displayShop = (value: unknown): string =>
-    typeof value === 'number' ? (this.shops().find((s) => s.shopID === value)?.shopName ?? '') : typeof value === 'string' ? value : '';
-
-  onShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
-    const shopId = event.option.value as number | null;
-    this.shopId = shopId;
-    this.shopSearch = shopId == null ? '' : (this.shops().find((s) => s.shopID === shopId)?.shopName ?? '');
+  onShopChange(value: string): void {
+    this.shopId = value ? Number(value) : null;
     this.onFilterChange();
   }
 
-  // The field always displays the currently selected shop's name. Clicking/focusing
-  // it clears the text so it's ready to type a fresh search, instead of requiring
-  // the user to manually delete the existing name first. Only clears when the field
-  // is showing that settled name (not a query the user is still mid-typing), so
-  // clicking to reposition the cursor while typing doesn't wipe it out - and fires
-  // on both focus and click since the field stays focused after a selection, so a
-  // second click there wouldn't otherwise re-trigger (focus).
-  onShopSearchFocus(): void {
-    if (this.shopSearch !== (this.selectedShop()?.shopName ?? '')) return;
-    this.shopSearch = '';
+  onFilterChange(): void {
+    if (!this.shopId) return;
+    this.request.pageNumber = 1;
+    this.pageIndex.set(0);
+    this.load();
   }
 
-  onPage(event: PageEvent): void {
-    this.request.pageNumber = event.pageIndex + 1;
-    this.request.pageSize = event.pageSize;
+  clearFilters(): void {
+    this.fromDate = null;
+    this.toDate = null;
+    this.onFilterChange();
+  }
+
+  prevPage(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((i) => i - 1);
+    this.request.pageNumber = this.pageIndex() + 1;
+    this.load();
+  }
+
+  nextPage(): void {
+    if ((this.pageIndex() + 1) * this.pageSize >= this.totalCount()) return;
+    this.pageIndex.update((i) => i + 1);
+    this.request.pageNumber = this.pageIndex() + 1;
     this.load();
   }
 
   load(): void {
     if (!this.shopId) return;
     this.loading.set(true);
-    const from = this.fromDate ? toIso(this.fromDate) : null;
-    const to = this.toDate ? toIso(this.toDate) : null;
-    this.ledgerService.getShopLedger(this.shopId, this.request, from, to).subscribe({
+    this.ledgerService.getShopLedger(this.shopId, this.request, this.fromDate, this.toDate).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

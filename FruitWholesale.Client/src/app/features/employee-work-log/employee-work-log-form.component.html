@@ -1,80 +1,77 @@
-<h2 mat-dialog-title>{{ data ? 'Edit Work Entry' : 'New Work Entry' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Employee</mat-label>
-      <input
-        matInput
-        formControlName="employeeSearch"
-        placeholder="Search employee"
-        [matAutocomplete]="employeeAuto"
-        (focus)="onEmployeeSearchFocus()"
-        (click)="onEmployeeSearchFocus()"
-        (input)="onEmployeeSearchInput()"
-        (blur)="onEmployeeSearchBlur()"
-      />
-      <mat-autocomplete #employeeAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayEmployee" (optionSelected)="onEmployeeSelected($event)">
-        @for (employee of filteredEmployees(form.value.employeeSearch); track employee.employeeID) {
-          <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
-        }
-      </mat-autocomplete>
-      @if (form.controls.employeeID.touched && form.controls.employeeID.hasError('required')) {
-        <mat-error>Employee is required</mat-error>
+<div class="modal-header">
+  <div>
+    <h2>{{ data ? 'Edit Work Entry' : 'New Work Entry' }}</h2>
+    <p>Every entry with an amount books a cash-out entry.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <label class="field">
+    <span class="field-label">Employee</span>
+    <select class="field-input" formControlName="employeeID">
+      <option [ngValue]="null">Select an employee</option>
+      @for (employee of employees(); track employee.employeeID) {
+        <option [ngValue]="employee.employeeID">{{ employee.fullName }}</option>
       }
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Date</mat-label>
-      <input matInput [matDatepicker]="picker" formControlName="workDate" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Job Done</mat-label>
-      <mat-select formControlName="jobType">
-        @for (job of jobTypes; track job) {
-          <mat-option [value]="job">{{ job }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    @if (showRoute()) {
-      <mat-form-field class="full-width">
-        <mat-label>Route</mat-label>
-        <mat-select formControlName="routeID">
-          <mat-option [value]="null">No specific route</mat-option>
-          @for (route of routes(); track route.routeID) {
-            <mat-option [value]="route.routeID">{{ route.routeName }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+    </select>
+    @if (form.controls.employeeID.touched && form.controls.employeeID.hasError('required')) {
+      <span class="field-error">Employee is required</span>
     }
+  </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Salary / Amount Paid</mat-label>
-      <input matInput type="number" formControlName="amount" />
-      @if (form.controls.amount.touched && form.controls.amount.invalid) {
-        <mat-error>Enter a valid amount</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Payment Mode</mat-label>
-      <mat-select formControlName="paymentMode">
-        @for (mode of paymentModes; track mode) {
-          <mat-option [value]="mode">{{ mode }}</mat-option>
+  <div class="field-row">
+    <label class="field">
+      <span class="field-label">Job type</span>
+      <select class="field-input" formControlName="jobType">
+        @for (job of jobTypes; track job) {
+          <option [value]="job">{{ job }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Date</span>
+      <input class="field-input" type="date" formControlName="workDate" (click)="$any($event.target).showPicker?.()" />
+    </label>
+  </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Remarks</mat-label>
-      <textarea matInput formControlName="remarks" rows="2"></textarea>
-    </mat-form-field>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+  @if (showRoute()) {
+    <label class="field">
+      <span class="field-label">Route</span>
+      <select class="field-input" formControlName="routeID">
+        <option [ngValue]="null">No specific route</option>
+        @for (route of routes(); track route.routeID) {
+          <option [ngValue]="route.routeID">{{ route.routeName }}</option>
+        }
+      </select>
+    </label>
+  }
+
+  <label class="field">
+    <span class="field-label">Amount</span>
+    <span class="amount-input">
+      <span class="rupee">₹</span>
+      <input type="number" formControlName="amount" />
+    </span>
+  </label>
+
+  <label class="field">
+    <span class="field-label">Payment mode</span>
+    <div class="mode-row">
+      @for (mode of paymentModes; track mode) {
+        <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.paymentMode === mode" (click)="setPaymentMode(mode)">{{ mode }}</button>
+      }
+    </div>
+  </label>
+
+  <label class="field">
+    <span class="field-label">Remarks</span>
+    <textarea class="field-input" formControlName="remarks" rows="2" placeholder="Optional"></textarea>
+  </label>
+
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save entry</button>
+  </div>
 </form>

@@ -1,29 +1,16 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
-import { MatRadioModule } from '@angular/material/radio';
+import { MatIconModule } from '@angular/material/icon';
 import { FruitMasterService } from '../fruit-master/fruit-master.service';
 import { FruitMaster } from '../../core/models/master-data.model';
 
 @Component({
   selector: 'app-stock-adjustment-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatRadioModule
-  ],
-  templateUrl: './stock-adjustment-form.component.html'
+  imports: [ReactiveFormsModule, MatDialogModule, MatIconModule],
+  templateUrl: './stock-adjustment-form.component.html',
+  styleUrl: './stock-adjustment-form.component.scss'
 })
 export class StockAdjustmentFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -34,8 +21,7 @@ export class StockAdjustmentFormComponent implements OnInit {
 
   readonly form = this.fb.nonNullable.group({
     fruitID: this.fb.control<number | null>(null, Validators.required),
-    fruitSearch: this.fb.nonNullable.control<string>(''),
-    isIncrease: [true, Validators.required],
+    isIncrease: this.fb.nonNullable.control<boolean>(true, Validators.required),
     quantity: [0, [Validators.required, Validators.min(0.001)]],
     narration: ['', Validators.required]
   });
@@ -44,56 +30,12 @@ export class StockAdjustmentFormComponent implements OnInit {
     this.fruitService.getAllActive().subscribe((fruits) => this.fruits.set(fruits));
   }
 
-  fruitNameById(fruitID: number | null): string {
-    return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
+  setDirection(isIncrease: boolean): void {
+    this.form.controls.isIncrease.setValue(isIncrease);
   }
 
-  readonly displayFruit = (value: unknown): string =>
-    typeof value === 'number' ? this.fruitNameById(value) : typeof value === 'string' ? value : '';
-
-  filteredFruits(search: string | null | undefined): FruitMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.fruits();
-    return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
-  }
-
-  // MatAutocomplete refocuses the trigger input right after an option is
-  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
-  // can't immediately clear the name onFruitSelected just wrote.
-  private fruitJustSelected = false;
-
-  onFruitSelected(event: MatAutocompleteSelectedEvent): void {
-    const fruitID = event.option.value as number;
-    this.form.patchValue({ fruitID, fruitSearch: this.fruitNameById(fruitID) });
-    this.fruitJustSelected = true;
-  }
-
-  onFruitSearchFocus(): void {
-    if (this.fruitJustSelected) {
-      this.fruitJustSelected = false;
-      return;
-    }
-    if (this.form.controls.fruitSearch.value === this.fruitNameById(this.form.controls.fruitID.value)) {
-      this.form.controls.fruitSearch.setValue('');
-    }
-  }
-
-  // Typing away from the settled fruit name must invalidate the stale fruitID -
-  // otherwise the form stays "valid" with the old fruit while the field shows
-  // different text, and save() would silently post against the wrong fruit.
-  onFruitSearchInput(): void {
-    this.form.controls.fruitID.setValue(null);
-  }
-
-  // Blur fires before mat-option's mousedown/click finishes selecting -
-  // defer so onFruitSelected can patch fruitID first, otherwise a mouse
-  // click on a filtered option gets wiped by this clearing the text.
-  onFruitSearchBlur(): void {
-    setTimeout(() => {
-      if (this.form.controls.fruitID.value === null) {
-        this.form.controls.fruitSearch.setValue('');
-      }
-    });
+  cancel(): void {
+    this.dialogRef.close();
   }
 
   save(): void {
@@ -101,7 +43,6 @@ export class StockAdjustmentFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const { fruitSearch, ...raw } = this.form.getRawValue();
-    this.dialogRef.close(raw);
+    this.dialogRef.close(this.form.getRawValue());
   }
 }

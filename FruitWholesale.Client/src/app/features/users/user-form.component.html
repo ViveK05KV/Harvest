@@ -1,43 +1,59 @@
-<h2 mat-dialog-title>{{ isEdit ? 'Edit User' : 'Add User' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Full Name</mat-label>
-      <input matInput formControlName="fullName" />
-      @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
-        <mat-error>Full name is required</mat-error>
-      }
-    </mat-form-field>
+<div class="modal-header">
+  <div>
+    <h2>{{ isEdit ? 'Edit User' : 'Add User' }}</h2>
+    <p>Role decides which modules are visible.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Username</mat-label>
-      <input matInput formControlName="username" />
+<form [formGroup]="form" (ngSubmit)="save()">
+  <div class="modal-body">
+    <label class="field">
+      <span class="field-label">Username</span>
+      <input class="field-input" formControlName="username" />
       @if (form.controls.username.touched && form.controls.username.hasError('required')) {
-        <mat-error>Username is required</mat-error>
+        <span class="field-error">Username is required</span>
       }
-    </mat-form-field>
+      @if (form.controls.username.touched && form.controls.username.hasError('pattern')) {
+        <span class="field-error">Only letters, numbers, dot, dash and underscore allowed</span>
+      }
+    </label>
+
+    <label class="field">
+      <span class="field-label">Full Name</span>
+      <input class="field-input" formControlName="fullName" />
+      @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
+        <span class="field-error">Full name is required</span>
+      }
+    </label>
+
+    <label class="field">
+      <span class="field-label">Role</span>
+      <select class="field-input" formControlName="role">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </label>
 
     @if (!isEdit) {
-      <mat-form-field class="full-width">
-        <mat-label>Password</mat-label>
-        <input matInput type="password" formControlName="password" />
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input class="field-input" type="password" formControlName="password" placeholder="••••••••" />
+        @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+          <span class="field-error">Password is required</span>
+        }
         @if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
-          <mat-error>Password must be at least 6 characters</mat-error>
+          <span class="field-error">Password must be at least 6 characters</span>
         }
-      </mat-form-field>
+      </label>
     }
+  </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Role</mat-label>
-      <mat-select formControlName="role">
-        @for (role of roles; track role) {
-          <mat-option [value]="role">{{ role }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+  <div class="modal-actions">
+    <span class="spacer"></span>
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save</button>
+  </div>
 </form>

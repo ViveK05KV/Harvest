@@ -10,7 +10,7 @@ html {
   @include mat.theme((
     color: (
       theme-type: light,
-      primary: mat.$orange-palette,
+      primary: mat.$green-palette,
       tertiary: mat.$green-palette,
     ),
     typography: Roboto,
@@ -22,7 +22,7 @@ html.dark-theme {
   @include mat.theme((
     color: (
       theme-type: dark,
-      primary: mat.$orange-palette,
+      primary: mat.$green-palette,
       tertiary: mat.$green-palette,
     ),
     typography: Roboto,
@@ -49,18 +49,26 @@ body {
 /* You can add global styles to this file, and also import other style files */
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: #cfd6cf;
+  border-radius: 0;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
 
 :root {
   --app-color-positive: #2e7d32;
   --app-color-negative: #c62828;
   --app-shadow-rgb: 16, 24, 40;
-  --app-page-bg: #f7f9f6;
-  // Harvest logo palette: warm orange fruit body, leaf green, brown wordmark.
+  --app-page-bg: #f3f5f2;
+  // Harvest logo palette: warm orange fruit body, leaf green, ink wordmark.
   --app-brand-orange: #d99326;
   --app-brand-orange-dark: #a96708;
-  --app-brand-green: #277a4b;
-  --app-brand-brown: #103b29;
+  --app-brand-green: #1c6b45;
+  --app-brand-brown: #141c17;
 }
 
 html.dark-theme {
@@ -247,10 +255,10 @@ mat-form-field.full-width {
 
 .table-container {
   overflow-x: auto;
-  border-radius: 16px;
-  border: none;
+  border-radius: 14px;
+  border: 1px solid #e4e8e4;
   background: var(--mat-sys-surface);
-  box-shadow: 0 1px 3px 0 rgba(var(--app-shadow-rgb), 0.1);
+  box-shadow: none;
 }
 
 // TailAdmin-inspired soft-elevation cards: white cards, generous 16px
@@ -266,15 +274,49 @@ table.mat-mdc-table {
 }
 
 .mat-mdc-header-row {
-  background: var(--mat-sys-surface-container-low);
+  height: 40px;
+}
+
+.mat-mdc-header-cell {
+  background: #f7f9f7 !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #78837c !important;
+}
+
+.mat-mdc-row:hover {
+  background: #f7f9f7 !important;
 }
 
 .clickable-row {
   cursor: pointer;
 
   &:hover {
-    background: var(--mat-sys-surface-container-low);
+    background: #f7f9f7;
   }
+}
+
+// Small colored pill for row status (e.g. "Paid", "Pending", "Overdue").
+.status-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  &--green { background: #eaf2ed; color: #1c6b45; }
+  &--amber { background: #fbf1de; color: #a07a2a; }
+  &--red { background: #fbeae8; color: #b03a2e; }
+  &--gray { background: #f3f5f2; color: #3c453f; }
+}
+
+// Monospace alignment for invoice numbers / currency figures in tables.
+.mono-cell {
+  font-family: ui-monospace, Menlo, monospace;
 }
 
 // Bill printing: isolate the receipt inside the dialog from the rest of the

@@ -1,282 +1,198 @@
-<div class="page-toolbar">
-  <h1>Reports</h1>
+<div class="page-heading"><h1>Reports</h1></div>
 
+<div class="filter-bar filter-bar--card">
   @if (activeTab() !== 5) {
-    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-      <mat-label>From</mat-label>
-      <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" (dateChange)="onFilterChange()" />
-      <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
-      <mat-datepicker #fromPicker></mat-datepicker>
-    </mat-form-field>
+    <label class="field">
+      <span class="field-label">From</span>
+      <input type="date" [value]="fromDate" (change)="fromDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+    </label>
 
-    <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-      <mat-label>To</mat-label>
-      <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" (dateChange)="onFilterChange()" />
-      <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
-      <mat-datepicker #toPicker></mat-datepicker>
-    </mat-form-field>
+    <label class="field">
+      <span class="field-label">To</span>
+      <input type="date" [value]="toDate" (change)="toDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+    </label>
   }
 
   @if (activeTab() === 8) {
-    <mat-form-field subscriptSizing="dynamic" style="width: 220px">
-      <mat-label>Filter by Employee</mat-label>
-      <input
-        matInput
-        [(ngModel)]="employeeSearch"
-        placeholder="Search employee"
-        [matAutocomplete]="employeeFilterAuto"
-        (focus)="onEmployeeSearchFocus()"
-        (click)="onEmployeeSearchFocus()"
-        (input)="onEmployeeSearchInput()"
-      />
-      <mat-autocomplete #employeeFilterAuto="matAutocomplete" [displayWith]="displayEmployee" (optionSelected)="onEmployeeFilterSelected($event)">
-        <mat-option [value]="null">All Employees</mat-option>
-        @for (employee of filteredEmployees(employeeSearch); track employee.employeeID) {
-          <mat-option [value]="employee.employeeID">{{ employee.fullName }}</mat-option>
+    <label class="field" style="min-width: 190px">
+      <span class="field-label">Employee</span>
+      <select [value]="employeeId ?? ''" (change)="onEmployeeChange($any($event.target).value)">
+        <option value="">All employees</option>
+        @for (employee of employees(); track employee.employeeID) {
+          <option [value]="employee.employeeID">{{ employee.fullName }}</option>
         }
-      </mat-autocomplete>
-    </mat-form-field>
+      </select>
+    </label>
   }
 
   <span class="spacer"></span>
 
-  <button mat-stroked-button (click)="exportExcel()">
-    <mat-icon>grid_on</mat-icon>
-    Export to Excel
+  <button type="button" class="btn-ghost" (click)="exportExcel()">
+    <mat-icon>grid_on</mat-icon>Export to Excel
   </button>
 </div>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
+<div class="tab-nav">
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 0" (click)="onTabChange(0)">Sales</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 1" (click)="onTabChange(1)">Collection</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 2" (click)="onTabChange(2)">Expense</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 3" (click)="onTabChange(3)">Purchase Report</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 4" (click)="onTabChange(4)">Fruit Sales</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 5" (click)="onTabChange(5)">Outstanding</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 6" (click)="onTabChange(6)">Profit Summary</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 7" (click)="onTabChange(7)">Expense by Category</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 8" (click)="onTabChange(8)">Salary by Employee</button>
+</div>
 
-<mat-tab-group (selectedIndexChange)="onTabChange($event)">
-  <mat-tab label="Daily Sales">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="dailySales()">
-        <ng-container matColumnDef="supplyDate">
-          <th mat-header-cell *matHeaderCellDef>Date</th>
-          <td mat-cell *matCellDef="let row">{{ row.supplyDate | date: 'dd-MMM-yyyy' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="invoiceNo">
-          <th mat-header-cell *matHeaderCellDef>Invoice No</th>
-          <td mat-cell *matCellDef="let row">{{ row.invoiceNo }}</td>
-        </ng-container>
-        <ng-container matColumnDef="shopName">
-          <th mat-header-cell *matHeaderCellDef>Shop</th>
-          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalAmount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="dailySalesColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: dailySalesColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
+<div class="list-card">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
 
-  <mat-tab label="Daily Collection">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="dailyCollection()">
-        <ng-container matColumnDef="collectionDate">
-          <th mat-header-cell *matHeaderCellDef>Date</th>
-          <td mat-cell *matCellDef="let row">{{ row.collectionDate | date: 'dd-MMM-yyyy' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="shopName">
-          <th mat-header-cell *matHeaderCellDef>Shop</th>
-          <td mat-cell *matCellDef="let row">{{ row.shopName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="amountReceived">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.amountReceived | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="paymentMode">
-          <th mat-header-cell *matHeaderCellDef>Mode</th>
-          <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="dailyCollectionColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: dailyCollectionColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Daily Expense">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="dailyExpense()">
-        <ng-container matColumnDef="expenseDate">
-          <th mat-header-cell *matHeaderCellDef>Date</th>
-          <td mat-cell *matCellDef="let row">{{ row.expenseDate | date: 'dd-MMM-yyyy' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="categoryName">
-          <th mat-header-cell *matHeaderCellDef>Category</th>
-          <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="paidTo">
-          <th mat-header-cell *matHeaderCellDef>Paid To</th>
-          <td mat-cell *matCellDef="let row">{{ row.paidTo }}</td>
-        </ng-container>
-        <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="paymentMode">
-          <th mat-header-cell *matHeaderCellDef>Mode</th>
-          <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="dailyExpenseColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: dailyExpenseColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Purchase Report">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="purchaseReport()">
-        <ng-container matColumnDef="purchaseDate">
-          <th mat-header-cell *matHeaderCellDef>Date</th>
-          <td mat-cell *matCellDef="let row">{{ row.purchaseDate | date: 'dd-MMM-yyyy' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="invoiceNo">
-          <th mat-header-cell *matHeaderCellDef>Invoice No</th>
-          <td mat-cell *matCellDef="let row">{{ row.invoiceNo }}</td>
-        </ng-container>
-        <ng-container matColumnDef="supplierName">
-          <th mat-header-cell *matHeaderCellDef>Supplier</th>
-          <td mat-cell *matCellDef="let row">{{ row.supplierName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalAmount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="purchaseColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: purchaseColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Fruit Sales">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="fruitSales()">
-        <ng-container matColumnDef="fruitName">
-          <th mat-header-cell *matHeaderCellDef>Fruit</th>
-          <td mat-cell *matCellDef="let row">{{ row.fruitName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="unit">
-          <th mat-header-cell *matHeaderCellDef>Unit</th>
-          <td mat-cell *matCellDef="let row">{{ row.unit }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalQuantity">
-          <th mat-header-cell *matHeaderCellDef>Quantity</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalQuantity | number: '1.2-2' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalAmount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="fruitSalesColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: fruitSalesColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Outstanding">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="outstanding()">
-        <ng-container matColumnDef="type">
-          <th mat-header-cell *matHeaderCellDef>Type</th>
-          <td mat-cell *matCellDef="let row">{{ row.type }}</td>
-        </ng-container>
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Name</th>
-          <td mat-cell *matCellDef="let row">{{ row.name }}</td>
-        </ng-container>
-        <ng-container matColumnDef="outstandingAmount">
-          <th mat-header-cell *matHeaderCellDef>Outstanding</th>
-          <td mat-cell *matCellDef="let row">{{ row.outstandingAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="outstandingColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: outstandingColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Profit Summary">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="profitSummary()">
-        <ng-container matColumnDef="month">
-          <th mat-header-cell *matHeaderCellDef>Month</th>
-          <td mat-cell *matCellDef="let row">{{ row.month }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalSales">
-          <th mat-header-cell *matHeaderCellDef>Sales</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalSales | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalPurchases">
-          <th mat-header-cell *matHeaderCellDef>Purchases</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalPurchases | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalExpenses">
-          <th mat-header-cell *matHeaderCellDef>Expenses</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalExpenses | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="netProfit">
-          <th mat-header-cell *matHeaderCellDef>Net Profit</th>
-          <td mat-cell *matCellDef="let row"><strong>{{ row.netProfit | currency: 'INR' : 'symbol' : '1.0-0' }}</strong></td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="profitColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: profitColumns"></tr>
-      </table>
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Expense by Category">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="expenseByCategory()">
-        <ng-container matColumnDef="categoryName">
-          <th mat-header-cell *matHeaderCellDef>Category</th>
-          <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalAmount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="expenseByCategoryColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: expenseByCategoryColumns"></tr>
-      </table>
-
-      @if (!loading() && expenseByCategory().length === 0) {
-        <div class="empty-state">
-          <p>No expenses recorded for this date range.</p>
-        </div>
+  <div class="table-scroll">
+    @switch (activeTab()) {
+      @case (0) {
+        <table class="mock-table">
+          <thead><tr><th>Date</th><th>Invoice No</th><th>Shop</th><th class="amount-column">Amount</th></tr></thead>
+          <tbody>
+            @for (row of dailySales(); track row.invoiceNo) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.supplyDate | date: 'dd MMM yyyy' }}</td>
+                <td class="mono-cell strong-cell">{{ row.invoiceNo }}</td>
+                <td>{{ row.shopName }}</td>
+                <td class="mono-cell amount-column strong-cell">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && dailySales().length === 0) { <div class="empty-state"><p>No sales for this date range.</p></div> }
       }
-    </div>
-  </mat-tab>
-
-  <mat-tab label="Salary by Employee">
-    <div class="table-container tab-table">
-      <table mat-table [dataSource]="salaryByEmployee()">
-        <ng-container matColumnDef="employeeName">
-          <th mat-header-cell *matHeaderCellDef>Employee</th>
-          <td mat-cell *matCellDef="let row">{{ row.employeeName }}</td>
-        </ng-container>
-        <ng-container matColumnDef="workDaysCount">
-          <th mat-header-cell *matHeaderCellDef>Work Days</th>
-          <td mat-cell *matCellDef="let row">{{ row.workDaysCount }}</td>
-        </ng-container>
-        <ng-container matColumnDef="totalAmount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="salaryByEmployeeColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: salaryByEmployeeColumns"></tr>
-      </table>
-
-      @if (!loading() && salaryByEmployee().length === 0) {
-        <div class="empty-state">
-          <p>No work-log entries for this date range.</p>
-        </div>
+      @case (1) {
+        <table class="mock-table">
+          <thead><tr><th>Date</th><th>Shop</th><th class="amount-column">Amount</th><th>Mode</th></tr></thead>
+          <tbody>
+            @for (row of dailyCollection(); track $index) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.collectionDate | date: 'dd MMM yyyy' }}</td>
+                <td>{{ row.shopName }}</td>
+                <td class="mono-cell amount-column positive-cell">{{ row.amountReceived | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td><span class="mode-chip">{{ row.paymentMode }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && dailyCollection().length === 0) { <div class="empty-state"><p>No collections for this date range.</p></div> }
       }
-    </div>
-  </mat-tab>
-</mat-tab-group>
+      @case (2) {
+        <table class="mock-table">
+          <thead><tr><th>Date</th><th>Category</th><th>Paid To</th><th class="amount-column">Amount</th><th>Mode</th></tr></thead>
+          <tbody>
+            @for (row of dailyExpense(); track $index) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.expenseDate | date: 'dd MMM yyyy' }}</td>
+                <td class="strong-cell">{{ row.categoryName }}</td>
+                <td class="muted-cell">{{ row.paidTo || '—' }}</td>
+                <td class="mono-cell amount-column negative-cell">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td><span class="mode-chip">{{ row.paymentMode }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && dailyExpense().length === 0) { <div class="empty-state"><p>No expenses for this date range.</p></div> }
+      }
+      @case (3) {
+        <table class="mock-table">
+          <thead><tr><th>Date</th><th>Invoice No</th><th>Supplier</th><th class="amount-column">Amount</th></tr></thead>
+          <tbody>
+            @for (row of purchaseReport(); track row.invoiceNo) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.purchaseDate | date: 'dd MMM yyyy' }}</td>
+                <td class="mono-cell strong-cell">{{ row.invoiceNo }}</td>
+                <td>{{ row.supplierName }}</td>
+                <td class="mono-cell amount-column negative-cell">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && purchaseReport().length === 0) { <div class="empty-state"><p>No purchases for this date range.</p></div> }
+      }
+      @case (4) {
+        <table class="mock-table">
+          <thead><tr><th>Fruit</th><th>Unit</th><th class="amount-column">Quantity</th><th class="amount-column">Amount</th></tr></thead>
+          <tbody>
+            @for (row of fruitSales(); track row.fruitName) {
+              <tr>
+                <td class="strong-cell">{{ row.fruitName }}</td>
+                <td class="muted-cell">{{ row.unit }}</td>
+                <td class="mono-cell amount-column">{{ row.totalQuantity | number: '1.2-2' }}</td>
+                <td class="mono-cell amount-column strong-cell">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && fruitSales().length === 0) { <div class="empty-state"><p>No fruit sales for this date range.</p></div> }
+      }
+      @case (5) {
+        <table class="mock-table">
+          <thead><tr><th>Type</th><th>Name</th><th class="amount-column">Outstanding</th></tr></thead>
+          <tbody>
+            @for (row of outstanding(); track $index) {
+              <tr>
+                <td><span class="mode-chip">{{ row.type }}</span></td>
+                <td class="strong-cell">{{ row.name }}</td>
+                <td class="mono-cell amount-column negative-cell">{{ row.outstandingAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && outstanding().length === 0) { <div class="empty-state"><p>Nothing outstanding.</p></div> }
+      }
+      @case (6) {
+        <table class="mock-table">
+          <thead><tr><th>Month</th><th class="amount-column">Sales</th><th class="amount-column">Purchases</th><th class="amount-column">Expenses</th><th class="amount-column">Net Profit</th></tr></thead>
+          <tbody>
+            @for (row of profitSummary(); track row.month) {
+              <tr>
+                <td class="strong-cell">{{ row.month }}</td>
+                <td class="mono-cell amount-column">{{ row.totalSales | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+                <td class="mono-cell amount-column">{{ row.totalPurchases | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+                <td class="mono-cell amount-column">{{ row.totalExpenses | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+                <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.netProfit >= 0" [class.negative-cell]="row.netProfit < 0">{{ row.netProfit | currency: 'INR' : 'symbol' : '1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && profitSummary().length === 0) { <div class="empty-state"><p>No profit data for this date range.</p></div> }
+      }
+      @case (7) {
+        <table class="mock-table">
+          <thead><tr><th>Category</th><th class="amount-column">Amount</th></tr></thead>
+          <tbody>
+            @for (row of expenseByCategory(); track row.categoryName) {
+              <tr>
+                <td class="strong-cell">{{ row.categoryName }}</td>
+                <td class="mono-cell amount-column negative-cell">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && expenseByCategory().length === 0) { <div class="empty-state"><p>No expenses recorded for this date range.</p></div> }
+      }
+      @case (8) {
+        <table class="mock-table">
+          <thead><tr><th>Employee</th><th class="amount-column">Work Days</th><th class="amount-column">Amount</th></tr></thead>
+          <tbody>
+            @for (row of salaryByEmployee(); track row.employeeName) {
+              <tr>
+                <td class="strong-cell">{{ row.employeeName }}</td>
+                <td class="mono-cell amount-column">{{ row.workDaysCount }}</td>
+                <td class="mono-cell amount-column negative-cell">{{ row.totalAmount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && salaryByEmployee().length === 0) { <div class="empty-state"><p>No work-log entries for this date range.</p></div> }
+      }
+    }
+  </div>
+</div>

@@ -34,3 +34,5 @@
 # 25_AddTemporaryCollections.sql
 
 26_AddRefreshTokens.sql
+27_AddReportsVisibleToManagers.sql
+28_AddProfitVisibleToManagers.sql

@@ -1,15 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatMenuModule } from '@angular/material/menu';
+import { Sort } from '@angular/material/sort';
 import { MasterListBase } from '../../core/base/master-list-base';
 import { FruitMasterService } from './fruit-master.service';
 import { FruitMasterFormComponent } from './fruit-master-form.component';
@@ -19,26 +11,15 @@ import { ExportService } from '../../core/services/export.service';
 @Component({
   selector: 'app-fruit-master-list',
   standalone: true,
-  imports: [
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatMenuModule
-  ],
+  imports: [MatIconModule, MatProgressBarModule],
   templateUrl: './fruit-master-list.component.html',
+  styleUrl: './fruit-master-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FruitMasterListComponent extends MasterListBase<FruitMaster, SaveFruitMaster> {
   private readonly exportService = inject(ExportService);
 
-  readonly displayedColumns = ['fruitName', 'unit', 'isActive', 'actions'];
+  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
 
   constructor() {
     super(inject(FruitMasterService), {
@@ -51,12 +32,38 @@ export class FruitMasterListComponent extends MasterListBase<FruitMaster, SaveFr
     });
   }
 
+  rangeLabel(): string {
+    const total = this.totalCount();
+    if (total === 0) return 'No fruits';
+    const start = (this.request.pageNumber - 1) * this.request.pageSize + 1;
+    const end = Math.min(start + this.request.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  }
+
+  prevPage(): void {
+    if (this.request.pageNumber <= 1) return;
+    this.request.pageNumber--;
+    this.load();
+  }
+
+  nextPage(): void {
+    if (this.request.pageNumber * this.request.pageSize >= this.totalCount()) return;
+    this.request.pageNumber++;
+    this.load();
+  }
+
+  toggleSort(): void {
+    const next = this.sortDirection() === 'asc' ? 'desc' : this.sortDirection() === 'desc' ? '' : 'asc';
+    this.sortDirection.set(next);
+    this.onSort({ active: 'fruitName', direction: next } as Sort);
+  }
+
   openCreate(): void {
-    this.openFormDialog(FruitMasterFormComponent, '420px', null);
+    this.openFormDialog(FruitMasterFormComponent, '460px', null);
   }
 
   openEdit(fruit: FruitMaster): void {
-    this.openFormDialog(FruitMasterFormComponent, '420px', fruit);
+    this.openFormDialog(FruitMasterFormComponent, '460px', fruit);
   }
 
   exportExcel(): void {

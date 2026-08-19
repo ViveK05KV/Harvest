@@ -2,16 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize, forkJoin } from 'rxjs';
 import { SupplyService } from './supply.service';
@@ -25,22 +16,7 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-supply-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    DatePipe,
-    DecimalPipe,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatTableModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './supply-form.component.html',
   styleUrl: './supply-form.component.scss'
 })
@@ -64,12 +40,9 @@ export class SupplyFormComponent implements OnInit {
   readonly supplyId = signal<number | null>(null);
   readonly isEdit = computed(() => this.supplyId() !== null);
 
-  readonly displayedColumns = ['fruit', 'quantity', 'unitPrice', 'amount', 'remove'];
-
   readonly form = this.fb.nonNullable.group({
-    supplyDate: [new Date(), Validators.required],
+    supplyDate: [toIso(new Date()), Validators.required],
     shopID: this.fb.control<number | null>(null, Validators.required),
-    shopSearch: this.fb.nonNullable.control<string>(''),
     invoiceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
     items: this.fb.array<ReturnType<typeof this.buildItem>>([])
@@ -79,59 +52,18 @@ export class SupplyFormComponent implements OnInit {
     return this.form.controls.items;
   }
 
-  shopNameById(shopID: number | null): string {
-    return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
+  // Plain methods, not computed() - the FormControl/FormArray values they read
+  // are RxJS-based, not signals, so a computed() here would memoize once on
+  // first read and never re-run as the form changes. Called directly from the
+  // template, they re-evaluate every change-detection pass instead.
+  selectedShop(): ShopMaster | null {
+    const id = this.form.controls.shopID.value;
+    return this.shops().find((s) => s.shopID === id) ?? null;
   }
 
-  readonly displayShop = (value: unknown): string =>
-    typeof value === 'number' ? this.shopNameById(value) : typeof value === 'string' ? value : '';
-
-  filteredShops(search: string | null | undefined): ShopMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.shops();
-    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
-  }
-
-  // MatAutocomplete refocuses the trigger input right after an option is
-  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
-  // can't immediately clear the name onShopSelected just wrote.
-  private shopJustSelected = false;
-
-  onShopSelected(event: MatAutocompleteSelectedEvent): void {
-    const shopID = event.option.value as number;
-    this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
-    this.shopJustSelected = true;
-  }
-
-  onShopSearchFocus(): void {
-    if (this.shopJustSelected) {
-      this.shopJustSelected = false;
-      return;
-    }
-    if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
-      this.form.controls.shopSearch.setValue('');
-    } else if (this.form.controls.shopID.value === null) {
-      this.form.controls.shopSearch.setValue('');
-    }
-  }
-
-  // Typing away from the settled shop name must invalidate the stale shopID -
-  // otherwise the form stays "valid" with the old shop while the field shows
-  // different text, and save() would silently post against the wrong shop.
-  onShopSearchInput(): void {
-    this.form.controls.shopID.setValue(null);
-  }
-
-  // Blur fires before mat-option's mousedown/click finishes selecting -
-  // defer so onShopSelected can patch shopID first, otherwise a mouse
-  // click on a filtered option gets wiped by this clearing the text.
-  onShopSearchBlur(): void {
-    setTimeout(() => {
-      // If user hasn't selected a valid shop from dropdown, clear the search field
-      if (this.form.controls.shopID.value === null) {
-        this.form.controls.shopSearch.setValue('');
-      }
-    });
+  balanceAfter(): number {
+    const shop = this.selectedShop();
+    return shop ? shop.currentOutstanding + this.total() : 0;
   }
 
   ngOnInit(): void {
@@ -149,9 +81,8 @@ export class SupplyFormComponent implements OnInit {
       if (id) {
         this.supplyService.getById(id).subscribe((supply) => {
           this.form.patchValue({
-            supplyDate: new Date(supply.supplyDate),
+            supplyDate: supply.supplyDate.slice(0, 10),
             shopID: supply.shopID,
-            shopSearch: this.shopNameById(supply.shopID),
             invoiceNo: supply.invoiceNo,
             remarks: supply.remarks
           });
@@ -171,7 +102,6 @@ export class SupplyFormComponent implements OnInit {
   buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
-      fruitSearch: this.fb.nonNullable.control<string>(fruitID != null ? this.fruitName(fruitID) : ''),
       saleType: this.fb.nonNullable.control<'kg' | 'box'>(boxCount != null ? 'box' : 'kg'),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
       unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
@@ -179,55 +109,9 @@ export class SupplyFormComponent implements OnInit {
     });
   }
 
-  filteredFruits(search: string | null | undefined): FruitMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.fruits();
-    return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
-  }
-
-  readonly displayFruit = (value: unknown): string =>
-    typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
-
-  // Same refocus quirk as onShopSelected/onShopSearchFocus, per row.
-  private fruitJustSelectedIndex: number | null = null;
-
-  onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
-    const fruitID = event.option.value as number;
-    const fruit = this.fruits().find((f) => f.fruitID === fruitID);
-    this.itemsArray.at(index).patchValue({
-      fruitID,
-      fruitSearch: fruit?.fruitName ?? '',
-      saleType: 'kg',
-      boxCount: null
-    });
-    this.fruitJustSelectedIndex = index;
-  }
-
-  onFruitSearchFocus(index: number): void {
-    if (this.fruitJustSelectedIndex === index) {
-      this.fruitJustSelectedIndex = null;
-      return;
-    }
-    const item = this.itemsArray.at(index);
-    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) {
-      item.patchValue({ fruitSearch: '' });
-    } else if (item.value.fruitID === null) {
-      item.patchValue({ fruitSearch: '' });
-    }
-  }
-
-  // Same as onShopSearchInput: editing a row's fruit text must invalidate that
-  // row's stale fruitID so save() can't silently post against the wrong fruit.
-  onFruitSearchInput(index: number): void {
-    this.itemsArray.at(index).patchValue({ fruitID: null });
-  }
-
-  onFruitSearchBlur(index: number): void {
-    const item = this.itemsArray.at(index);
-    // If user hasn't selected a valid fruit from dropdown, clear the search field
-    if (item.value.fruitID === null) {
-      item.patchValue({ fruitSearch: '' });
-    }
+  onFruitChange(index: number, value: string): void {
+    const fruitID = value ? Number(value) : null;
+    this.itemsArray.at(index).patchValue({ fruitID, saleType: 'kg', boxCount: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {
@@ -317,10 +201,6 @@ export class SupplyFormComponent implements OnInit {
     return this.fruits().find((f) => f.fruitID === fruitID)?.unit ?? '';
   }
 
-  shopName(): string {
-    return this.shops().find((s) => s.shopID === this.form.controls.shopID.value)?.shopName ?? '';
-  }
-
   save(): void {
     if (this.form.invalid || this.itemsArray.length === 0) {
       this.form.markAllAsTouched();
@@ -330,7 +210,7 @@ export class SupplyFormComponent implements OnInit {
 
     const raw = this.form.getRawValue();
     const payload = {
-      supplyDate: toIso(raw.supplyDate as unknown as Date),
+      supplyDate: raw.supplyDate,
       shopID: raw.shopID,
       invoiceNo: raw.invoiceNo,
       remarks: raw.remarks,

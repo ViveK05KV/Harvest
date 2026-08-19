@@ -1,15 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
+import { Sort } from '@angular/material/sort';
 import { MasterListBase } from '../../core/base/master-list-base';
 import { RouteMasterService } from './route-master.service';
 import { RouteMasterFormComponent } from './route-master-form.component';
@@ -19,24 +11,13 @@ import { RouteMaster, SaveRouteMaster } from '../../core/models/master-data.mode
 @Component({
   selector: 'app-route-master-list',
   standalone: true,
-  imports: [
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatChipsModule
-  ],
+  imports: [MatIconModule, MatProgressBarModule],
   templateUrl: './route-master-list.component.html',
+  styleUrl: './route-master-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteMasterListComponent extends MasterListBase<RouteMaster, SaveRouteMaster> {
-  readonly displayedColumns = ['routeName', 'description', 'shopCount', 'isActive', 'actions'];
+  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
 
   constructor() {
     super(inject(RouteMasterService), {
@@ -49,6 +30,32 @@ export class RouteMasterListComponent extends MasterListBase<RouteMaster, SaveRo
     });
   }
 
+  rangeLabel(): string {
+    const total = this.totalCount();
+    if (total === 0) return 'No routes';
+    const start = (this.request.pageNumber - 1) * this.request.pageSize + 1;
+    const end = Math.min(start + this.request.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  }
+
+  prevPage(): void {
+    if (this.request.pageNumber <= 1) return;
+    this.request.pageNumber--;
+    this.load();
+  }
+
+  nextPage(): void {
+    if (this.request.pageNumber * this.request.pageSize >= this.totalCount()) return;
+    this.request.pageNumber++;
+    this.load();
+  }
+
+  toggleSort(): void {
+    const next = this.sortDirection() === 'asc' ? 'desc' : this.sortDirection() === 'desc' ? '' : 'asc';
+    this.sortDirection.set(next);
+    this.onSort({ active: 'routeName', direction: next } as Sort);
+  }
+
   openCreate(): void {
     this.openFormDialog(RouteMasterFormComponent, '460px', null);
   }
@@ -58,6 +65,6 @@ export class RouteMasterListComponent extends MasterListBase<RouteMaster, SaveRo
   }
 
   openShops(route: RouteMaster): void {
-    this.dialog.open(RouteShopsComponent, { width: '420px', data: route });
+    this.dialog.open(RouteShopsComponent, { width: '440px', maxWidth: '95vw', data: route });
   }
 }

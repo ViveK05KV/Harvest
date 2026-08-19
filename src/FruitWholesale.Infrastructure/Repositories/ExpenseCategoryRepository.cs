@@ -78,4 +78,19 @@ public class ExpenseCategoryRepository(IDbConnectionFactory connectionFactory) :
             "UPDATE ExpenseCategory SET IsActive = @IsActive WHERE ExpenseCategoryID = @ExpenseCategoryID",
             new { ExpenseCategoryID = expenseCategoryId, IsActive = isActive });
     }
+
+    public async Task<bool> IsInUseAsync(int expenseCategoryId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        var count = await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM DailyExpense WHERE ExpenseCategoryID = @ExpenseCategoryID", new { ExpenseCategoryID = expenseCategoryId });
+        return count > 0;
+    }
+
+    public async Task DeleteAsync(int expenseCategoryId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            "DELETE FROM ExpenseCategory WHERE ExpenseCategoryID = @ExpenseCategoryID", new { ExpenseCategoryID = expenseCategoryId });
+    }
 }

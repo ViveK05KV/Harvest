@@ -1,26 +1,33 @@
-<h2 mat-dialog-title>{{ data ? 'Edit Employee' : 'Add Employee' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Full Name</mat-label>
-      <input matInput formControlName="fullName" />
-      @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
-        <mat-error>Full name is required</mat-error>
-      }
-    </mat-form-field>
+<div class="modal-header">
+  <div>
+    <h2>{{ data ? 'Edit Employee' : 'Add Employee' }}</h2>
+    <p>Plain staff directory; work is logged per day.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Phone</mat-label>
-      <input matInput formControlName="phone" />
-    </mat-form-field>
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <label class="field">
+    <span class="field-label">Full Name</span>
+    <input class="field-input" formControlName="fullName" />
+    @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
+      <span class="field-error">Full name is required</span>
+    }
+  </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Address</mat-label>
-      <textarea matInput formControlName="address" rows="2"></textarea>
-    </mat-form-field>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+  <label class="field">
+    <span class="field-label">Phone</span>
+    <input class="field-input" formControlName="phone" />
+  </label>
+
+  <label class="field">
+    <span class="field-label">Address</span>
+    <textarea class="field-input" formControlName="address" rows="2"></textarea>
+  </label>
+
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save</button>
+  </div>
 </form>

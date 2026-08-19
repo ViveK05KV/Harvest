@@ -1,18 +1,16 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { User } from '../../core/models/master-data.model';
 import { USER_ROLES } from '../../core/models/common.model';
 
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule],
-  templateUrl: './user-form.component.html'
+  imports: [ReactiveFormsModule, MatDialogModule, MatIconModule],
+  templateUrl: './user-form.component.html',
+  styleUrl: './user-form.component.scss'
 })
 export class UserFormComponent {
   private readonly fb = inject(FormBuilder);
@@ -31,6 +29,10 @@ export class UserFormComponent {
     password: ['', this.isEdit ? [] : [Validators.required, Validators.minLength(6)]],
     role: [this.data?.role ?? 'Staff', Validators.required]
   });
+
+  cancel(): void {
+    this.dialogRef.close();
+  }
 
   save(): void {
     if (this.form.invalid) {
