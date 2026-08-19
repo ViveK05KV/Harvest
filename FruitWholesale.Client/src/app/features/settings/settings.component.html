@@ -1,122 +1,210 @@
-<div class="page-toolbar">
-  <h1>Settings</h1>
-</div>
+<div class="page-heading"><h1>Settings</h1></div>
 
 @if (loading()) {
   <div class="loading-state">
     <mat-spinner diameter="40" />
   </div>
 } @else {
-  <mat-tab-group>
-    <mat-tab label="Company Profile">
-      <mat-card class="settings-card">
+  <div class="settings-grid">
+    @if (isAdmin) {
+      <div class="settings-panel">
+        <div class="panel-head">
+          <h3>Company Profile</h3>
+          <p>Shown on printed bills and in the sidebar.</p>
+        </div>
+
         <div class="logo-row">
           @if (branding.logoUrl(); as logo) {
             <img [src]="logo" alt="Company logo" class="logo-preview" />
           } @else {
-            <div class="logo-preview logo-placeholder">
-              <mat-icon>store</mat-icon>
-            </div>
+            <span class="logo-avatar">{{ profileForm.value.companyName?.charAt(0) || 'H' }}</span>
           }
           <div>
-            <button mat-stroked-button type="button" (click)="logoFileInput.click()" [disabled]="uploadingLogo()">
-              @if (uploadingLogo()) {
-                <mat-spinner diameter="18" />
-              } @else {
-                <mat-icon>upload</mat-icon>
-              }
+            <button type="button" class="btn-ghost" (click)="logoFileInput.click()" [disabled]="uploadingLogo()">
+              @if (uploadingLogo()) { <mat-spinner diameter="14" /> }
               Upload Logo
             </button>
-            <p class="muted">PNG, JPG, SVG, or WEBP — up to 2 MB</p>
+            <span class="field-hint">PNG, JPG, SVG, or WEBP — up to 2 MB</span>
           </div>
           <input #logoFileInput type="file" hidden accept="image/png,image/jpeg,image/svg+xml,image/webp" (change)="onLogoSelected($event)" />
         </div>
 
         <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-          <mat-form-field class="full-width">
-            <mat-label>Company Name</mat-label>
-            <input matInput formControlName="companyName" />
-          </mat-form-field>
+          <label class="field">
+            <span class="field-label">Company Name</span>
+            <input class="field-input" formControlName="companyName" />
+          </label>
 
-          <mat-form-field class="full-width">
-            <mat-label>Owner Name</mat-label>
-            <input matInput formControlName="ownerName" />
-          </mat-form-field>
+          <label class="field">
+            <span class="field-label">Owner Name</span>
+            <input class="field-input" formControlName="ownerName" />
+          </label>
 
-          <mat-form-field class="full-width">
-            <mat-label>Address</mat-label>
-            <textarea matInput formControlName="address" rows="2"></textarea>
-          </mat-form-field>
+          <label class="field">
+            <span class="field-label">Address</span>
+            <textarea class="field-input" formControlName="address" rows="2"></textarea>
+          </label>
 
-          <mat-form-field class="full-width">
-            <mat-label>Phone</mat-label>
-            <input matInput formControlName="phone" />
-          </mat-form-field>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Phone</span>
+              <input class="field-input" formControlName="phone" />
+            </label>
+            <label class="field">
+              <span class="field-label">GSTIN</span>
+              <input class="field-input" formControlName="gstNo" />
+            </label>
+          </div>
 
-          <mat-form-field class="full-width">
-            <mat-label>GST No</mat-label>
-            <input matInput formControlName="gstNo" />
-          </mat-form-field>
+          <label class="field">
+            <span class="field-label">Opening Cash Balance</span>
+            <input class="field-input" type="number" formControlName="openingCashBalance" />
+            <span class="field-hint">Use Cash Adjustment to change the balance after go-live</span>
+          </label>
 
-          <mat-form-field class="full-width">
-            <mat-label>Opening Cash Balance</mat-label>
-            <input matInput type="number" formControlName="openingCashBalance" />
-            <mat-hint>Use Cash Adjustment tab to change the balance after go-live</mat-hint>
-          </mat-form-field>
-
-          <button mat-flat-button color="primary" type="submit" [disabled]="savingProfile()">Save Changes</button>
+          <button type="submit" class="btn-primary" [disabled]="savingProfile()">
+            @if (savingProfile()) { <mat-spinner diameter="14" /> }
+            Save Profile
+          </button>
         </form>
-      </mat-card>
-    </mat-tab>
+      </div>
+    }
 
-    <mat-tab label="Change Password">
-      <mat-card class="settings-card">
-        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
-          <mat-form-field class="full-width">
-            <mat-label>Current Password</mat-label>
-            <input matInput type="password" formControlName="currentPassword" />
-          </mat-form-field>
+    @if (isAdmin) {
+      <div class="settings-panel">
+        <div class="panel-head">
+          <h3>Manager Access</h3>
+          <p>Give the Manager role visibility into these pages.</p>
+        </div>
+        <label class="toggle-row">
+          <span class="toggle-row-text">
+            <span class="toggle-row-title">Reports</span>
+            <span class="field-hint">When off, only Admin can open Reports.</span>
+          </span>
+          <button
+            type="button"
+            class="switch"
+            [class.switch--on]="branding.companySettings()?.reportsVisibleToManagers"
+            [disabled]="savingReportsVisibility()"
+            (click)="toggleReportsVisibility()"
+          >
+            <span class="switch-thumb"></span>
+          </button>
+        </label>
+        <label class="toggle-row">
+          <span class="toggle-row-text">
+            <span class="toggle-row-title">Profit Calculator</span>
+            <span class="field-hint">When off, only Admin can open Profit Calculator.</span>
+          </span>
+          <button
+            type="button"
+            class="switch"
+            [class.switch--on]="branding.companySettings()?.profitVisibleToManagers"
+            [disabled]="savingProfitVisibility()"
+            (click)="toggleProfitVisibility()"
+          >
+            <span class="switch-thumb"></span>
+          </button>
+        </label>
+      </div>
+    }
 
-          <mat-form-field class="full-width">
-            <mat-label>New Password</mat-label>
-            <input matInput type="password" formControlName="newPassword" />
+    <div class="settings-panel">
+      <div class="panel-head">
+        <h3>Account</h3>
+        <p>Signed in as {{ authService.currentUser()?.username }}.</p>
+      </div>
+
+      <form [formGroup]="usernameForm" (ngSubmit)="changeUsername()">
+        <label class="field">
+          <span class="field-label">New Username</span>
+          <input class="field-input" formControlName="newUsername" />
+          @if (usernameForm.controls.newUsername.touched && usernameForm.controls.newUsername.hasError('required')) {
+            <span class="field-error">Username is required</span>
+          }
+          @if (usernameForm.controls.newUsername.touched && usernameForm.controls.newUsername.hasError('pattern')) {
+            <span class="field-error">Only letters, numbers, dot, dash and underscore allowed</span>
+          }
+        </label>
+        <label class="field">
+          <span class="field-label">Current Password</span>
+          <input class="field-input" type="password" formControlName="currentPassword" />
+          @if (usernameForm.controls.currentPassword.touched && usernameForm.controls.currentPassword.hasError('required')) {
+            <span class="field-error">Confirm with your current password</span>
+          }
+        </label>
+        <button type="submit" class="btn-ghost" [disabled]="savingUsername()">
+          @if (savingUsername()) { <mat-spinner diameter="14" /> }
+          Update Username
+        </button>
+      </form>
+
+      <hr class="panel-divider" />
+
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+        <label class="field">
+          <span class="field-label">Current Password</span>
+          <input class="field-input" type="password" formControlName="currentPassword" />
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">New</span>
+            <input class="field-input" type="password" placeholder="••••••••" formControlName="newPassword" />
             @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('minlength')) {
-              <mat-error>Password must be at least 6 characters</mat-error>
+              <span class="field-error">At least 6 characters</span>
             }
-          </mat-form-field>
+          </label>
+          <label class="field">
+            <span class="field-label">Confirm</span>
+            <input class="field-input" type="password" placeholder="••••••••" formControlName="confirmPassword" />
+            @if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('mismatch')) {
+              <span class="field-error">Passwords don't match</span>
+            }
+          </label>
+        </div>
 
-          <button mat-flat-button color="primary" type="submit" [disabled]="savingPassword()">Update Password</button>
-        </form>
-      </mat-card>
-    </mat-tab>
+        <button type="submit" class="btn-ghost" [disabled]="savingPassword()">
+          @if (savingPassword()) { <mat-spinner diameter="14" /> }
+          Update Password
+        </button>
+      </form>
+    </div>
 
     @if (canAdjustCash) {
-      <mat-tab label="Cash Adjustment">
-        <mat-card class="settings-card">
-          <p class="muted">
-            Cash adjustments create a manual ledger entry. Use this only for corrections — every other cash movement is
-            automatic.
-          </p>
-          <form [formGroup]="adjustmentForm" (ngSubmit)="applyAdjustment()">
-            <mat-radio-group formControlName="isIncrease" class="radio-row">
-              <mat-radio-button [value]="true">Increase Cash</mat-radio-button>
-              <mat-radio-button [value]="false">Decrease Cash</mat-radio-button>
-            </mat-radio-group>
-
-            <mat-form-field class="full-width">
-              <mat-label>Amount</mat-label>
-              <input matInput type="number" formControlName="amount" />
-            </mat-form-field>
-
-            <mat-form-field class="full-width">
-              <mat-label>Narration / Reason</mat-label>
-              <textarea matInput formControlName="narration" rows="2"></textarea>
-            </mat-form-field>
-
-            <button mat-flat-button color="primary" type="submit" [disabled]="savingAdjustment()">Apply Adjustment</button>
-          </form>
-        </mat-card>
-      </mat-tab>
+      <div class="settings-panel settings-panel--dark">
+        <div class="panel-head">
+          <h3>Cash Adjustment</h3>
+          <p>The only manual entry allowed into the cash ledger. Admin and Accountant only.</p>
+        </div>
+        <div class="balance-row">
+          <span>Current cash balance</span>
+          <strong>{{ cashBalance() ?? 0 | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+        </div>
+        <form [formGroup]="adjustmentForm" (ngSubmit)="applyAdjustment()">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Amount</span>
+              <input class="field-input" type="number" formControlName="amount" />
+            </label>
+            <label class="field">
+              <span class="field-label">Direction</span>
+              <select class="field-input" [value]="adjustmentForm.value.isIncrease ? 'in' : 'out'" (change)="onDirectionChange($any($event.target).value)">
+                <option value="in">Cash in</option>
+                <option value="out">Cash out</option>
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span class="field-label">Narration</span>
+            <input class="field-input" formControlName="narration" placeholder="Why this adjustment is needed" />
+          </label>
+          <button type="submit" class="btn-primary" [disabled]="savingAdjustment()">
+            @if (savingAdjustment()) { <mat-spinner diameter="14" /> }
+            Post Adjustment
+          </button>
+        </form>
+      </div>
     }
-  </mat-tab-group>
+  </div>
 }

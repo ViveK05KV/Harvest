@@ -1,73 +1,109 @@
-<h2 mat-dialog-title>{{ data ? 'Edit Supplier Payment' : 'New Supplier Payment' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Supplier</mat-label>
-      <input
-        matInput
-        formControlName="supplierSearch"
-        placeholder="Search supplier"
-        [matAutocomplete]="supplierAuto"
-        (focus)="onSupplierSearchFocus()"
-        (click)="onSupplierSearchFocus()"
-        (input)="onSupplierSearchInput()"
-        (blur)="onSupplierSearchBlur()"
-      />
-      <mat-autocomplete #supplierAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displaySupplier" (optionSelected)="onSupplierSelected($event)">
-        @for (supplier of filteredSuppliers(form.value.supplierSearch); track supplier.supplierID) {
-          <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
+<div class="modal-header">
+  <div>
+    <h2>{{ data ? 'Edit Supplier Payment' : 'New Supplier Payment' }}</h2>
+    <p>Cash goes out today; the supplier ledger reduces by amount plus discount.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <div class="modal-main">
+    <label class="field">
+      <span class="field-label">Supplier</span>
+      <select class="field-input" [value]="form.value.supplierID ?? ''" (change)="onSupplierChange($any($event.target).value)">
+        <option value="">Select a supplier</option>
+        @for (supplier of suppliers(); track supplier.supplierID) {
+          <option [value]="supplier.supplierID">{{ supplier.supplierName }}</option>
         }
-      </mat-autocomplete>
+      </select>
       @if (form.controls.supplierID.touched && form.controls.supplierID.hasError('required')) {
-        <mat-error>Supplier is required</mat-error>
+        <span class="field-error">Supplier is required</span>
       }
-    </mat-form-field>
+    </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Date</mat-label>
-      <input matInput [matDatepicker]="picker" formControlName="paymentDate" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">Amount paid</span>
+        <span class="amount-input">
+          <span class="rupee">₹</span>
+          <input type="number" formControlName="amountPaid" />
+        </span>
+      </label>
+      <label class="field">
+        <span class="field-label">Discount received</span>
+        <span class="amount-input">
+          <span class="rupee">₹</span>
+          <input type="number" formControlName="discountAmount" />
+        </span>
+      </label>
+    </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Amount</mat-label>
-      <input matInput type="number" formControlName="amountPaid" />
-      @if (form.controls.amountPaid.touched && form.controls.amountPaid.invalid) {
-        <mat-error>Enter a valid amount</mat-error>
+    <div class="quick-amounts">
+      @for (amount of quickAmounts; track amount) {
+        <button type="button" class="quick-amount-btn" (click)="setQuickAmount(amount)">₹{{ amount | number: '1.0-0' }}</button>
       }
-    </mat-form-field>
+    </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Discount Received</mat-label>
-      <input matInput type="number" formControlName="discountAmount" />
-      <mat-hint>Optional — reduces the supplier's outstanding in addition to the amount paid</mat-hint>
-      @if (form.controls.discountAmount.touched && form.controls.discountAmount.invalid) {
-        <mat-error>Discount cannot be negative</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Payment Mode</mat-label>
-      <mat-select formControlName="paymentMode">
+    <label class="field">
+      <span class="field-label">Payment mode</span>
+      <div class="mode-row">
         @for (mode of paymentModes; track mode) {
-          <mat-option [value]="mode">{{ mode }}</mat-option>
+          <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.paymentMode === mode" (click)="setPaymentMode(mode)">{{ mode }}</button>
         }
-      </mat-select>
-    </mat-form-field>
+      </div>
+    </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Reference Number</mat-label>
-      <input matInput formControlName="referenceNumber" />
-    </mat-form-field>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">Date</span>
+        <input class="field-input" type="date" formControlName="paymentDate" (click)="$any($event.target).showPicker?.()" />
+      </label>
+      <label class="field">
+        <span class="field-label">Reference no</span>
+        <input class="field-input" formControlName="referenceNumber" placeholder="UPI / cheque no" />
+      </label>
+    </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Remarks</mat-label>
-      <textarea matInput formControlName="remarks" rows="2"></textarea>
-    </mat-form-field>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+    <label class="field">
+      <span class="field-label">Remarks</span>
+      <textarea class="field-input" formControlName="remarks" rows="2" placeholder="Optional"></textarea>
+    </label>
+  </div>
+
+  <div class="modal-side">
+    @if (selectedSupplier(); as supplier) {
+      <div class="shop-summary">
+        <span class="shop-summary-name">{{ supplier.supplierName }}</span>
+        <div class="shop-summary-rows">
+          <div class="shop-summary-row"><span>Outstanding now</span><strong class="mono-cell">{{ supplier.currentOutstanding | number: '1.0-0' }}</strong></div>
+          <div class="shop-summary-row"><span>Paying</span><strong class="mono-cell receiving">−{{ payingTotal() | number: '1.0-0' }}</strong></div>
+          <div class="shop-summary-row shop-summary-row--total"><span>Balance after</span><strong class="mono-cell">{{ balanceAfter() | number: '1.0-0' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-kicker">Recent activity</span>
+        <div class="activity-rows">
+          @for (a of recentActivity(); track a.ledgerID) {
+            <div class="activity-row">
+              <span class="activity-detail">
+                <span class="activity-label">{{ a.narration || a.transactionType }}</span>
+                <span class="activity-date">{{ a.transactionDate | date: 'dd MMM' }}</span>
+              </span>
+              <span class="mono-cell" [class.receiving]="a.debit > 0">{{ (a.debit > 0 ? a.debit : a.credit) | number: '1.0-0' }}</span>
+            </div>
+          } @empty {
+            <span class="muted">No recent activity.</span>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="shop-summary shop-summary--empty">Select a supplier to see its balance.</div>
+    }
+
+    <span class="spacer"></span>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save payment</button>
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+  </div>
 </form>

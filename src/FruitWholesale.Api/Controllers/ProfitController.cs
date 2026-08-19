@@ -1,3 +1,4 @@
+using FruitWholesale.Api.Filters;
 using FruitWholesale.Application.DTOs.Profit;
 using FruitWholesale.Application.Services;
 using FruitWholesale.Domain.Enums;
@@ -6,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-[Authorize(Roles = UserRoles.Admin)]
+[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager}")]
+[ServiceFilter(typeof(ProfitAccessFilter))]
 public class ProfitController(IProfitService service) : ApiControllerBase
 {
     [HttpGet("shop-daily")]

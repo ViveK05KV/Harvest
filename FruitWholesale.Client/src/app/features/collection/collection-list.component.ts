@@ -1,19 +1,7 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { CollectionService } from './collection.service';
 import { CollectionFormComponent } from './collection-form.component';
@@ -24,30 +12,13 @@ import { ShopMaster } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
-import { toIso } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-collection-list',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatDatepickerModule,
-    MatNativeDateModule
-  ],
-  templateUrl: './collection-list.component.html'
+  imports: [CurrencyPipe, DatePipe, MatIconModule, MatProgressBarModule],
+  templateUrl: './collection-list.component.html',
+  styleUrl: './collection-list.component.scss'
 })
 export class CollectionListComponent implements OnInit {
   private readonly service = inject(CollectionService);
@@ -56,70 +27,68 @@ export class CollectionListComponent implements OnInit {
   private readonly notification = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  readonly displayedColumns = ['collectionDate', 'shopName', 'amountReceived', 'discountAmount', 'paymentMode', 'actions'];
   readonly items = signal<Collection[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
   readonly shops = signal<ShopMaster[]>([]);
 
-  shopId: number | null = null;
-  shopSearch = '';
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  readonly pageIndex = signal(0);
+  readonly pageSize = 10;
 
-  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: 10 };
+  shopId: number | null = null;
+  fromDate: string | null = null;
+  toDate: string | null = null;
+
+  private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
+
+  readonly rangeLabel = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return 'No collections';
+    const start = this.pageIndex() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
 
   ngOnInit(): void {
     this.shopService.getAllActive().subscribe((shops) => this.shops.set(shops));
     this.load();
   }
 
+  onShopChange(value: string): void {
+    this.shopId = value ? Number(value) : null;
+    this.onFilterChange();
+  }
+
   onFilterChange(): void {
     this.request.pageNumber = 1;
+    this.pageIndex.set(0);
     this.load();
   }
 
-  filteredShops(search: string | null | undefined): ShopMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.shops();
-    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
-  }
-
-  readonly displayShop = (value: unknown): string =>
-    typeof value === 'number' ? (this.shops().find((s) => s.shopID === value)?.shopName ?? '') : typeof value === 'string' ? value : '';
-
-  onShopFilterSelected(event: MatAutocompleteSelectedEvent): void {
-    const shopId = event.option.value as number | null;
-    this.shopId = shopId;
-    this.shopSearch = shopId == null ? '' : (this.shops().find((s) => s.shopID === shopId)?.shopName ?? '');
-    this.onFilterChange();
-  }
-
-  onShopSearchFocus(): void {
-    if (this.shopSearch === (this.shops().find((s) => s.shopID === this.shopId)?.shopName ?? '')) this.shopSearch = '';
-  }
-
-  // Typing away from the settled shop name must clear the stale filter and
-  // reload - otherwise the field shows different text while the table silently
-  // stays filtered by whatever shop was previously selected.
-  onShopSearchInput(): void {
+  clearFilters(): void {
     this.shopId = null;
+    this.fromDate = null;
+    this.toDate = null;
     this.onFilterChange();
   }
 
-  onPage(event: PageEvent): void {
-    this.request.pageNumber = event.pageIndex + 1;
-    this.request.pageSize = event.pageSize;
+  prevPage(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((i) => i - 1);
+    this.request.pageNumber = this.pageIndex() + 1;
+    this.load();
+  }
+
+  nextPage(): void {
+    if ((this.pageIndex() + 1) * this.pageSize >= this.totalCount()) return;
+    this.pageIndex.update((i) => i + 1);
+    this.request.pageNumber = this.pageIndex() + 1;
     this.load();
   }
 
   load(): void {
     this.loading.set(true);
-    const from = this.fromDate ? toIso(this.fromDate) : null;
-    const to = this.toDate ? toIso(this.toDate) : null;
-    this.service.getPaged(this.request, this.shopId, from, to).subscribe({
+    this.service.getPaged(this.request, this.shopId, this.fromDate, this.toDate).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);
@@ -131,7 +100,7 @@ export class CollectionListComponent implements OnInit {
 
   openCreate(): void {
     this.dialog
-      .open(CollectionFormComponent, { width: '480px', data: null, autoFocus: 'dialog' })
+      .open(CollectionFormComponent, { width: '900px', maxWidth: '95vw', data: null, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -151,7 +120,7 @@ export class CollectionListComponent implements OnInit {
     }
 
     this.dialog
-      .open(CollectionFormComponent, { width: '480px', data: item, autoFocus: 'dialog' })
+      .open(CollectionFormComponent, { width: '900px', maxWidth: '95vw', data: item, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;
@@ -189,7 +158,7 @@ export class CollectionListComponent implements OnInit {
 
   settleDeposits(): void {
     this.dialog
-      .open(SettleCollectionsDialogComponent, { width: '480px' })
+      .open(SettleCollectionsDialogComponent, { width: '700px', maxWidth: '95vw', autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

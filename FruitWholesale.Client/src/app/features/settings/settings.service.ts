@@ -22,6 +22,14 @@ export class SettingsService {
     return this.http.post<void>(`${this.baseUrl}/cash-adjustment`, dto);
   }
 
+  setReportsVisibility(visible: boolean): Observable<CompanySettings> {
+    return this.http.patch<CompanySettings>(`${this.baseUrl}/reports-visibility`, { visible });
+  }
+
+  setProfitVisibility(visible: boolean): Observable<CompanySettings> {
+    return this.http.patch<CompanySettings>(`${this.baseUrl}/profit-visibility`, { visible });
+  }
+
   uploadLogo(file: File): Observable<CompanySettings> {
     const formData = new FormData();
     formData.append('file', file);

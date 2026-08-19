@@ -19,6 +19,11 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export interface ChangeUsernameRequest {
+  newUsername: string;
+  currentPassword: string;
+}
+
 export interface CurrentUser {
   userId: number;
   fullName: string;

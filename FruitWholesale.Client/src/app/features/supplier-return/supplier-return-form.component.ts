@@ -1,19 +1,9 @@
-﻿import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { finalize, forkJoin } from 'rxjs';
 import { SupplierReturnService } from './supplier-return.service';
 import { SupplierMasterService } from '../supplier-master/supplier-master.service';
@@ -27,23 +17,7 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-supplier-return-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    DatePipe,
-    DecimalPipe,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatTableModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule
-  ],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './supplier-return-form.component.html',
   styleUrl: './supplier-return-form.component.scss'
 })
@@ -66,12 +40,9 @@ export class SupplierReturnFormComponent implements OnInit {
   readonly supplierReturnId = signal<number | null>(null);
   readonly isEdit = computed(() => this.supplierReturnId() !== null);
 
-  readonly displayedColumns = ['fruit', 'quantity', 'unitPrice', 'amount', 'remove'];
-
   readonly form = this.fb.nonNullable.group({
-    returnDate: [new Date(), Validators.required],
+    returnDate: [toIso(new Date()), Validators.required],
     supplierID: this.fb.control<number | null>(null, Validators.required),
-    supplierSearch: this.fb.nonNullable.control<string>(''),
     purchaseID: this.fb.control<number | null>(null),
     referenceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
@@ -80,6 +51,19 @@ export class SupplierReturnFormComponent implements OnInit {
 
   get itemsArray(): FormArray {
     return this.form.controls.items;
+  }
+
+  // Plain methods, not computed() - the FormControl/FormArray values they read
+  // are RxJS-based, not signals, so a computed() here would memoize once on
+  // first read and never re-run as the form changes.
+  selectedSupplier(): SupplierMaster | null {
+    const id = this.form.controls.supplierID.value;
+    return this.suppliers().find((s) => s.supplierID === id) ?? null;
+  }
+
+  balanceAfter(): number {
+    const supplier = this.selectedSupplier();
+    return supplier ? supplier.currentOutstanding - this.total() : 0;
   }
 
   ngOnInit(): void {
@@ -97,9 +81,8 @@ export class SupplierReturnFormComponent implements OnInit {
       if (id) {
         this.supplierReturnService.getById(id).subscribe((supplierReturn) => {
           this.form.patchValue({
-            returnDate: new Date(supplierReturn.returnDate),
+            returnDate: supplierReturn.returnDate.slice(0, 10),
             supplierID: supplierReturn.supplierID,
-            supplierSearch: this.supplierNameById(supplierReturn.supplierID),
             purchaseID: supplierReturn.purchaseID ?? null,
             referenceNo: supplierReturn.referenceNo,
             remarks: supplierReturn.remarks
@@ -123,62 +106,6 @@ export class SupplierReturnFormComponent implements OnInit {
     this.supplierPurchases.set([]);
     const supplierId = this.form.controls.supplierID.value;
     if (supplierId) this.loadSupplierPurchases(supplierId);
-  }
-
-  supplierNameById(supplierID: number | null): string {
-    return this.suppliers().find((s) => s.supplierID === supplierID)?.supplierName ?? '';
-  }
-
-  readonly displaySupplier = (value: unknown): string =>
-    typeof value === 'number' ? this.supplierNameById(value) : typeof value === 'string' ? value : '';
-
-  filteredSuppliers(search: string | null | undefined): SupplierMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.suppliers();
-    return this.suppliers().filter((s) => s.supplierName.toLowerCase().includes(term));
-  }
-
-  // MatAutocomplete refocuses the trigger input right after an option is
-  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
-  // can't immediately clear the name onSupplierSelected just wrote.
-  private supplierJustSelected = false;
-
-  onSupplierSelected(event: MatAutocompleteSelectedEvent): void {
-    const supplierID = event.option.value as number;
-    this.form.patchValue({ supplierID, supplierSearch: this.supplierNameById(supplierID) });
-    this.supplierJustSelected = true;
-    this.onSupplierChange();
-  }
-
-  onSupplierSearchFocus(): void {
-    if (this.supplierJustSelected) {
-      this.supplierJustSelected = false;
-      return;
-    }
-    if (this.form.controls.supplierSearch.value === this.supplierNameById(this.form.controls.supplierID.value)) {
-      this.form.controls.supplierSearch.setValue('');
-    }
-  }
-
-  // Typing away from the settled supplier name must invalidate the stale supplierID -
-  // otherwise the form stays "valid" with the old supplier while the field shows
-  // different text, and save() would silently post against the wrong supplier. The
-  // "against invoice" list belongs to that stale supplier too, so it's cleared here.
-  onSupplierSearchInput(): void {
-    this.form.controls.supplierID.setValue(null);
-    this.form.controls.purchaseID.setValue(null);
-    this.supplierPurchases.set([]);
-  }
-
-  // Blur fires before mat-option's mousedown/click finishes selecting -
-  // defer so onSupplierSelected can patch supplierID first, otherwise a
-  // mouse click on a filtered option gets wiped by this clearing the text.
-  onSupplierSearchBlur(): void {
-    setTimeout(() => {
-      if (this.form.controls.supplierID.value === null) {
-        this.form.controls.supplierSearch.setValue('');
-      }
-    });
   }
 
   private loadSupplierPurchases(supplierId: number): void {
@@ -208,11 +135,14 @@ export class SupplierReturnFormComponent implements OnInit {
   buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
-      fruitSearch: this.fb.nonNullable.control<string>(fruitID != null ? this.fruitName(fruitID) : ''),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
       unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
       boxCount: this.fb.control<number | null>(boxCount, Validators.min(0.01))
     });
+  }
+
+  onFruitChange(index: number): void {
+    this.itemsArray.at(index).patchValue({ boxCount: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {
@@ -221,54 +151,6 @@ export class SupplierReturnFormComponent implements OnInit {
 
   fruitBoxWeight(fruitID: number | null): number | null {
     return this.fruits().find((f) => f.fruitID === fruitID)?.boxWeightKg ?? null;
-  }
-
-  fruitName(fruitID: number | null): string {
-    return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
-  }
-
-  readonly displayFruit = (value: unknown): string =>
-    typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
-
-  filteredFruits(search: string | null | undefined): FruitMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.fruits();
-    return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
-  }
-
-  // Same refocus quirk as onSupplierSelected/onSupplierSearchFocus, per row.
-  private fruitJustSelectedIndex: number | null = null;
-
-  onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
-    const fruitID = event.option.value as number;
-    this.itemsArray.at(index).patchValue({
-      fruitID,
-      fruitSearch: this.fruitName(fruitID),
-      boxCount: null
-    });
-    this.fruitJustSelectedIndex = index;
-  }
-
-  onFruitSearchFocus(index: number): void {
-    if (this.fruitJustSelectedIndex === index) {
-      this.fruitJustSelectedIndex = null;
-      return;
-    }
-    const item = this.itemsArray.at(index);
-    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
-  }
-
-  // Same as onSupplierSearchInput: editing a row's fruit text must invalidate that
-  // row's stale fruitID so save() can't silently post against the wrong fruit.
-  onFruitSearchInput(index: number): void {
-    this.itemsArray.at(index).patchValue({ fruitID: null });
-  }
-
-  onFruitSearchBlur(index: number): void {
-    const item = this.itemsArray.at(index);
-    if (item.value.fruitID === null) {
-      item.patchValue({ fruitSearch: '' });
-    }
   }
 
   onBoxCountChange(index: number): void {
@@ -313,7 +195,7 @@ export class SupplierReturnFormComponent implements OnInit {
 
     const raw = this.form.getRawValue();
     const payload = {
-      returnDate: toIso(raw.returnDate as unknown as Date),
+      returnDate: raw.returnDate,
       supplierID: raw.supplierID,
       purchaseID: raw.purchaseID,
       referenceNo: raw.referenceNo,
@@ -332,7 +214,7 @@ export class SupplierReturnFormComponent implements OnInit {
 
     request$.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
-        this.notification.success(id ? 'Supplier return updated successfully.' : 'Supplier return saved successfully.');
+        this.notification.success(id ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.');
         this.router.navigate(['/supplier-returns']);
       }
     });

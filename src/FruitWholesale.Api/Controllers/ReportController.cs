@@ -1,3 +1,4 @@
+using FruitWholesale.Api.Filters;
 using FruitWholesale.Application.DTOs.Reports;
 using FruitWholesale.Application.Services;
 using FruitWholesale.Domain.Enums;
@@ -6,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FruitWholesale.Api.Controllers;
 
-[Authorize(Roles = UserRoles.Admin)]
+[Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager}")]
+[ServiceFilter(typeof(ReportsAccessFilter))]
 public class ReportController(IReportService service) : ApiControllerBase
 {
     [HttpGet("daily-sales")]

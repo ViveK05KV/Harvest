@@ -1,23 +1,29 @@
-<h2 mat-dialog-title>Shops on {{ route.routeName }}</h2>
-<mat-dialog-content>
+<div class="modal-header">
+  <div>
+    <h2>Shops on {{ route.routeName }}</h2>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="close()"><mat-icon>close</mat-icon></button>
+</div>
+
+<div class="modal-body">
   @if (loading()) {
     <div class="loading-state">
       <mat-spinner diameter="32" />
     </div>
   } @else if (shops().length === 0) {
-    <p class="muted">No shops assigned to this route.</p>
+    <p class="field-hint">No shops assigned to this route.</p>
   } @else {
-    <mat-list>
+    <div class="shop-rows">
       @for (shop of shops(); track shop.shopID) {
-        <mat-list-item>
-          <mat-icon matListItemIcon>store</mat-icon>
-          <span matListItemTitle>{{ shop.shopName }}</span>
-          <span matListItemLine>{{ shop.ownerName || 'No owner listed' }}{{ shop.phone ? ' · ' + shop.phone : '' }}</span>
-        </mat-list-item>
+        <div class="shop-row">
+          <mat-icon>store</mat-icon>
+          <div class="shop-row-text">
+            <span class="shop-row-name">{{ shop.shopName }}</span>
+            <span class="shop-row-sub">{{ shop.ownerName || 'No owner listed' }}{{ shop.phone ? ' · ' + shop.phone : '' }}</span>
+          </div>
+        </div>
       }
-    </mat-list>
+    </div>
   }
-</mat-dialog-content>
-<mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Close</button>
-</mat-dialog-actions>
+</div>

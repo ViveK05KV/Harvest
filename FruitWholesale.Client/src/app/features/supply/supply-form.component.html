@@ -3,171 +3,156 @@
     <mat-spinner diameter="40" />
   </div>
 } @else {
-  <div class="page-toolbar no-print">
-    <h1>{{ isEdit() ? 'Edit Supply' : 'New Supply' }}</h1>
+  <div class="entry-header no-print">
+    <div>
+      <h2>{{ isEdit() ? 'Edit Supply' : 'New Supply' }}</h2>
+      <p>{{ isEdit() ? 'Update this invoice — ledger entries adjust automatically.' : 'Record wholesale stock supplied to a shop.' }}</p>
+    </div>
     <span class="spacer"></span>
-    <button mat-stroked-button (click)="cancel()">Cancel</button>
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
     @if (isEdit()) {
-      <button mat-stroked-button (click)="printInvoice()">
-        <mat-icon>print</mat-icon>
-        Print Invoice
+      <button type="button" class="btn-ghost" (click)="printInvoice()">
+        <mat-icon>print</mat-icon>Print Invoice
       </button>
     }
-    <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
-      <mat-icon>save</mat-icon>
-      Save
+    <button type="button" class="btn-primary" (click)="save()" [disabled]="saving()">
+      <mat-icon>check</mat-icon>Save
     </button>
   </div>
 
-  <mat-card class="form-card no-print">
-    <form [formGroup]="form">
-      <div class="header-grid">
-        <mat-form-field>
-          <mat-label>Invoice Number</mat-label>
-          <input matInput formControlName="invoiceNo" />
-        </mat-form-field>
+  <form [formGroup]="form" class="no-print">
+    <div class="entry-grid">
+      <div class="entry-main">
+        <div class="header-fields">
+          <label class="field">
+            <span class="field-label">Invoice Number</span>
+            <input class="field-plain mono-cell" formControlName="invoiceNo" />
+          </label>
+          <label class="field">
+            <span class="field-label">Date</span>
+            <input class="field-plain" type="date" formControlName="supplyDate" (click)="$any($event.target).showPicker?.()" />
+          </label>
+          <label class="field">
+            <span class="field-label">Customer (Shop)</span>
+            <select class="field-plain" formControlName="shopID">
+              <option [ngValue]="null">Select a shop</option>
+              @for (shop of shops(); track shop.shopID) {
+                <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
+              }
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Remarks</span>
+            <input class="field-plain" formControlName="remarks" placeholder="Optional" />
+          </label>
+        </div>
 
-        <mat-form-field>
-          <mat-label>Date</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="supplyDate" />
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Customer (Shop)</mat-label>
-          <input
-            matInput
-            formControlName="shopSearch"
-            placeholder="Search shop"
-            [matAutocomplete]="shopAuto"
-            (focus)="onShopSearchFocus()"
-            (click)="onShopSearchFocus()"
-            (input)="onShopSearchInput()"
-            (blur)="onShopSearchBlur()"
-          />
-<mat-autocomplete #shopAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayShop" (optionSelected)="onShopSelected($event)">
-            @for (shop of filteredShops(form.value.shopSearch); track shop.shopID) {
-              <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
-            }
-          </mat-autocomplete>
-        </mat-form-field>
-
-        <mat-form-field class="remarks-field">
-          <mat-label>Remarks</mat-label>
-          <input matInput formControlName="remarks" />
-        </mat-form-field>
-      </div>
-
-      <div class="items-header">
-        <h3>Items</h3>
-        <button mat-stroked-button type="button" (click)="addRow()">
-          <mat-icon>add</mat-icon>
-          Add Row
-        </button>
-      </div>
-
-      <div class="table-container" formArrayName="items">
-        <table>
-          <thead>
-            <tr>
-              <th>Fruit</th>
-              <th>Type</th>
-              <th>Quantity</th>
-              <th>Rate</th>
-              <th>Amount</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of itemsArray.controls; track item; let i = $index) {
-              <tr [formGroupName]="i">
-                <td>
-                  <mat-form-field subscriptSizing="dynamic" class="full-width">
-                    <input
-                      matInput
-                      formControlName="fruitSearch"
-                      placeholder="Search fruit"
-                      [matAutocomplete]="fruitAuto"
-                      (focus)="onFruitSearchFocus(i)"
-                      (click)="onFruitSearchFocus(i)"
-                      (input)="onFruitSearchInput(i)"
-                      (blur)="onFruitSearchBlur(i)"
-                    />
-                  </mat-form-field>
-<mat-autocomplete #fruitAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">
-                    @for (fruit of filteredFruits(item.value.fruitSearch); track fruit.fruitID) {
-                      <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
+        <div class="items-table-scroll" formArrayName="items">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="col-fruit">Fruit</th>
+                <th class="col-type">Sell by</th>
+                <th class="col-num">Quantity</th>
+                <th class="col-num">Rate</th>
+                <th class="col-num">Amount</th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of itemsArray.controls; track item; let i = $index) {
+                <tr [formGroupName]="i">
+                  <td>
+                    <select class="cell-input" [value]="item.value.fruitID ?? ''" (change)="onFruitChange(i, $any($event.target).value)">
+                      <option value="">Select fruit</option>
+                      @for (fruit of fruits(); track fruit.fruitID) {
+                        <option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</option>
+                      }
+                    </select>
+                  </td>
+                  <td>
+                    @if (fruitTracksByBox(item.value.fruitID)) {
+                      <select class="cell-input cell-input--narrow" formControlName="saleType" (change)="onSaleTypeChange(i)">
+                        <option value="kg">Kg</option>
+                        <option value="box">Box</option>
+                      </select>
+                    } @else {
+                      <span class="no-box-track">{{ fruitUnit(item.value.fruitID) || '—' }}</span>
                     }
-                  </mat-autocomplete>
-                </td>
-                <td>
-                  @if (fruitTracksByBox(item.value.fruitID)) {
-                    <mat-form-field subscriptSizing="dynamic" class="type-field">
-                      <mat-select formControlName="saleType" (selectionChange)="onSaleTypeChange(i)">
-                        <mat-option value="kg">Kg</mat-option>
-                        <mat-option value="box">Box</mat-option>
-                      </mat-select>
-                    </mat-form-field>
-                  } @else {
-                    <span class="no-box-track">—</span>
-                  }
-                </td>
-                <td>
-                  @if (fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box') {
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" formControlName="boxCount" min="0.01" step="0.01" placeholder="Boxes" (input)="onBoxCountChange(i)" />
-                    </mat-form-field>
-                    <div class="kg-hint">{{ item.value.quantity }} kg</div>
-                  } @else {
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" formControlName="quantity" min="0" step="0.01" />
-                    </mat-form-field>
-                  }
-                </td>
-                <td>
-                  <div class="rate-cell">
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" formControlName="unitPrice" min="0" step="0.01" />
-                    </mat-form-field>
-                    <span class="rate-unit">{{ fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box' ? '/box' : '/kg' }}</span>
-                  </div>
-                </td>
-                <td class="amount-cell">
-                  @if (isAdmin && editingAmountIndex() === i) {
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" [value]="rowAmount(i)" (blur)="onAmountChange(i, $event)" min="0" step="1" />
-                    </mat-form-field>
-                  } @else {
-                    <span [class.admin-editable-amount]="isAdmin" (dblclick)="isAdmin && startEditAmount(i, $event)">
-                      {{ rowAmount(i) | number: '1.0-0' }}
-                    </span>
-                  }
-                </td>
-                <td>
-                  <button mat-icon-button type="button" (click)="removeRow(i)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  </td>
+                  <td>
+                    @if (fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box') {
+                      <input class="cell-input cell-input--num mono-cell" type="number" formControlName="boxCount" min="0.01" step="0.01" placeholder="Boxes" (input)="onBoxCountChange(i)" />
+                      <span class="cell-hint">{{ item.value.quantity }} kg</span>
+                    } @else {
+                      <input class="cell-input cell-input--num mono-cell" type="number" formControlName="quantity" min="0" step="0.01" />
+                    }
+                  </td>
+                  <td>
+                    <input class="cell-input cell-input--num mono-cell" type="number" formControlName="unitPrice" min="0" step="0.01" />
+                    <span class="cell-hint">{{ fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box' ? '/box' : '/kg' }}</span>
+                  </td>
+                  <td class="amount-cell mono-cell">
+                    @if (isAdmin && editingAmountIndex() === i) {
+                      <input class="cell-input cell-input--num mono-cell" type="number" [value]="rowAmount(i)" (blur)="onAmountChange(i, $event)" min="0" step="1" />
+                    } @else {
+                      <span [class.admin-editable-amount]="isAdmin" (dblclick)="isAdmin && startEditAmount(i, $event)">
+                        {{ rowAmount(i) | number: '1.0-0' }}
+                      </span>
+                    }
+                  </td>
+                  <td>
+                    <button type="button" class="row-icon-btn" (click)="removeRow(i)"><mat-icon>delete_outline</mat-icon></button>
+                  </td>
+                </tr>
+              }
+              <tr>
+                <td colspan="6">
+                  <button type="button" class="add-row-btn" (click)="addRow()"><mat-icon>add</mat-icon>Add row</button>
                 </td>
               </tr>
-            }
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="entry-footer-bar">
+          <span class="footer-stat"><span class="footer-stat-label">Lines</span><span class="footer-stat-value mono-cell">{{ itemsArray.length }}</span></span>
+          <span class="spacer"></span>
+          <span class="grand-total"><span class="footer-stat-label">Grand total</span><strong class="mono-cell">{{ total() | number: '1.0-0' }}</strong></span>
+        </div>
       </div>
 
-      <div class="grand-total">
-        <span>Grand Total:</span>
-        <strong>{{ total() | number: '1.0-0' }}</strong>
+      <div class="entry-side">
+        @if (selectedShop(); as shop) {
+          <div class="context-card">
+            <span class="context-kicker">Customer</span>
+            <span class="context-name">{{ shop.shopName }}</span>
+            <span class="context-sub">{{ shop.routeName || 'No route' }} · {{ shop.phone || '—' }}</span>
+            <div class="context-rows">
+              <div class="context-row"><span>Old balance</span><strong class="mono-cell">{{ shop.currentOutstanding | number: '1.0-0' }}</strong></div>
+              <div class="context-row"><span>Credit limit</span><strong class="mono-cell">{{ shop.creditLimit | number: '1.0-0' }}</strong></div>
+              <div class="context-row"><span>Balance after this invoice</span><strong class="mono-cell" [class.balance-over]="shop.creditLimit > 0 && balanceAfter() > shop.creditLimit">{{ balanceAfter() | number: '1.0-0' }}</strong></div>
+            </div>
+            @if (shop.creditLimit > 0 && balanceAfter() > shop.creditLimit) {
+              <div class="context-warn">Over credit limit by {{ balanceAfter() - shop.creditLimit | number: '1.0-0' }}</div>
+            }
+          </div>
+        } @else {
+          <div class="context-card context-card--empty">
+            <span class="context-kicker">Customer</span>
+            <span class="context-sub">Select a shop to see its balance.</span>
+          </div>
+        }
       </div>
-    </form>
-  </mat-card>
+    </div>
+  </form>
 
   <div class="print-only invoice-print">
     <h2>Supply Invoice</h2>
     <div class="invoice-meta">
       <div><strong>Invoice No:</strong> {{ form.controls.invoiceNo.value }}</div>
       <div><strong>Date:</strong> {{ form.controls.supplyDate.value | date: 'dd-MMM-yyyy' }}</div>
-      <div><strong>Customer:</strong> {{ shopName() }}</div>
+      <div><strong>Customer:</strong> {{ selectedShop()?.shopName }}</div>
     </div>
     <table class="invoice-table">
       <thead>

@@ -37,6 +37,8 @@ builder.Services
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<ReportsAccessFilter>();
+builder.Services.AddScoped<ProfitAccessFilter>();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();

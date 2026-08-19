@@ -43,4 +43,7 @@ public class ExpenseCategoryController(IExpenseCategoryService service) : ApiCon
         await service.SetActiveAsync(id, false);
         return NoContent();
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Delete(int id) => FromResult(await service.DeleteAsync(id));
 }

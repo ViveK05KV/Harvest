@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
-import { catchError, of } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CompanySettings } from '../models/master-data.model';
 
@@ -25,5 +25,17 @@ export class BrandingService {
       .get<CompanySettings>(this.baseUrl)
       .pipe(catchError(() => of(null)))
       .subscribe((settings) => this.companySettings.set(settings));
+  }
+
+  // Used by route guards that need the setting before the layout's own
+  // refresh() (a constructor side effect) has necessarily run yet.
+  ensureLoaded(): Observable<CompanySettings | null> {
+    const current = this.companySettings();
+    if (current) return of(current);
+
+    return this.http.get<CompanySettings>(this.baseUrl).pipe(
+      tap((settings) => this.companySettings.set(settings)),
+      catchError(() => of(null))
+    );
   }
 }

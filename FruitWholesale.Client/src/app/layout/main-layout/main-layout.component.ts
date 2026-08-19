@@ -15,6 +15,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { BrandingService } from '../../core/services/branding.service';
 import { BrandMarkComponent } from '../../shared/brand-mark/brand-mark.component';
 import { UserRole } from '../../core/models/common.model';
+import { CompanySettings } from '../../core/models/master-data.model';
 
 interface NavItem {
   label: string;
@@ -76,24 +77,24 @@ export class MainLayoutComponent {
       label: 'Transactions',
       items: [
         { label: 'Supply', icon: 'local_shipping', route: '/supply' },
-        { label: 'Bill Printing', icon: 'print', route: '/bill-printing' },
-        { label: 'Shop Returns', icon: 'assignment_return', route: '/shop-returns' },
-        { label: 'Purchase', icon: 'shopping_cart', route: '/purchase', roles: MainLayoutComponent.BACK_OFFICE },
-        {
-          label: 'Supplier Returns',
-          icon: 'keyboard_return',
-          route: '/supplier-returns',
-          roles: MainLayoutComponent.BACK_OFFICE
-        },
         { label: 'Collections', icon: 'payments', route: '/collections' },
+        { label: 'Purchases', icon: 'shopping_cart', route: '/purchase', roles: MainLayoutComponent.BACK_OFFICE },
         {
           label: 'Supplier Payments',
           icon: 'account_balance_wallet',
           route: '/supplier-payments',
           roles: MainLayoutComponent.BACK_OFFICE
         },
-        { label: 'Daily Expenses', icon: 'receipt_long', route: '/daily-expenses', roles: MainLayoutComponent.BACK_OFFICE },
-        { label: 'Employee Salary', icon: 'work_history', route: '/employee-salary', roles: MainLayoutComponent.BACK_OFFICE }
+        { label: 'Sales Returns', icon: 'assignment_return', route: '/shop-returns' },
+        {
+          label: 'Purchase Returns',
+          icon: 'keyboard_return',
+          route: '/supplier-returns',
+          roles: MainLayoutComponent.BACK_OFFICE
+        },
+        { label: 'Billing', icon: 'print', route: '/bill-printing' },
+        { label: 'Expenses', icon: 'receipt_long', route: '/daily-expenses', roles: MainLayoutComponent.BACK_OFFICE },
+        { label: 'Salary Management', icon: 'work_history', route: '/employee-salary', roles: MainLayoutComponent.BACK_OFFICE }
       ]
     },
     {
@@ -108,6 +109,8 @@ export class MainLayoutComponent {
     {
       label: 'Reports',
       items: [
+        // roles here is the Admin-only floor; itemVisible() additionally lets Manager
+        // through once the admin flips the matching CompanySettings flag for each item.
         { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['Admin'] },
         { label: 'Profit Calculator', icon: 'trending_up', route: '/profit', roles: ['Admin'] }
       ]
@@ -127,7 +130,8 @@ export class MainLayoutComponent {
       label: 'Administration',
       items: [
         { label: 'Users', icon: 'manage_accounts', route: '/users', roles: ['Admin'] },
-        { label: 'Settings', icon: 'settings', route: '/settings', roles: ['Admin'] }
+        // Every role can reach Settings now (self-service password/username); no roles filter.
+        { label: 'Settings', icon: 'settings', route: '/settings' }
       ]
     }
   ];
@@ -148,9 +152,25 @@ export class MainLayoutComponent {
     return this.navGroups
       .map((group) => ({
         label: group.label,
-        items: group.items.filter((item) => !item.roles || this.authService.hasRole(...item.roles))
+        items: group.items.filter((item) => this.itemVisible(item))
       }))
       .filter((group) => group.items.length > 0);
+  }
+
+  // Reports and Profit Calculator are the items an admin can open up to Manager at runtime,
+  // each gated by its own CompanySettings flag (see settings.component's "Manager Access" card).
+  private static readonly MANAGER_UNLOCKABLE: Record<string, (s: CompanySettings) => boolean> = {
+    '/reports': (s) => s.reportsVisibleToManagers,
+    '/profit': (s) => s.profitVisibleToManagers
+  };
+
+  private itemVisible(item: NavItem): boolean {
+    if (!item.roles || this.authService.hasRole(...item.roles)) return true;
+    if (!this.authService.hasRole('Manager')) return false;
+
+    const settings = this.branding.companySettings();
+    const flag = MainLayoutComponent.MANAGER_UNLOCKABLE[item.route];
+    return !!settings && !!flag?.(settings);
   }
 
   toggleSidenav(): void {

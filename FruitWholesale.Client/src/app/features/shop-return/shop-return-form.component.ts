@@ -1,17 +1,8 @@
-﻿import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize, forkJoin } from 'rxjs';
 import { ShopReturnService } from './shop-return.service';
@@ -26,22 +17,7 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-shop-return-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    DatePipe,
-    DecimalPipe,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatTableModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './shop-return-form.component.html',
   styleUrl: './shop-return-form.component.scss'
 })
@@ -64,12 +40,9 @@ export class ShopReturnFormComponent implements OnInit {
   readonly shopReturnId = signal<number | null>(null);
   readonly isEdit = computed(() => this.shopReturnId() !== null);
 
-  readonly displayedColumns = ['fruit', 'quantity', 'unitPrice', 'amount', 'remove'];
-
   readonly form = this.fb.nonNullable.group({
-    returnDate: [new Date(), Validators.required],
+    returnDate: [toIso(new Date()), Validators.required],
     shopID: this.fb.control<number | null>(null, Validators.required),
-    shopSearch: this.fb.nonNullable.control<string>(''),
     supplyID: this.fb.control<number | null>(null),
     referenceNo: ['', [Validators.required, Validators.maxLength(50)]],
     remarks: [''],
@@ -78,6 +51,16 @@ export class ShopReturnFormComponent implements OnInit {
 
   get itemsArray(): FormArray {
     return this.form.controls.items;
+  }
+
+  selectedShop(): ShopMaster | null {
+    const id = this.form.controls.shopID.value;
+    return this.shops().find((s) => s.shopID === id) ?? null;
+  }
+
+  balanceAfter(): number {
+    const shop = this.selectedShop();
+    return shop ? shop.currentOutstanding - this.total() : 0;
   }
 
   ngOnInit(): void {
@@ -95,9 +78,8 @@ export class ShopReturnFormComponent implements OnInit {
       if (id) {
         this.shopReturnService.getById(id).subscribe((shopReturn) => {
           this.form.patchValue({
-            returnDate: new Date(shopReturn.returnDate),
+            returnDate: shopReturn.returnDate.slice(0, 10),
             shopID: shopReturn.shopID,
-            shopSearch: this.shopNameById(shopReturn.shopID),
             supplyID: shopReturn.supplyID ?? null,
             referenceNo: shopReturn.referenceNo,
             remarks: shopReturn.remarks
@@ -116,67 +98,15 @@ export class ShopReturnFormComponent implements OnInit {
     });
   }
 
-  onShopChange(): void {
-    this.form.controls.supplyID.setValue(null);
+  onShopChange(value: string): void {
+    const shopID = value ? Number(value) : null;
+    this.form.patchValue({ shopID, supplyID: null });
     this.shopSupplies.set([]);
-    const shopId = this.form.controls.shopID.value;
-    if (shopId) this.loadShopSupplies(shopId);
+    if (shopID) this.loadShopSupplies(shopID);
   }
 
-  shopNameById(shopID: number | null): string {
-    return this.shops().find((s) => s.shopID === shopID)?.shopName ?? '';
-  }
-
-  readonly displayShop = (value: unknown): string =>
-    typeof value === 'number' ? this.shopNameById(value) : typeof value === 'string' ? value : '';
-
-  filteredShops(search: string | null | undefined): ShopMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.shops();
-    return this.shops().filter((s) => s.shopName.toLowerCase().includes(term));
-  }
-
-  // MatAutocomplete refocuses the trigger input right after an option is
-  // clicked, which re-fires (focus) - skip that one synthetic refocus so it
-  // can't immediately clear the name onShopSelected just wrote.
-  private shopJustSelected = false;
-
-  onShopSelected(event: MatAutocompleteSelectedEvent): void {
-    const shopID = event.option.value as number;
-    this.form.patchValue({ shopID, shopSearch: this.shopNameById(shopID) });
-    this.shopJustSelected = true;
-    this.onShopChange();
-  }
-
-  onShopSearchFocus(): void {
-    if (this.shopJustSelected) {
-      this.shopJustSelected = false;
-      return;
-    }
-    if (this.form.controls.shopSearch.value === this.shopNameById(this.form.controls.shopID.value)) {
-      this.form.controls.shopSearch.setValue('');
-    }
-  }
-
-  // Typing away from the settled shop name must invalidate the stale shopID -
-  // otherwise the form stays "valid" with the old shop while the field shows
-  // different text, and save() would silently post against the wrong shop. The
-  // "against invoice" list belongs to that stale shop too, so it's cleared here.
-  onShopSearchInput(): void {
-    this.form.controls.shopID.setValue(null);
-    this.form.controls.supplyID.setValue(null);
-    this.shopSupplies.set([]);
-  }
-
-  // Blur fires before mat-option's mousedown/click finishes selecting -
-  // defer so onShopSelected can patch shopID first, otherwise a mouse
-  // click on a filtered option gets wiped by this clearing the text.
-  onShopSearchBlur(): void {
-    setTimeout(() => {
-      if (this.form.controls.shopID.value === null) {
-        this.form.controls.shopSearch.setValue('');
-      }
-    });
+  onSupplyChange(value: string): void {
+    this.form.controls.supplyID.setValue(value ? Number(value) : null);
   }
 
   private loadShopSupplies(shopId: number): void {
@@ -206,12 +136,15 @@ export class ShopReturnFormComponent implements OnInit {
   buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
-      fruitSearch: this.fb.nonNullable.control<string>(fruitID != null ? this.fruitName(fruitID) : ''),
       saleType: this.fb.nonNullable.control<'kg' | 'box'>(boxCount != null ? 'box' : 'kg'),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
       unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
       boxCount: this.fb.control<number | null>(boxCount, Validators.min(0.01))
     });
+  }
+
+  onFruitChange(index: number): void {
+    this.itemsArray.at(index).patchValue({ saleType: 'kg', boxCount: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {
@@ -222,53 +155,8 @@ export class ShopReturnFormComponent implements OnInit {
     return this.fruits().find((f) => f.fruitID === fruitID)?.boxWeightKg ?? null;
   }
 
-  fruitName(fruitID: number | null): string {
-    return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
-  }
-
-  readonly displayFruit = (value: unknown): string =>
-    typeof value === 'number' ? this.fruitName(value) : typeof value === 'string' ? value : '';
-
-  filteredFruits(search: string | null | undefined): FruitMaster[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.fruits();
-    return this.fruits().filter((f) => f.fruitName.toLowerCase().includes(term));
-  }
-
-  // Same refocus quirk as onShopSelected/onShopSearchFocus, per row.
-  private fruitJustSelectedIndex: number | null = null;
-
-  onFruitSelected(index: number, event: MatAutocompleteSelectedEvent): void {
-    const fruitID = event.option.value as number;
-    this.itemsArray.at(index).patchValue({
-      fruitID,
-      fruitSearch: this.fruitName(fruitID),
-      saleType: 'kg',
-      boxCount: null
-    });
-    this.fruitJustSelectedIndex = index;
-  }
-
-  onFruitSearchFocus(index: number): void {
-    if (this.fruitJustSelectedIndex === index) {
-      this.fruitJustSelectedIndex = null;
-      return;
-    }
-    const item = this.itemsArray.at(index);
-    if (item.value.fruitSearch === this.fruitName(item.value.fruitID)) item.patchValue({ fruitSearch: '' });
-  }
-
-  // Same as onShopSearchInput: editing a row's fruit text must invalidate that
-  // row's stale fruitID so save() can't silently post against the wrong fruit.
-  onFruitSearchInput(index: number): void {
-    this.itemsArray.at(index).patchValue({ fruitID: null });
-  }
-
-  onFruitSearchBlur(index: number): void {
-    const item = this.itemsArray.at(index);
-    if (item.value.fruitID === null) {
-      item.patchValue({ fruitSearch: '' });
-    }
+  fruitUnit(fruitID: number | null): string {
+    return this.fruits().find((f) => f.fruitID === fruitID)?.unit ?? '';
   }
 
   onSaleTypeChange(index: number): void {
@@ -326,7 +214,7 @@ export class ShopReturnFormComponent implements OnInit {
 
     const raw = this.form.getRawValue();
     const payload = {
-      returnDate: toIso(raw.returnDate as unknown as Date),
+      returnDate: raw.returnDate,
       shopID: raw.shopID,
       supplyID: raw.supplyID,
       referenceNo: raw.referenceNo,
@@ -345,7 +233,7 @@ export class ShopReturnFormComponent implements OnInit {
 
     request$.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
-        this.notification.success(id ? 'Shop return updated successfully.' : 'Shop return saved successfully.');
+        this.notification.success(id ? 'Sales return updated successfully.' : 'Sales return saved successfully.');
         this.router.navigate(['/shop-returns']);
       }
     });

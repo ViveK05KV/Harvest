@@ -1,16 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatTableModule } from '@angular/material/table';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { ReportService } from './report.service';
 import { ExportService } from '../../core/services/export.service';
 import { EmployeeService } from '../employee/employee.service';
@@ -31,31 +22,17 @@ import {
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    DatePipe,
-    DecimalPipe,
-    FormsModule,
-    MatTabsModule,
-    MatTableModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatAutocompleteModule
-  ],
-  templateUrl: './reports.component.html'
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, MatIconModule, MatProgressBarModule],
+  templateUrl: './reports.component.html',
+  styleUrl: './reports.component.scss'
 })
 export class ReportsComponent implements OnInit {
   private readonly reportService = inject(ReportService);
   private readonly exportService = inject(ExportService);
   private readonly employeeService = inject(EmployeeService);
 
-  fromDate = firstOfMonth();
-  toDate = new Date();
+  fromDate = toIso(firstOfMonth());
+  toDate = toIso(new Date());
   readonly loading = signal(false);
   readonly activeTab = signal(0);
 
@@ -69,53 +46,18 @@ export class ReportsComponent implements OnInit {
   readonly expenseByCategory = signal<ExpenseByCategoryReportRow[]>([]);
   readonly salaryByEmployee = signal<SalaryByEmployeeReportRow[]>([]);
 
-  readonly dailySalesColumns = ['supplyDate', 'invoiceNo', 'shopName', 'totalAmount'];
-  readonly dailyCollectionColumns = ['collectionDate', 'shopName', 'amountReceived', 'paymentMode'];
-  readonly dailyExpenseColumns = ['expenseDate', 'categoryName', 'paidTo', 'amount', 'paymentMode'];
-  readonly purchaseColumns = ['purchaseDate', 'invoiceNo', 'supplierName', 'totalAmount'];
-  readonly fruitSalesColumns = ['fruitName', 'unit', 'totalQuantity', 'totalAmount'];
-  readonly outstandingColumns = ['type', 'name', 'outstandingAmount'];
-  readonly profitColumns = ['month', 'totalSales', 'totalPurchases', 'totalExpenses', 'netProfit'];
-  readonly expenseByCategoryColumns = ['categoryName', 'totalAmount'];
-  readonly salaryByEmployeeColumns = ['employeeName', 'workDaysCount', 'totalAmount'];
   private loadRequestId = 0;
 
-  // Salary tab's employee filter - same searchable-dropdown pattern as the
-  // shop/supplier filters used across the transaction list pages.
   readonly employees = signal<Employee[]>([]);
   employeeId: number | null = null;
-  employeeSearch = '';
 
   ngOnInit(): void {
     this.employeeService.getAllActive().subscribe((employees) => this.employees.set(employees));
     this.loadActiveTab();
   }
 
-  filteredEmployees(search: string | null | undefined): Employee[] {
-    const term = (search ?? '').trim().toLowerCase();
-    if (!term) return this.employees();
-    return this.employees().filter((e) => e.fullName.toLowerCase().includes(term));
-  }
-
-  readonly displayEmployee = (value: unknown): string =>
-    typeof value === 'number' ? (this.employees().find((e) => e.employeeID === value)?.fullName ?? '') : typeof value === 'string' ? value : '';
-
-  onEmployeeFilterSelected(event: MatAutocompleteSelectedEvent): void {
-    const employeeId = event.option.value as number | null;
-    this.employeeId = employeeId;
-    this.employeeSearch = employeeId == null ? '' : (this.employees().find((e) => e.employeeID === employeeId)?.fullName ?? '');
-    this.onFilterChange();
-  }
-
-  onEmployeeSearchFocus(): void {
-    if (this.employeeSearch === (this.employees().find((e) => e.employeeID === this.employeeId)?.fullName ?? '')) this.employeeSearch = '';
-  }
-
-  // Typing away from the selected employee must clear the stale filter and
-  // reload - otherwise the field shows different text while the table stays
-  // silently filtered by whatever employee was previously selected.
-  onEmployeeSearchInput(): void {
-    this.employeeId = null;
+  onEmployeeChange(value: string): void {
+    this.employeeId = value ? Number(value) : null;
     this.onFilterChange();
   }
 
@@ -129,8 +71,8 @@ export class ReportsComponent implements OnInit {
   }
 
   loadActiveTab(): void {
-    const from = toIso(this.fromDate);
-    const to = toIso(this.toDate);
+    const from = this.fromDate;
+    const to = this.toDate;
     this.loading.set(true);
 
     // A stale response from a previous tab/filter must not overwrite a newer

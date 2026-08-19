@@ -14,6 +14,7 @@ public interface IAuthService
     Task<Result<LoginResponseDto>> RefreshAsync(string? refreshToken);
     Task LogoutAsync(string? refreshToken);
     Task<Result> ChangePasswordAsync(int userId, ChangePasswordRequestDto request);
+    Task<Result<string>> ChangeUsernameAsync(int userId, ChangeUsernameRequestDto request);
 }
 
 public class AuthService(
@@ -144,5 +145,27 @@ public class AuthService(
         var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 11);
         await userRepository.ChangePasswordAsync(userId, newHash);
         return Result.Success();
+    }
+
+    public async Task<Result<string>> ChangeUsernameAsync(int userId, ChangeUsernameRequestDto request)
+    {
+        var user = await userRepository.GetByIdAsync(userId);
+        if (user is null)
+        {
+            return Result.Failure<string>("User not found.");
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        {
+            return Result.Failure<string>("Current password is incorrect.");
+        }
+
+        if (await userRepository.UsernameExistsAsync(request.NewUsername, userId))
+        {
+            return Result.Failure<string>("Username is already taken.");
+        }
+
+        await userRepository.ChangeUsernameAsync(userId, request.NewUsername);
+        return Result.Success(request.NewUsername);
     }
 }

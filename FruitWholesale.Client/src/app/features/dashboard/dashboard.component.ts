@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -9,14 +8,9 @@ import { ChartConfiguration } from 'chart.js';
 import { forkJoin } from 'rxjs';
 import { ChartComponent } from '../../shared/chart/chart.component';
 import { DashboardService } from './dashboard.service';
-import { StockService } from '../stock/stock.service';
-import { CurrentStock } from '../../core/models/stock.model';
 import { AuthService } from '../../core/services/auth.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { SupplierMasterService } from '../supplier-master/supplier-master.service';
-import { LedgerService } from '../ledgers/ledger.service';
-import { cashLedgerTypeLabel } from '../../core/models/ledger.model';
-import { toIso } from '../../core/utils/date.util';
 import {
   DASHBOARD_PERIODS,
   DASHBOARD_PERIOD_LABELS,
@@ -36,15 +30,6 @@ interface TodayStripTile {
   value: number;
 }
 
-interface CashTapeRow {
-  time: string;
-  label: string;
-  note: string;
-  amount: number;
-  isIn: boolean;
-  balance: number;
-}
-
 const SPARKLINE_OPTIONS: ChartConfiguration['options'] = {
   scales: { x: { display: false }, y: { display: false } },
   plugins: { legend: { display: false }, tooltip: { enabled: false } },
@@ -57,9 +42,7 @@ const SPARKLINE_OPTIONS: ChartConfiguration['options'] = {
   imports: [
     CurrencyPipe,
     DatePipe,
-    DecimalPipe,
     FormsModule,
-    RouterLink,
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -71,10 +54,8 @@ const SPARKLINE_OPTIONS: ChartConfiguration['options'] = {
 })
 export class DashboardComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
-  private readonly stockService = inject(StockService);
   private readonly shopMasterService = inject(ShopMasterService);
   private readonly supplierMasterService = inject(SupplierMasterService);
-  private readonly ledgerService = inject(LedgerService);
   readonly authService = inject(AuthService);
 
   readonly sparklineOptions = SPARKLINE_OPTIONS;
@@ -97,31 +78,31 @@ export class DashboardComponent implements OnInit {
   readonly cashTrend = signal<TrendPoint[]>([]);
   readonly profitTrend = signal<TrendPoint[]>([]);
 
+  readonly cashTrendRange = computed(() => {
+    const points = this.cashTrend();
+    return { start: points[0]?.label ?? '', end: points[points.length - 1]?.label ?? '', days: points.length };
+  });
+
   readonly payables = signal<PayableRow[]>([]);
   readonly supplierCount = signal(0);
   readonly shopsWithBalanceCount = signal(0);
   readonly overLimitAmount = signal(0);
   readonly overLimitShopCount = signal(0);
 
-  readonly cashTapeLoading = signal(true);
-  readonly cashTape = signal<CashTapeRow[]>([]);
-
   readonly todayStrip = computed<TodayStripTile[]>(() => {
     const s = this.summary();
     if (!s) return [];
-    return [
+    const tiles: TodayStripTile[] = [
       { label: 'Sales', value: s.todaySales },
       { label: 'Collections', value: s.todayCollection },
       { label: 'Purchases', value: s.todayPurchases },
-      { label: 'Expenses', value: s.todayExpenses },
-      { label: 'Net Cash', value: s.todayCollection - s.todayPurchases - s.todayExpenses }
+      { label: 'Expenses', value: s.todayExpenses }
     ];
-  });
-
-  readonly todayMarginPercent = computed(() => {
-    const s = this.summary();
-    if (!s || !s.todayProfit || !s.todaySales) return null;
-    return (s.todayProfit / s.todaySales) * 100;
+    if (s.todayProfit !== null) {
+      tiles.push({ label: 'Profit', value: s.todayProfit });
+    }
+    tiles.push({ label: 'Net Cash', value: s.todayCollection - s.todayPurchases - s.todayExpenses });
+    return tiles;
   });
 
   readonly customerAtRiskPercent = computed(() => {
@@ -131,38 +112,24 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly cashSparklineData = computed<ChartConfiguration['data']>(() => this.toSparkline(this.cashTrend(), '#7fd6a0'));
-  readonly profitSparklineData = computed<ChartConfiguration['data']>(() => this.toSparkline(this.profitTrend(), '#1f7a48'));
+  readonly profitSparklineData = computed<ChartConfiguration['data']>(() => this.toSparkline(this.profitTrend(), '#1c6b45'));
 
-  readonly stockLoading = signal(true);
-  readonly stockItems = signal<CurrentStock[]>([]);
-  readonly lowStockItems = computed(() => [...this.stockItems()].sort((a, b) => a.currentStock - b.currentStock).slice(0, 6));
-  readonly maxStockForBar = computed(() => Math.max(1, ...this.stockItems().map((i) => i.currentStock)));
+  readonly svpChartOptions: ChartConfiguration['options'] = {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { display: false, grid: { display: false } }
+    }
+  };
 
-  readonly salesVsPurchasesMarginData = computed<ChartConfiguration['data']>(() => {
+  readonly salesVsPurchasesData = computed<ChartConfiguration['data']>(() => {
     const sales = this.svpSales();
     const purchases = this.svpPurchases();
     return {
       labels: sales.map((p) => p.label),
       datasets: [
-        { type: 'bar' as const, label: 'Sales', data: sales.map((p) => p.amount), backgroundColor: '#277a4b', borderRadius: 6, barThickness: 14 },
-        {
-          type: 'bar' as const,
-          label: 'Purchases',
-          data: purchases.map((p) => p.amount),
-          backgroundColor: '#c57c11',
-          borderRadius: 6,
-          barThickness: 14
-        },
-        {
-          type: 'line' as const,
-          label: 'Margin',
-          data: sales.map((p, i) => p.amount - (purchases[i]?.amount ?? 0)),
-          borderColor: '#1f7a48',
-          backgroundColor: '#1f7a48',
-          tension: 0.35,
-          pointRadius: 3,
-          pointBackgroundColor: '#1f7a48'
-        }
+        { label: 'Sales', data: sales.map((p) => p.amount), backgroundColor: '#1c6b45', borderRadius: 6, barThickness: 14 },
+        { label: 'Purchases', data: purchases.map((p) => p.amount), backgroundColor: '#c3d4c8', borderRadius: 6, barThickness: 14 }
       ]
     };
   });
@@ -173,6 +140,8 @@ export class DashboardComponent implements OnInit {
     return { sales, purchases, margin: sales - purchases };
   });
 
+  private readonly expensePalette = ['#1c6b45', '#7fa88f', '#c99a3d', '#c3d4c8', '#5f7a6a', '#efbd67', '#a8c4b0', '#3c453f'];
+
   readonly expensesChartData = computed<ChartConfiguration['data']>(() => {
     const items = this.charts()?.expensesByCategory ?? [];
     return {
@@ -180,10 +149,29 @@ export class DashboardComponent implements OnInit {
       datasets: [
         {
           data: items.map((i) => i.amount),
-          backgroundColor: ['#1f6f43', '#91b982', '#d89a27', '#d8dfd7', '#64766b', '#efbd67', '#b8ccb5', '#355847']
+          backgroundColor: items.map((_, idx) => this.expensePalette[idx % this.expensePalette.length]),
+          borderWidth: 0
         }
       ]
     };
+  });
+
+  readonly doughnutOptions: ChartConfiguration['options'] = {
+    cutout: '72%',
+    plugins: { legend: { display: false }, tooltip: { enabled: true } }
+  } as ChartConfiguration['options'];
+
+  readonly spendTotal = computed(() => (this.charts()?.expensesByCategory ?? []).reduce((sum, i) => sum + i.amount, 0));
+
+  readonly spendBreakdown = computed(() => {
+    const items = this.charts()?.expensesByCategory ?? [];
+    const total = this.spendTotal() || 1;
+    return items.map((i, idx) => ({
+      category: i.category,
+      amount: i.amount,
+      pct: Math.round((i.amount / total) * 100),
+      color: this.expensePalette[idx % this.expensePalette.length]
+    }));
   });
 
   ngOnInit(): void {
@@ -200,31 +188,14 @@ export class DashboardComponent implements OnInit {
     });
 
     this.loadSalesVsPurchases();
-    this.loadStock();
     this.loadCashTrend();
     this.loadProfitTrend();
     this.loadPayables();
     this.loadCustomerRisk();
-    this.loadCashTape();
-  }
-
-  stockLevelPercent(item: CurrentStock): number {
-    return Math.round((item.currentStock / this.maxStockForBar()) * 100);
   }
 
   onSvpPeriodChange(): void {
     this.loadSalesVsPurchases();
-  }
-
-  private loadStock(): void {
-    this.stockLoading.set(true);
-    this.stockService.getCurrentStock().subscribe({
-      next: (items) => {
-        this.stockItems.set(items);
-        this.stockLoading.set(false);
-      },
-      error: () => this.stockLoading.set(false)
-    });
   }
 
   private loadSalesVsPurchases(): void {
@@ -280,41 +251,14 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  private loadCashTape(): void {
-    this.cashTapeLoading.set(true);
-    const todayStr = toIso(new Date());
-    this.ledgerService.getCashLedger({ pageNumber: 1, pageSize: 50 }, todayStr, todayStr).subscribe({
-      next: (result) => {
-        this.cashTape.set(
-          [...result.items]
-            .reverse()
-            .slice(0, 8)
-            .map((entry) => ({
-              time: new Date(entry.transactionDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              label: cashLedgerTypeLabel(entry.transactionType),
-              note: entry.narration ?? entry.paymentMode,
-              amount: entry.cashIn > 0 ? entry.cashIn : entry.cashOut,
-              isIn: entry.cashIn > 0,
-              balance: entry.runningBalance
-            }))
-        );
-        this.cashTapeLoading.set(false);
-      },
-      error: () => this.cashTapeLoading.set(false)
-    });
-  }
-
   private toSparkline(points: TrendPoint[], color: string): ChartConfiguration['data'] {
     return {
       labels: points.map((p) => p.label),
       datasets: [
         {
           data: points.map((p) => p.amount),
-          borderColor: color,
-          backgroundColor: color + '33',
-          fill: true,
-          tension: 0.35,
-          borderWidth: 2
+          backgroundColor: color,
+          borderRadius: 3
         }
       ]
     };

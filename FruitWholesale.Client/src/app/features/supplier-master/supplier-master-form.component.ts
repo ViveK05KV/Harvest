@@ -1,16 +1,15 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { SupplierMaster } from '../../core/models/master-data.model';
 
 @Component({
   selector: 'app-supplier-master-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule],
-  templateUrl: './supplier-master-form.component.html'
+  imports: [ReactiveFormsModule, MatDialogModule, MatIconModule],
+  templateUrl: './supplier-master-form.component.html',
+  styleUrl: './supplier-master-form.component.scss'
 })
 export class SupplierMasterFormComponent {
   private readonly fb = inject(FormBuilder);
@@ -24,6 +23,10 @@ export class SupplierMasterFormComponent {
     address: [this.data?.address ?? ''],
     openingBalance: [{ value: this.data?.openingBalance ?? 0, disabled: this.isEdit }, [Validators.min(0)]]
   });
+
+  cancel(): void {
+    this.dialogRef.close();
+  }
 
   save(): void {
     if (this.form.invalid) {

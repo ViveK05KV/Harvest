@@ -1,0 +1,47 @@
+<div class="modal-header">
+  <div>
+    <h2>Settle Temporary Deposits</h2>
+    <p>Cash was already received daily; settling only posts a shop ledger credit.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="modal-body">
+  <div class="modal-main">
+    <label class="field">
+      <span class="field-label">Shop</span>
+      <select class="field-input" formControlName="shopID" (change)="onShopChange()">
+        <option [ngValue]="null">Select a shop</option>
+        @for (shop of shops(); track shop.shopID) {
+          <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Settlement Date</span>
+      <input class="field-input" type="date" formControlName="settlementDate" (click)="$any($event.target).showPicker?.()" />
+    </label>
+  </div>
+
+  <div class="modal-side">
+    @if (previewData(); as preview) {
+      <div class="preview-card">
+        <span class="preview-kicker">Shop</span>
+        <span class="preview-name">{{ preview.shopName }}</span>
+        <div class="preview-rows">
+          <div class="preview-row"><span>Pending rows</span><strong class="mono-cell">{{ preview.pendingCount }}</strong></div>
+          <div class="preview-row preview-row--total"><span>Total pending</span><strong class="mono-cell">{{ preview.pendingTotal | currency: 'INR' : 'symbol' : '1.2-2' }}</strong></div>
+        </div>
+      </div>
+    } @else {
+      <div class="preview-card preview-card--empty">Select a shop and preview to see pending deposits.</div>
+    }
+
+    <span class="spacer"></span>
+    <button type="submit" class="btn-primary" [disabled]="!previewData()"><mat-icon>check</mat-icon>Confirm settlement</button>
+    <button type="button" class="btn-ghost" (click)="preview()">Preview</button>
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+  </div>
+</form>

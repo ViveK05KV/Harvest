@@ -1,66 +1,73 @@
-<div class="page-toolbar">
-  <h1>Routes</h1>
-  <mat-form-field subscriptSizing="dynamic" class="search-field">
-    <mat-icon matPrefix>search</mat-icon>
-    <input matInput placeholder="Search routes..." (input)="onSearch($any($event.target).value)" />
-  </mat-form-field>
-  <button mat-flat-button color="primary" (click)="openCreate()">
-    <mat-icon>add</mat-icon>
-    Add Route
-  </button>
-</div>
+<div class="page-heading"><h1>Routes</h1></div>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
+<div class="list-card">
+  <div class="filter-bar">
+    <label class="field" style="min-width: 220px">
+      <span class="field-label">Search</span>
+      <span class="field-input">
+        <mat-icon>search</mat-icon>
+        <input type="text" (input)="onSearch($any($event.target).value)" placeholder="Route name" />
+      </span>
+    </label>
 
-<div class="table-container">
-  <table mat-table [dataSource]="items()" matSort (matSortChange)="onSort($event)">
-    <ng-container matColumnDef="routeName">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Route Name</th>
-      <td mat-cell *matCellDef="let row">{{ row.routeName }}</td>
-    </ng-container>
+    <span class="spacer"></span>
 
-    <ng-container matColumnDef="description">
-      <th mat-header-cell *matHeaderCellDef>Description</th>
-      <td mat-cell *matCellDef="let row">{{ row.description || '-' }}</td>
-    </ng-container>
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>Add Route
+    </button>
+  </div>
 
-    <ng-container matColumnDef="shopCount">
-      <th mat-header-cell *matHeaderCellDef>Shops</th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-button (click)="openShops(row)" matTooltip="View shops on this route">
-          <mat-chip>{{ row.shopCount }}</mat-chip>
-        </button>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="isActive">
-      <th mat-header-cell *matHeaderCellDef>Status</th>
-      <td mat-cell *matCellDef="let row">
-        <mat-slide-toggle [checked]="row.isActive" (change)="toggleActive(row)"></mat-slide-toggle>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
-          <mat-icon>edit</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-
-  @if (!loading() && items().length === 0) {
-    <div class="empty-state">
-      <mat-icon>alt_route</mat-icon>
-      <p>No routes found. Add your first route to get started.</p>
-    </div>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
   }
-</div>
 
-<mat-paginator [length]="totalCount()" [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" (page)="onPage($event)"></mat-paginator>
+  <div class="table-scroll">
+    <table class="mock-table">
+      <thead>
+        <tr>
+          <th class="sortable" (click)="toggleSort()">
+            Route Name
+            <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : sortDirection() === 'desc' ? 'arrow_downward' : 'unfold_more' }}</mat-icon>
+          </th>
+          <th>Description</th>
+          <th class="amount-column">Shops</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items(); track row.routeID) {
+          <tr>
+            <td class="strong-cell">{{ row.routeName }}</td>
+            <td class="muted-cell">{{ row.description || '—' }}</td>
+            <td class="amount-column">
+              <button type="button" class="mode-chip mode-chip--btn" title="View shops on this route" (click)="openShops(row)">{{ row.shopCount }}</button>
+            </td>
+            <td>
+              <button type="button" class="status-toggle" [class.status-toggle--on]="row.isActive" (click)="toggleActive(row)" [title]="row.isActive ? 'Active — click to deactivate' : 'Inactive — click to activate'">
+                <span class="status-toggle-thumb"></span>
+              </button>
+            </td>
+            <td class="row-actions">
+              <button type="button" class="row-icon-btn" title="Edit" (click)="openEdit(row)"><mat-icon>edit</mat-icon></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!loading() && items().length === 0) {
+      <div class="empty-state">
+        <mat-icon>alt_route</mat-icon>
+        <p>No routes found. Add your first route to get started.</p>
+      </div>
+    }
+  </div>
+
+  <div class="table-footer">
+    <span class="footer-label">{{ rangeLabel() }}</span>
+    <span class="pager">
+      <button type="button" class="pager-btn" [disabled]="request.pageNumber === 1" (click)="prevPage()"><mat-icon>chevron_left</mat-icon></button>
+      <button type="button" class="pager-btn" [disabled]="request.pageNumber * request.pageSize >= totalCount()" (click)="nextPage()"><mat-icon>chevron_right</mat-icon></button>
+    </span>
+  </div>
+</div>

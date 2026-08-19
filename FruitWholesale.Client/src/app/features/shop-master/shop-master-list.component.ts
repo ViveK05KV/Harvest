@@ -1,19 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatChipsModule } from '@angular/material/chips';
+import { Sort } from '@angular/material/sort';
 import { MasterListBase } from '../../core/base/master-list-base';
 import { ShopMasterService } from './shop-master.service';
 import { ShopMasterFormComponent } from './shop-master-form.component';
@@ -26,24 +15,9 @@ import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'app-shop-master-list',
   standalone: true,
-  imports: [
-    CurrencyPipe,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatMenuModule,
-    MatChipsModule
-  ],
+  imports: [CurrencyPipe, MatIconModule, MatProgressBarModule],
   templateUrl: './shop-master-list.component.html',
+  styleUrl: './shop-master-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ShopMasterListComponent extends MasterListBase<ShopMaster, SaveShopMaster> {
@@ -52,9 +26,8 @@ export class ShopMasterListComponent extends MasterListBase<ShopMaster, SaveShop
   private readonly exportService = inject(ExportService);
   private readonly authService = inject(AuthService);
 
-  readonly displayedColumns = ['shopName', 'ownerName', 'phone', 'routeName', 'creditLimit', 'currentOutstanding', 'isActive', 'actions'];
-
   readonly routes = signal<RouteMaster[]>([]);
+  readonly sortDirection = signal<'asc' | 'desc' | ''>('');
   routeId: number | null = null;
   readonly canAdjustBalance = this.authService.hasRole('Admin', 'Accountant');
 
@@ -70,9 +43,39 @@ export class ShopMasterListComponent extends MasterListBase<ShopMaster, SaveShop
     this.routeService.getAllActive().subscribe((routes) => this.routes.set(routes));
   }
 
+  rangeLabel(): string {
+    const total = this.totalCount();
+    if (total === 0) return 'No shops';
+    const start = (this.request.pageNumber - 1) * this.request.pageSize + 1;
+    const end = Math.min(start + this.request.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  }
+
+  prevPage(): void {
+    if (this.request.pageNumber <= 1) return;
+    this.request.pageNumber--;
+    this.load();
+  }
+
+  nextPage(): void {
+    if (this.request.pageNumber * this.request.pageSize >= this.totalCount()) return;
+    this.request.pageNumber++;
+    this.load();
+  }
+
+  toggleSort(): void {
+    const next = this.sortDirection() === 'asc' ? 'desc' : this.sortDirection() === 'desc' ? '' : 'asc';
+    this.sortDirection.set(next);
+    this.onSort({ active: 'shopName', direction: next } as Sort);
+  }
+
+  onRouteChange(value: string): void {
+    this.routeId = value ? Number(value) : null;
+    this.onRouteFilterChange();
+  }
+
   onRouteFilterChange(): void {
     this.request.pageNumber = 1;
-    this.paginator?.firstPage();
     this.load();
   }
 
@@ -89,16 +92,16 @@ export class ShopMasterListComponent extends MasterListBase<ShopMaster, SaveShop
   }
 
   openCreate(): void {
-    this.openFormDialog(ShopMasterFormComponent, '480px', null);
+    this.openFormDialog(ShopMasterFormComponent, '520px', null);
   }
 
   openEdit(shop: ShopMaster): void {
-    this.openFormDialog(ShopMasterFormComponent, '480px', shop);
+    this.openFormDialog(ShopMasterFormComponent, '520px', shop);
   }
 
   openBalanceAdjustment(shop: ShopMaster): void {
     this.dialog
-      .open(ShopBalanceAdjustmentComponent, { width: '440px', data: shop })
+      .open(ShopBalanceAdjustmentComponent, { width: '480px', maxWidth: '95vw', data: shop, autoFocus: 'dialog' })
       .afterClosed()
       .subscribe((result) => {
         if (!result) return;

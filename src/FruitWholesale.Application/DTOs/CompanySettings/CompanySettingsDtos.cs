@@ -10,6 +10,18 @@ public class CompanySettingsDto
     public string? GSTNo { get; set; }
     public string? LogoUrl { get; set; }
     public decimal OpeningCashBalance { get; set; }
+    public bool ReportsVisibleToManagers { get; set; }
+    public bool ProfitVisibleToManagers { get; set; }
+}
+
+public class SetReportsVisibilityDto
+{
+    public bool Visible { get; set; }
+}
+
+public class SetProfitVisibilityDto
+{
+    public bool Visible { get; set; }
 }
 
 public class UpsertCompanySettingsDto

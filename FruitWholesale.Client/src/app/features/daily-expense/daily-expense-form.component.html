@@ -1,54 +1,61 @@
-<h2 mat-dialog-title>{{ data ? 'Edit Expense' : 'New Expense' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Expense Category</mat-label>
-      <mat-select formControlName="expenseCategoryID">
-        @for (category of categories(); track category.expenseCategoryID) {
-          <mat-option [value]="category.expenseCategoryID">{{ category.categoryName }}</mat-option>
-        }
-      </mat-select>
-      @if (form.controls.expenseCategoryID.touched && form.controls.expenseCategoryID.hasError('required')) {
-        <mat-error>Category is required</mat-error>
+<div class="modal-header">
+  <div>
+    <h2>{{ data ? 'Edit Expense' : 'New Expense' }}</h2>
+    <p>Books a cash-out entry against the chosen category.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <label class="field">
+    <span class="field-label">Category</span>
+    <select class="field-input" formControlName="expenseCategoryID">
+      <option [ngValue]="null">Select a category</option>
+      @for (category of categories(); track category.expenseCategoryID) {
+        <option [ngValue]="category.expenseCategoryID">{{ category.categoryName }}</option>
       }
-    </mat-form-field>
+    </select>
+    @if (form.controls.expenseCategoryID.touched && form.controls.expenseCategoryID.hasError('required')) {
+      <span class="field-error">Category is required</span>
+    }
+  </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Date</mat-label>
-      <input matInput [matDatepicker]="picker" formControlName="expenseDate" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
+  <div class="field-row">
+    <label class="field">
+      <span class="field-label">Amount</span>
+      <span class="amount-input">
+        <span class="rupee">₹</span>
+        <input type="number" formControlName="amount" />
+      </span>
+    </label>
+    <label class="field">
+      <span class="field-label">Date</span>
+      <input class="field-input" type="date" formControlName="expenseDate" (click)="$any($event.target).showPicker?.()" />
+    </label>
+  </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Amount</mat-label>
-      <input matInput type="number" formControlName="amount" />
-      @if (form.controls.amount.touched && form.controls.amount.invalid) {
-        <mat-error>Enter a valid amount</mat-error>
+  <label class="field">
+    <span class="field-label">Payment mode</span>
+    <div class="mode-row">
+      @for (mode of paymentModes; track mode) {
+        <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.paymentMode === mode" (click)="setPaymentMode(mode)">{{ mode }}</button>
       }
-    </mat-form-field>
+    </div>
+  </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Paid To</mat-label>
-      <input matInput formControlName="paidTo" />
-    </mat-form-field>
+  <label class="field">
+    <span class="field-label">Paid to</span>
+    <input class="field-input" formControlName="paidTo" placeholder="Person or vendor" />
+  </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Payment Mode</mat-label>
-      <mat-select formControlName="paymentMode">
-        @for (mode of paymentModes; track mode) {
-          <mat-option [value]="mode">{{ mode }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+  <label class="field">
+    <span class="field-label">Description</span>
+    <textarea class="field-input" formControlName="description" rows="2" placeholder="Optional"></textarea>
+  </label>
 
-    <mat-form-field class="full-width">
-      <mat-label>Description</mat-label>
-      <textarea matInput formControlName="description" rows="2"></textarea>
-    </mat-form-field>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save expense</button>
+  </div>
 </form>

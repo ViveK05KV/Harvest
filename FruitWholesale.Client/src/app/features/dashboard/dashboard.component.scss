@@ -42,12 +42,12 @@
   padding: 20px !important;
   border-radius: 18px;
   background: #fff;
-  border: 1px solid #e4eae3;
+  border: 1px solid #e4e8e4;
   box-shadow: 0 3px 14px rgba(23, 55, 39, 0.05) !important;
 }
 
 .hero-card--cash {
-  background: linear-gradient(155deg, #164a32, #0d3122);
+  background: #141c17;
   color: #eaf5ec;
   border: none;
 }
@@ -64,15 +64,13 @@
   font: 700 11px Roboto, sans-serif;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: #8fbfa2;
+  color: #78837c;
 }
-.hero-card--cash .hero-kicker { color: #8fbfa2; }
-.hero-kicker--amber { color: #a07a2a; }
+.hero-card--cash .hero-kicker { color: #8ba899; }
 .hero-kicker--slate { color: #5f7a6a; }
 .hero-kicker--green { color: #2c7a4e; }
 
-.hero-icon { color: #7d9187; }
-.hero-icon--amber { color: #c99a3d; }
+.hero-icon { color: #a8b1a9; }
 .hero-icon--slate { color: #7d9187; }
 .hero-icon--green { color: #3f9c69; }
 
@@ -83,8 +81,8 @@
   letter-spacing: -.03em;
 }
 
-.hero-value--dark { color: #1d3125; font-size: 27px; }
-.hero-value--green { color: #1f7a48; font-size: 27px; }
+.hero-value--dark { color: #121614; font-size: 27px; }
+.hero-value--green { color: #1c6b45; font-size: 27px; }
 
 .hero-inout {
   display: flex;
@@ -94,7 +92,7 @@
   color: #b7d4bd;
 
   .in { color: #7fd6a0; font-weight: 600; }
-  .out { color: #f0a98a; font-weight: 600; }
+  .out { color: #e3a79b; font-weight: 600; }
 }
 
 .hero-sparkline {
@@ -102,7 +100,21 @@
   margin-top: 10px;
 }
 
-.hero-sparkline--tall { height: 70px; }
+.hero-sparkline-axis {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  font: 400 10.5px Roboto, sans-serif;
+  color: #7d9285;
+
+  span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 
 .hero-sub {
   display: block;
@@ -186,7 +198,7 @@
   align-items: stretch;
   margin-bottom: 16px;
   background: #fff;
-  border: 1px solid #e4eae3;
+  border: 1px solid #e4e8e4;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 3px 14px rgba(23, 55, 39, 0.05);
@@ -198,8 +210,8 @@
   flex-direction: column;
   justify-content: center;
   padding: 16px 20px;
-  background: #f7faf7;
-  border-right: 1px solid #e4eae3;
+  background: #f7f9f7;
+  border-right: 1px solid #e4e8e4;
   min-width: 104px;
 
   .kicker { font: 700 11px Roboto, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #4f745f; }
@@ -227,7 +239,7 @@
   letter-spacing: -.02em;
 }
 
-.tile-value--green { color: #1f7a48; }
+.tile-value--green { color: #1c6b45; }
 
 // Two-column detail layout ------------------------------------------------
 
@@ -256,7 +268,7 @@
   padding: 20px !important;
   border-radius: 16px;
   background: #fff;
-  border: 1px solid #e4eae3;
+  border: 1px solid #e4e8e4;
   box-shadow: 0 3px 14px rgba(23, 55, 39, 0.05) !important;
 
   h3 {
@@ -270,8 +282,30 @@
 .card-heading { display: flex; align-items: flex-start; justify-content: space-between; min-height: 39px; margin-bottom: 14px; gap: 8px; }
 .heading-icon { color: #538467; font-size: 19px; }
 
+.chart-heading-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 400 11.5px Roboto, sans-serif;
+  color: #78837c;
+
+  .swatch { width: 9px; height: 9px; border-radius: 3px; }
+}
+
 .period-select {
-  border: 1px solid #dce6dd;
+  border: 1px solid #e4e8e4;
   border-radius: 7px;
   color: #354139;
   background: #fff;
@@ -281,7 +315,7 @@
   cursor: pointer;
 
   &:hover { border-color: #b7c9bd; }
-  &:focus-visible { outline: 2px solid #277a4b; outline-offset: 1px; }
+  &:focus-visible { outline: 2px solid #1c6b45; outline-offset: 1px; }
 }
 
 .chart-loading {
@@ -291,17 +325,7 @@
   justify-content: center;
 }
 
-.view-all-link {
-  color: #277a4b;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-  &:hover { text-decoration: underline; }
-}
-
 .chart-holder { height: 260px; }
-.chart-holder--small { height: 200px; }
 
 .period-totals {
   display: grid;
@@ -312,115 +336,51 @@
   border-top: 1px solid #eef2ed;
 }
 
-// Stock table -------------------------------------------------------------
+// Spending card: donut with center total + itemized legend ------------------
 
-.stock-table {
+.spending-row {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.stock-row {
-  display: grid;
-  grid-template-columns: 1.4fr 2fr 0.9fr;
   align-items: center;
-  gap: 12px;
-}
-
-.stock-row-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 600;
-  color: #1d3125;
-  font-size: 13px;
-}
-
-.stock-bar-track {
-  height: 6px;
-  border-radius: 4px;
-  background: #eef2ed;
-  overflow: hidden;
-}
-
-.stock-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-  background: #277a4b;
-
-  &--mid { background: #c57c11; }
-  &--low { background: #c0392b; }
-}
-
-.stock-row-qty {
-  text-align: right;
-  white-space: nowrap;
-  color: #354139;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 13px;
-}
-
-// Profit side card ----------------------------------------------------------
-
-.profit-stat-row {
-  display: flex;
   gap: 20px;
-  align-items: flex-end;
 }
 
-.profit-figure {
-  display: block;
-  margin-top: 2px;
-  font: 800 26px Roboto, sans-serif;
-  color: #1f7a48;
-  letter-spacing: -.02em;
+.spending-donut {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex: none;
 }
 
-.profit-figure--dark { color: #1d3125; }
-
-// Today's cash entries tape --------------------------------------------------
-
-.cash-tape {
+.spending-donut-center {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  max-height: 280px;
-  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  .total-value { font: 600 14px ui-monospace, Menlo, monospace; color: #121614; }
+  .total-label { margin-top: 3px; font: 500 9.5px Roboto, sans-serif; color: #9aa39c; }
 }
 
-.cash-tape-row {
-  display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 10px;
-  align-items: baseline;
-  padding: 10px 4px;
-  border-bottom: 1px solid #f4f7f4;
-
-  &:last-child { border-bottom: none; }
-}
-
-.cash-tape-row .time {
-  font: 400 11px 'Roboto Mono', monospace;
-  color: #a0aca4;
-}
-
-.cash-tape-row .detail {
+.spending-legend {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-
-  .label { font: 500 12px Roboto, sans-serif; color: #1d3125; }
-  .note { font: 400 11px Roboto, sans-serif; color: #8f9d94; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  gap: 9px;
 }
 
-.cash-tape-row .amounts {
+.spending-legend-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 9px;
 
-  .amount { font: 600 12px 'Roboto Mono', monospace; }
-  .amount--in { color: #1f7a48; }
-  .amount--out { color: #c0392b; }
-  .balance { font: 400 10px 'Roboto Mono', monospace; color: #a0aca4; }
+  .swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+  .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px Roboto, sans-serif; color: #3c453f; }
+  .amount { font: 500 11.5px ui-monospace, Menlo, monospace; color: #121614; }
+  .pct { width: 34px; text-align: right; font: 400 11px ui-monospace, Menlo, monospace; color: #9aa39c; }
 }
 
 .muted { color: #7b8a80; font-size: 13px; }

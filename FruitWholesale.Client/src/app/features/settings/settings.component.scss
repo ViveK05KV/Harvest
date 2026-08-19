@@ -1,0 +1,306 @@
+.page-heading {
+  margin-bottom: 14px;
+
+  h1 {
+    margin: 0;
+    font: 600 19px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: -0.02em;
+    color: #121614;
+  }
+}
+
+// Masonry-style packing (not CSS grid): grid gives every column the same
+// track height, so a short column leaves dead space under it whenever cards
+// don't happen to add up evenly (e.g. Cash Adjustment hidden for Staff, or
+// Manager Access only showing for Admin). Multi-column flow instead lets
+// each card drop into whichever column has room next, so columns fill to
+// roughly the same height regardless of which cards are present.
+.settings-grid {
+  column-count: 2;
+  column-gap: 14px;
+  max-width: 1120px;
+}
+
+@media (max-width: 760px) {
+  .settings-grid {
+    column-count: 1;
+  }
+}
+
+.settings-panel {
+  break-inside: avoid;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid #e4e8e4;
+  border-radius: 14px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+
+.panel-divider {
+  margin: 0;
+  border: none;
+  border-top: 1px solid #eef1ed;
+}
+
+.settings-panel--dark {
+  background: #141c17;
+  border-color: #141c17;
+  color: #e6ece7;
+
+  .panel-head p {
+    color: #8ba899;
+  }
+
+  .field-label {
+    color: #8ba899;
+  }
+
+  .field-input {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+
+    &::placeholder {
+      color: #6f8579;
+    }
+  }
+}
+
+.panel-head {
+  h3 {
+    margin: 0;
+    font: 600 16px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #121614;
+  }
+
+  p {
+    margin: 5px 0 0;
+    font: 400 12px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #78837c;
+  }
+}
+
+.settings-panel--dark .panel-head h3 {
+  color: #fff;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: #f7f9f7;
+  flex: none;
+}
+
+.logo-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #eaf2ed;
+  color: #1c6b45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 20px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  flex: none;
+  text-transform: uppercase;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-label {
+  font: 600 10.5px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #78837c;
+}
+
+.field-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #e4e8e4;
+  border-radius: 10px;
+  font: 500 13.5px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #121614;
+  background: #fff;
+  outline: none;
+  resize: vertical;
+
+  &:focus {
+    border-color: #1c6b45;
+  }
+
+  &:disabled {
+    background: #f7f9f7;
+    color: #78837c;
+  }
+}
+
+select.field-input {
+  color-scheme: light;
+  cursor: pointer;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 2px;
+  font: 400 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #9aa39c;
+}
+
+.field-error {
+  font: 400 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #b03a2e;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: default;
+}
+
+.toggle-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toggle-row-title {
+  font: 600 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #121614;
+}
+
+.switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex: none;
+  border: none;
+  border-radius: 999px;
+  background: #dde2dd;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+
+  &--on {
+    background: #1c6b45;
+  }
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: left 0.15s;
+
+  .switch--on & {
+    left: 20px;
+  }
+}
+
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font: 400 12.5px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #8ba899;
+
+  strong {
+    font: 600 18px ui-monospace, Menlo, monospace;
+    color: #fff;
+  }
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  align-self: flex-start;
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  background: #1c6b45;
+  color: #fff;
+  font: 600 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #155538;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+}
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  align-self: flex-start;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #e4e8e4;
+  border-radius: 10px;
+  background: #fff;
+  color: #3c453f;
+  font: 600 12.5px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: #c3cbc4;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+}
+
+mat-spinner {
+  display: inline-block;
+}

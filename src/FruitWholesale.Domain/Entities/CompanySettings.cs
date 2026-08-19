@@ -10,6 +10,8 @@ public class CompanySettings
     public string? GSTNo { get; set; }
     public string? LogoUrl { get; set; }
     public decimal OpeningCashBalance { get; set; }
+    public bool ReportsVisibleToManagers { get; set; }
+    public bool ProfitVisibleToManagers { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

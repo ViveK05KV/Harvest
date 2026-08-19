@@ -2,9 +2,16 @@
   height: 100vh;
 }
 
+mat-sidenav.app-sidenav {
+  border-top-right-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+}
+
 .app-sidenav {
   width: 264px;
-  background: #103b29;
+  height: 100vh;
+  overflow-y: auto;
+  background: #141c17;
   padding-bottom: 16px;
 
   // MDC's own hover/focus rules read these custom properties directly, not
@@ -30,6 +37,8 @@
   font-weight: 600;
   color: #f6fcf6;
   letter-spacing: 0.02em;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 
   span {
     overflow: hidden;
@@ -63,6 +72,9 @@
 }
 
 .nav-section-label {
+  font: 600 10px/1 "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: #96b99e !important;
 }
 
@@ -102,6 +114,14 @@
     color: #e5f1e7 !important;
   }
 
+  // Font override must stay off .mdc-list-item__start: that's the icon
+  // wrapper, and mat-icon's glyphs render via the Material Icons ligature
+  // font - forcing Helvetica Neue on an ancestor broke the icon glyphs.
+  ::ng-deep .mdc-list-item__primary-text,
+  ::ng-deep .mat-mdc-list-item-unscoped-content {
+    font: 500 13px "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  }
+
   ::ng-deep .mdc-list-item:hover .mdc-list-item__primary-text,
   ::ng-deep .mdc-list-item:hover .mdc-list-item__start {
     color: #ffffff !important;
@@ -109,7 +129,7 @@
 }
 
 .active-link {
-  background: #277a4b !important;
+  background: #1c6b45 !important;
 
   ::ng-deep .mdc-list-item__primary-text {
     color: #fff !important;
@@ -143,12 +163,29 @@
 }
 
 .create-sale-btn {
-  margin-right: 8px;
-  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
+  margin-right: 8px;
+  padding: 0 14px;
+  height: 36px;
+  border: none;
+  border-radius: 9px;
+  background: #1c6b45;
+  color: #fff;
+  font: 600 12.5px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: #155538;
+  }
 
   mat-icon {
-    margin-right: 4px;
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
   }
 }
 

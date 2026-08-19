@@ -1,166 +1,144 @@
-﻿@if (loading()) {
+@if (loading()) {
   <div class="loading-state">
     <mat-spinner diameter="40" />
   </div>
 } @else {
-  <div class="page-toolbar">
-    <h1>{{ isEdit() ? 'Edit Supplier Return' : 'New Supplier Return' }}</h1>
+  <div class="entry-header">
+    <div>
+      <h2>{{ isEdit() ? 'Edit Purchase Return' : 'New Purchase Return' }}</h2>
+      <p>{{ isEdit() ? 'Update this return — ledger and stock entries adjust automatically.' : 'Record stock returned to a supplier.' }}</p>
+    </div>
     <span class="spacer"></span>
-    <button mat-stroked-button (click)="cancel()">Cancel</button>
-    <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
-      <mat-icon>save</mat-icon>
-      Save
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="button" class="btn-primary" (click)="save()" [disabled]="saving()">
+      <mat-icon>check</mat-icon>Save
     </button>
   </div>
 
-  <mat-card class="form-card">
-    <form [formGroup]="form">
-      <div class="header-grid">
-        <mat-form-field>
-          <mat-label>Reference Number</mat-label>
-          <input matInput formControlName="referenceNo" />
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Date</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="returnDate" />
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Supplier</mat-label>
-          <input
-            matInput
-            formControlName="supplierSearch"
-            placeholder="Search supplier"
-            [matAutocomplete]="supplierAuto"
-            (focus)="onSupplierSearchFocus()"
-            (click)="onSupplierSearchFocus()"
-            (input)="onSupplierSearchInput()"
-            (blur)="onSupplierSearchBlur()"
-          />
-          <mat-autocomplete #supplierAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displaySupplier" (optionSelected)="onSupplierSelected($event)">
-            @for (supplier of filteredSuppliers(form.value.supplierSearch); track supplier.supplierID) {
-              <mat-option [value]="supplier.supplierID">{{ supplier.supplierName }}</mat-option>
-            }
-          </mat-autocomplete>
-        </mat-form-field>
-
-        <div class="invoice-field-row">
-          <mat-form-field class="full-width">
-            <mat-label>Against Purchase Invoice (optional)</mat-label>
-            <mat-select formControlName="purchaseID" [disabled]="!form.controls.supplierID.value">
-              <mat-option [value]="null">Not linked to an invoice</mat-option>
-              @for (purchase of supplierPurchases(); track purchase.purchaseID) {
-                <mat-option [value]="purchase.purchaseID">{{ purchase.invoiceNo }} ({{ purchase.purchaseDate | date: 'dd-MMM-yyyy' }})</mat-option>
+  <form [formGroup]="form">
+    <div class="entry-grid">
+      <div class="entry-main">
+        <div class="header-fields">
+          <label class="field">
+            <span class="field-label">Reference Number</span>
+            <input class="field-plain mono-cell" formControlName="referenceNo" />
+          </label>
+          <label class="field">
+            <span class="field-label">Date</span>
+            <input class="field-plain" type="date" formControlName="returnDate" (click)="$any($event.target).showPicker?.()" />
+          </label>
+          <label class="field">
+            <span class="field-label">Supplier</span>
+            <select class="field-plain" formControlName="supplierID" (change)="onSupplierChange()">
+              <option [ngValue]="null">Select a supplier</option>
+              @for (supplier of suppliers(); track supplier.supplierID) {
+                <option [ngValue]="supplier.supplierID">{{ supplier.supplierName }}</option>
               }
-            </mat-select>
-          </mat-form-field>
-          @if (form.controls.purchaseID.value) {
-            <button
-              mat-icon-button
-              type="button"
-              class="load-items-btn"
-              matTooltip="Load items from this invoice"
-              [disabled]="loadingInvoiceItems()"
-              (click)="loadItemsFromInvoice()"
-            >
-              <mat-icon>download</mat-icon>
-            </button>
-          }
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Against Purchase Invoice</span>
+            <div class="invoice-field-row">
+              <select class="field-plain" formControlName="purchaseID" [disabled]="!form.controls.supplierID.value">
+                <option [ngValue]="null">Not linked to an invoice</option>
+                @for (purchase of supplierPurchases(); track purchase.purchaseID) {
+                  <option [ngValue]="purchase.purchaseID">{{ purchase.invoiceNo }} ({{ purchase.purchaseDate | date: 'dd-MMM-yyyy' }})</option>
+                }
+              </select>
+              @if (form.controls.purchaseID.value) {
+                <button type="button" class="load-items-btn" title="Load items from this invoice" [disabled]="loadingInvoiceItems()" (click)="loadItemsFromInvoice()">
+                  <mat-icon>download</mat-icon>
+                </button>
+              }
+            </div>
+          </label>
+          <label class="field remarks-field">
+            <span class="field-label">Remarks</span>
+            <input class="field-plain" formControlName="remarks" placeholder="Optional" />
+          </label>
         </div>
 
-        <mat-form-field class="remarks-field">
-          <mat-label>Remarks</mat-label>
-          <input matInput formControlName="remarks" />
-        </mat-form-field>
-      </div>
-
-      <div class="items-header">
-        <h3>Items Returned</h3>
-        <button mat-stroked-button type="button" (click)="addRow()">
-          <mat-icon>add</mat-icon>
-          Add Row
-        </button>
-      </div>
-
-      <div class="table-container" formArrayName="items">
-        <table>
-          <thead>
-            <tr>
-              <th>Fruit</th>
-              <th>Quantity</th>
-              <th>Boxes</th>
-              <th>Rate</th>
-              <th>Amount</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of itemsArray.controls; track item; let i = $index) {
-              <tr [formGroupName]="i">
-                <td>
-                  <mat-form-field subscriptSizing="dynamic" class="full-width">
-                    <input
-                      matInput
-                      formControlName="fruitSearch"
-                      placeholder="Search fruit"
-                      [matAutocomplete]="fruitAuto"
-                      (focus)="onFruitSearchFocus(i)"
-                      (click)="onFruitSearchFocus(i)"
-                      (input)="onFruitSearchInput(i)"
-                      (blur)="onFruitSearchBlur(i)"
-                    />
-                  </mat-form-field>
-                  <mat-autocomplete #fruitAuto="matAutocomplete" autoActiveFirstOption [displayWith]="displayFruit" (optionSelected)="onFruitSelected(i, $event)">
-                    @for (fruit of filteredFruits(item.value.fruitSearch); track fruit.fruitID) {
-                      <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
+        <div class="items-table-scroll" formArrayName="items">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="col-fruit">Fruit</th>
+                <th class="col-num">Quantity</th>
+                <th class="col-type">Boxes</th>
+                <th class="col-num">Rate</th>
+                <th class="col-num">Amount</th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of itemsArray.controls; track item; let i = $index) {
+                <tr [formGroupName]="i">
+                  <td>
+                    <select class="cell-input" formControlName="fruitID" (change)="onFruitChange(i)">
+                      <option [ngValue]="null">Select fruit</option>
+                      @for (fruit of fruits(); track fruit.fruitID) {
+                        <option [ngValue]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</option>
+                      }
+                    </select>
+                  </td>
+                  <td>
+                    @if (fruitTracksByBox(item.value.fruitID) && fruitBoxWeight(item.value.fruitID) != null) {
+                      <span class="no-box-track">{{ item.value.quantity }} kg</span>
+                    } @else {
+                      <input class="cell-input cell-input--num mono-cell" type="number" formControlName="quantity" min="0" step="0.01" />
                     }
-                  </mat-autocomplete>
-                </td>
-                <td>
-                  @if (fruitTracksByBox(item.value.fruitID) && fruitBoxWeight(item.value.fruitID) != null) {
-                    <span class="kg-hint">{{ item.value.quantity }} kg</span>
-                  } @else {
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" formControlName="quantity" min="0" step="0.01" />
-                    </mat-form-field>
-                  }
-                </td>
-                <td>
-                  @if (fruitTracksByBox(item.value.fruitID)) {
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" formControlName="boxCount" min="0.01" step="0.01" placeholder="Box count" (input)="onBoxCountChange(i)" />
-                    </mat-form-field>
-                  } @else {
-                    <span class="no-box-track">—</span>
-                  }
-                </td>
-                <td>
-                  <div class="rate-cell">
-                    <mat-form-field subscriptSizing="dynamic" class="qty-field">
-                      <input matInput type="number" formControlName="unitPrice" min="0" step="0.01" />
-                    </mat-form-field>
-                    <span class="rate-unit">{{ fruitTracksByBox(item.value.fruitID) && item.value.boxCount ? '/box' : '/kg' }}</span>
-                  </div>
-                </td>
-                <td class="amount-cell">{{ rowAmount(i) | number: '1.2-2' }}</td>
-                <td>
-                  <button mat-icon-button type="button" (click)="removeRow(i)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  </td>
+                  <td>
+                    @if (fruitTracksByBox(item.value.fruitID)) {
+                      <input class="cell-input cell-input--num mono-cell" type="number" formControlName="boxCount" min="0.01" step="0.01" placeholder="Boxes" (input)="onBoxCountChange(i)" />
+                    } @else {
+                      <span class="no-box-track">—</span>
+                    }
+                  </td>
+                  <td>
+                    <input class="cell-input cell-input--num mono-cell" type="number" formControlName="unitPrice" min="0" step="0.01" />
+                    <span class="cell-hint">{{ fruitTracksByBox(item.value.fruitID) && item.value.boxCount ? '/box' : '/kg' }}</span>
+                  </td>
+                  <td class="amount-cell mono-cell">{{ rowAmount(i) | number: '1.2-2' }}</td>
+                  <td>
+                    <button type="button" class="row-icon-btn" (click)="removeRow(i)"><mat-icon>delete_outline</mat-icon></button>
+                  </td>
+                </tr>
+              }
+              <tr>
+                <td colspan="6">
+                  <button type="button" class="add-row-btn" (click)="addRow()"><mat-icon>add</mat-icon>Add row</button>
                 </td>
               </tr>
-            }
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="entry-footer-bar">
+          <span class="footer-stat"><span class="footer-stat-label">Lines</span><span class="footer-stat-value mono-cell">{{ itemsArray.length }}</span></span>
+          <span class="spacer"></span>
+          <span class="grand-total"><span class="footer-stat-label">Total credited from supplier</span><strong class="mono-cell">{{ total() | number: '1.2-2' }}</strong></span>
+        </div>
       </div>
 
-      <div class="grand-total">
-        <span>Total Credited from Supplier:</span>
-        <strong>{{ total() | number: '1.2-2' }}</strong>
+      <div class="entry-side">
+        @if (selectedSupplier(); as supplier) {
+          <div class="context-card">
+            <span class="context-kicker">Supplier</span>
+            <span class="context-name">{{ supplier.supplierName }}</span>
+            <span class="context-sub">{{ supplier.phone || '—' }}</span>
+            <div class="context-rows">
+              <div class="context-row"><span>Old balance</span><strong class="mono-cell">{{ supplier.currentOutstanding | number: '1.0-0' }}</strong></div>
+              <div class="context-row"><span>Payable after this return</span><strong class="mono-cell">{{ balanceAfter() | number: '1.0-0' }}</strong></div>
+            </div>
+          </div>
+        } @else {
+          <div class="context-card context-card--empty">
+            <span class="context-kicker">Supplier</span>
+            <span class="context-sub">Select a supplier to see its balance.</span>
+          </div>
+        }
       </div>
-    </form>
-  </mat-card>
+    </div>
+  </form>
 }

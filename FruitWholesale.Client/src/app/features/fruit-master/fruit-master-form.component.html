@@ -1,37 +1,48 @@
-<h2 mat-dialog-title>{{ data ? 'Edit Fruit' : 'Add Fruit' }}</h2>
-<form [formGroup]="form" (ngSubmit)="save()">
-  <mat-dialog-content>
-    <mat-form-field class="full-width">
-      <mat-label>Fruit Name</mat-label>
-      <input matInput formControlName="fruitName" />
-      @if (form.controls.fruitName.touched && form.controls.fruitName.hasError('required')) {
-        <mat-error>Fruit name is required</mat-error>
-      }
-    </mat-form-field>
+<div class="modal-header">
+  <div>
+    <h2>{{ data ? 'Edit Fruit' : 'Add Fruit' }}</h2>
+    <p>Used across supply, purchase and stock.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Unit</mat-label>
-      <mat-select formControlName="unit">
-        @for (unit of units; track unit) {
-          <mat-option [value]="unit">{{ unit }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <mat-checkbox formControlName="tracksByBox">
-      Sold by box (track physical box count alongside kg, e.g. apples)
-    </mat-checkbox>
-
-    @if (form.controls.tracksByBox.value) {
-      <mat-form-field class="full-width">
-        <mat-label>Box Weight (Kg)</mat-label>
-        <input matInput type="number" step="0.01" min="0.001" formControlName="boxWeightKg" />
-        <span matTextSuffix>kg</span>
-      </mat-form-field>
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <label class="field">
+    <span class="field-label">Fruit Name</span>
+    <input class="field-input" formControlName="fruitName" />
+    @if (form.controls.fruitName.touched && form.controls.fruitName.hasError('required')) {
+      <span class="field-error">Fruit name is required</span>
     }
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="primary" type="submit">Save</button>
-  </mat-dialog-actions>
+  </label>
+
+  <label class="field">
+    <span class="field-label">Unit</span>
+    <select class="field-input" formControlName="unit">
+      @for (unit of units; track unit) {
+        <option [value]="unit">{{ unit }}</option>
+      }
+    </select>
+  </label>
+
+  <button type="button" class="check-row" [class.check-row--checked]="form.value.tracksByBox" (click)="toggleTracksByBox()">
+    <span class="check-box">
+      @if (form.value.tracksByBox) {
+        <mat-icon>check</mat-icon>
+      }
+    </span>
+    <span class="check-label">Sold by box (track physical box count alongside kg, e.g. apples)</span>
+  </button>
+
+  @if (form.value.tracksByBox) {
+    <label class="field">
+      <span class="field-label">Box Weight (Kg)</span>
+      <input class="field-input" type="number" step="0.01" min="0.001" formControlName="boxWeightKg" />
+    </label>
+  }
+
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save</button>
+  </div>
 </form>

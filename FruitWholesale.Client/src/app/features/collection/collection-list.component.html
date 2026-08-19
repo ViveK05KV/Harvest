@@ -1,112 +1,104 @@
-<div class="page-toolbar">
-  <h1>Collections</h1>
+<div class="page-heading"><h1>Collections</h1></div>
 
-  <mat-form-field subscriptSizing="dynamic" style="width: 220px">
-    <mat-label>Filter by Shop</mat-label>
-    <input
-      matInput
-      [(ngModel)]="shopSearch"
-      placeholder="Search shop"
-      [matAutocomplete]="shopFilterAuto"
-      (focus)="onShopSearchFocus()"
-      (click)="onShopSearchFocus()"
-      (input)="onShopSearchInput()"
-    />
-      <mat-autocomplete #shopFilterAuto="matAutocomplete" [displayWith]="displayShop" (optionSelected)="onShopFilterSelected($event)">
-      <mat-option [value]="null">All Shops</mat-option>
-      @for (shop of filteredShops(shopSearch); track shop.shopID) {
-        <mat-option [value]="shop.shopID">{{ shop.shopName }}</mat-option>
-      }
-    </mat-autocomplete>
-  </mat-form-field>
+<div class="list-card">
+  <div class="filter-bar">
+    <label class="field" style="min-width: 190px">
+      <span class="field-label">Shop</span>
+      <select [value]="shopId ?? ''" (change)="onShopChange($any($event.target).value)">
+        <option value="">All shops</option>
+        @for (shop of shops(); track shop.shopID) {
+          <option [value]="shop.shopID">{{ shop.shopName }}</option>
+        }
+      </select>
+    </label>
 
-  <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-    <mat-label>From</mat-label>
-    <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" (dateChange)="onFilterChange()" />
-    <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
-    <mat-datepicker #fromPicker></mat-datepicker>
-  </mat-form-field>
+    <label class="field">
+      <span class="field-label">From</span>
+      <input type="date" [value]="fromDate ?? ''" (change)="fromDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+    </label>
 
-  <mat-form-field subscriptSizing="dynamic" style="width: 150px">
-    <mat-label>To</mat-label>
-    <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" (dateChange)="onFilterChange()" />
-    <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
-    <mat-datepicker #toPicker></mat-datepicker>
-  </mat-form-field>
+    <label class="field">
+      <span class="field-label">To</span>
+      <input type="date" [value]="toDate ?? ''" (change)="toDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+    </label>
 
-  <span class="spacer"></span>
+    <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
 
-  <button mat-stroked-button color="accent" (click)="settleDeposits()" style="margin-right: 8px;">
-    <mat-icon>account_balance_wallet</mat-icon>
-    Settle Deposits
-  </button>
+    <span class="spacer"></span>
 
-  <button mat-flat-button color="primary" (click)="openCreate()">
-    <mat-icon>add</mat-icon>
-    New Collection
-  </button>
-</div>
+    <button type="button" class="btn-ghost" (click)="settleDeposits()">
+      <mat-icon>account_balance_wallet</mat-icon>Settle Deposits
+    </button>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>New Collection
+    </button>
+  </div>
 
-<div class="table-container">
-  <table mat-table [dataSource]="items()">
-    <ng-container matColumnDef="collectionDate">
-      <th mat-header-cell *matHeaderCellDef>Date</th>
-      <td mat-cell *matCellDef="let row">{{ row.collectionDate | date: 'dd-MMM-yyyy' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="shopName">
-      <th mat-header-cell *matHeaderCellDef>Shop</th>
-      <td mat-cell *matCellDef="let row">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span>{{ row.shopName }}</span>
-          @if (row.collectionType === 'Temporary') {
-            <mat-icon color="accent" [matTooltip]="row.temporaryStatus === 'Pending' ? 'Pending temporary deposit' : 'Temporary deposit'">account_balance_wallet</mat-icon>
-          }
-        </div>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="amountReceived">
-      <th mat-header-cell *matHeaderCellDef>Amount</th>
-      <td mat-cell *matCellDef="let row">{{ row.amountReceived | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="discountAmount">
-      <th mat-header-cell *matHeaderCellDef>Discount</th>
-      <td mat-cell *matCellDef="let row">{{ row.discountAmount ? (row.discountAmount | currency: 'INR' : 'symbol' : '1.2-2') : '-' }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="paymentMode">
-      <th mat-header-cell *matHeaderCellDef>Mode</th>
-      <td mat-cell *matCellDef="let row"><mat-chip>{{ row.paymentMode }}</mat-chip></td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button [matTooltip]="row.temporaryStatus === 'Settled' ? 'Settled temporary collections are read-only.' : 'Edit'" (click)="openEdit(row)" [disabled]="row.temporaryStatus === 'Settled'">
-          <mat-icon>edit</mat-icon>
-        </button>
-        <button mat-icon-button [matTooltip]="row.temporaryStatus === 'Settled' ? 'Settled temporary collections are read-only.' : 'Delete'" (click)="deleteItem(row)" [disabled]="row.temporaryStatus === 'Settled'">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-
-  @if (!loading() && items().length === 0) {
-    <div class="empty-state">
-      <mat-icon>payments</mat-icon>
-      <p>No collections recorded yet.</p>
-    </div>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
   }
-</div>
 
-<mat-paginator [length]="totalCount()" [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" (page)="onPage($event)"></mat-paginator>
+  <div class="table-scroll">
+    <table class="mock-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Shop</th>
+          <th class="amount-column">Amount</th>
+          <th class="amount-column">Discount</th>
+          <th>Mode</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items(); track row.collectionID) {
+          <tr>
+            <td class="mono-cell muted-cell">{{ row.collectionDate | date: 'dd MMM yyyy' }}</td>
+            <td>
+              <span class="shop-cell">
+                {{ row.shopName }}
+                @if (row.collectionType === 'Temporary') {
+                  <mat-icon [title]="row.temporaryStatus === 'Pending' ? 'Pending temporary deposit' : 'Temporary deposit'">account_balance_wallet</mat-icon>
+                }
+              </span>
+            </td>
+            <td class="mono-cell amount-column positive-cell">{{ row.amountReceived | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+            <td class="mono-cell amount-column muted-cell">{{ row.discountAmount ? (row.discountAmount | currency: 'INR' : 'symbol' : '1.2-2') : '—' }}</td>
+            <td><span class="mode-chip">{{ row.paymentMode }}</span></td>
+            <td class="row-actions">
+              <button
+                type="button"
+                class="row-icon-btn"
+                [title]="row.temporaryStatus === 'Settled' ? 'Settled temporary collections are read-only.' : 'Edit'"
+                [disabled]="row.temporaryStatus === 'Settled'"
+                (click)="openEdit(row)"
+              ><mat-icon>edit</mat-icon></button>
+              <button
+                type="button"
+                class="row-icon-btn"
+                [title]="row.temporaryStatus === 'Settled' ? 'Settled temporary collections are read-only.' : 'Delete'"
+                [disabled]="row.temporaryStatus === 'Settled'"
+                (click)="deleteItem(row)"
+              ><mat-icon>delete</mat-icon></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!loading() && items().length === 0) {
+      <div class="empty-state">
+        <mat-icon>payments</mat-icon>
+        <p>No collections recorded yet.</p>
+      </div>
+    }
+  </div>
+
+  <div class="table-footer">
+    <span class="footer-label">{{ rangeLabel() }}</span>
+    <span class="pager">
+      <button type="button" class="pager-btn" [disabled]="pageIndex() === 0" (click)="prevPage()"><mat-icon>chevron_left</mat-icon></button>
+      <button type="button" class="pager-btn" [disabled]="(pageIndex() + 1) * pageSize >= totalCount()" (click)="nextPage()"><mat-icon>chevron_right</mat-icon></button>
+    </span>
+  </div>
+</div>

@@ -20,3 +20,13 @@ public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRe
         RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(6).MaximumLength(100);
     }
 }
+
+public class ChangeUsernameRequestValidator : AbstractValidator<ChangeUsernameRequestDto>
+{
+    public ChangeUsernameRequestValidator()
+    {
+        RuleFor(x => x.NewUsername).NotEmpty().MaximumLength(100).Matches("^[a-zA-Z0-9._-]+$")
+            .WithMessage("Username can only contain letters, digits, dots, underscores and hyphens.");
+        RuleFor(x => x.CurrentPassword).NotEmpty();
+    }
+}

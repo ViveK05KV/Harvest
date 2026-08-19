@@ -29,6 +29,16 @@ public class CompanySettingsController(ICompanySettingsService service) : ApiCon
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<CompanySettingsDto>> Save(UpsertCompanySettingsDto dto) => Ok(await service.SaveAsync(dto));
 
+    [HttpPatch("reports-visibility")]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<ActionResult<CompanySettingsDto>> SetReportsVisibility(SetReportsVisibilityDto dto) =>
+        FromResult(await service.SetReportsVisibilityAsync(dto.Visible));
+
+    [HttpPatch("profit-visibility")]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<ActionResult<CompanySettingsDto>> SetProfitVisibility(SetProfitVisibilityDto dto) =>
+        FromResult(await service.SetProfitVisibilityAsync(dto.Visible));
+
     [HttpPost("cash-adjustment")]
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult> ApplyCashAdjustment(CashAdjustmentDto dto) => FromResult(await service.ApplyCashAdjustmentAsync(dto));

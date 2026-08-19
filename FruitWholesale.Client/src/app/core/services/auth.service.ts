@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ChangePasswordRequest, CurrentUser, LoginRequest, LoginResponse } from '../models/auth.model';
+import { ChangePasswordRequest, ChangeUsernameRequest, CurrentUser, LoginRequest, LoginResponse } from '../models/auth.model';
 import { UserRole } from '../models/common.model';
 
 const TOKEN_KEY = 'fw_token';
@@ -43,6 +43,18 @@ export class AuthService {
 
   changePassword(request: ChangePasswordRequest): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/change-password`, request);
+  }
+
+  changeUsername(request: ChangeUsernameRequest): Observable<string> {
+    return this.http.post<string>(`${this.baseUrl}/change-username`, request).pipe(
+      tap((newUsername) => {
+        const current = this.currentUserSignal();
+        if (!current) return;
+        const updated: CurrentUser = { ...current, username: newUsername };
+        localStorage.setItem(USER_KEY, JSON.stringify(updated));
+        this.currentUserSignal.set(updated);
+      })
+    );
   }
 
   logout(): void {
