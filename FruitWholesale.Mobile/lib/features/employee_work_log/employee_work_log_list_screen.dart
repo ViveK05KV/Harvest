@@ -3,11 +3,19 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/api/lookup_service.dart';
+import '../../core/models/employee_option.dart';
 import '../../core/widgets/date_range_filter_row.dart';
 import '../../core/widgets/paginated_list_view.dart';
 import 'employee_work_log_form_screen.dart';
 import 'employee_work_log_models.dart';
 import 'employee_work_log_service.dart';
+
+class _EmployeeFilterOption {
+  final int? id;
+  final String label;
+  const _EmployeeFilterOption(this.id, this.label);
+}
 
 class EmployeeWorkLogListScreen extends StatefulWidget {
   const EmployeeWorkLogListScreen({super.key});
@@ -18,10 +26,22 @@ class EmployeeWorkLogListScreen extends StatefulWidget {
 
 class _EmployeeWorkLogListScreenState extends State<EmployeeWorkLogListScreen> {
   late final EmployeeWorkLogService _service = EmployeeWorkLogService(context.read<ApiClient>());
+  late final LookupService _lookupService = LookupService(context.read<ApiClient>());
   static final _isoFormat = DateFormat('yyyy-MM-dd');
   Key _listKey = UniqueKey();
   DateTime? _fromDate;
   DateTime? _toDate;
+
+  List<EmployeeOption> _employees = [];
+  int? _employeeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _lookupService.getActiveEmployees().then((employees) {
+      if (mounted) setState(() => _employees = employees);
+    }).catchError((Object _) {});
+  }
 
   void _reload() => setState(() => _listKey = UniqueKey());
 
@@ -48,9 +68,33 @@ class _EmployeeWorkLogListScreenState extends State<EmployeeWorkLogListScreen> {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Employee Salary')),
+      appBar: AppBar(title: const Text('Salary Management')),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Autocomplete<_EmployeeFilterOption>(
+              displayStringForOption: (opt) => opt.label,
+              optionsBuilder: (value) {
+                final query = value.text.trim().toLowerCase();
+                final all = [
+                  const _EmployeeFilterOption(null, 'All Employees'),
+                  ..._employees.map((e) => _EmployeeFilterOption(e.employeeId, e.fullName)),
+                ];
+                if (query.isEmpty) return all;
+                return all.where((o) => o.label.toLowerCase().contains(query));
+              },
+              onSelected: (opt) => setState(() {
+                _employeeId = opt.id;
+                _listKey = UniqueKey();
+              }),
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(labelText: 'Filter by Employee', isDense: true),
+              ),
+            ),
+          ),
           DateRangeFilterRow(
             fromDate: _fromDate,
             toDate: _toDate,
@@ -62,6 +106,7 @@ class _EmployeeWorkLogListScreenState extends State<EmployeeWorkLogListScreen> {
               key: _listKey,
               fetchPage: (page) => _service.getPaged(
                 pageNumber: page,
+                employeeId: _employeeId,
                 fromDate: _fromDate != null ? _isoFormat.format(_fromDate!) : null,
                 toDate: _toDate != null ? _isoFormat.format(_toDate!) : null,
               ),

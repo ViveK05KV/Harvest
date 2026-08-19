@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
@@ -46,8 +47,26 @@ class ApiClient {
   Map<String, String> _headers({bool json = true}) {
     return {
       if (json) 'Content-Type': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
+      // Sent as X-Authorization, not Authorization: the API is reached through
+      // CloudFront, whose Origin Access Control signs every origin request and
+      // overwrites Authorization with its own SigV4 signature. EdgeIdentityMiddleware
+      // promotes this back onto Authorization before authenticating — mirrors
+      // the Angular client's auth.interceptor.ts exactly.
+      if (_token != null) 'X-Authorization': 'Bearer $_token',
     };
+  }
+
+  /// CloudFront's OAC does not hash the body itself — it trusts and signs
+  /// whatever the viewer supplies in `x-amz-content-sha256`. Without it, any
+  /// request carrying a body is rejected before it ever reaches the app with
+  /// "The request signature we calculated does not match the signature you
+  /// provided." Mirrors the Angular client's payload-hash.interceptor.ts.
+  Map<String, String> _signedJsonHeaders(List<int>? bodyBytes) {
+    final headers = _headers();
+    if (bodyBytes != null) {
+      headers['x-amz-content-sha256'] = sha256.convert(bodyBytes).toString();
+    }
+    return headers;
   }
 
   dynamic _handle(http.Response response) {
@@ -85,22 +104,25 @@ class ApiClient {
   }
 
   Future<dynamic> post(String path, {Object? body, bool attemptRefresh = true}) {
+    final bytes = body == null ? null : utf8.encode(jsonEncode(body));
     return _send(
-      () => _http.post(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+      () => _http.post(_uri(path), headers: _signedJsonHeaders(bytes), body: bytes),
       attemptRefresh: attemptRefresh,
     );
   }
 
   Future<dynamic> put(String path, {Object? body, bool attemptRefresh = true}) {
+    final bytes = body == null ? null : utf8.encode(jsonEncode(body));
     return _send(
-      () => _http.put(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+      () => _http.put(_uri(path), headers: _signedJsonHeaders(bytes), body: bytes),
       attemptRefresh: attemptRefresh,
     );
   }
 
   Future<dynamic> patch(String path, {Object? body, bool attemptRefresh = true}) {
+    final bytes = body == null ? null : utf8.encode(jsonEncode(body));
     return _send(
-      () => _http.patch(_uri(path), headers: _headers(), body: body == null ? null : jsonEncode(body)),
+      () => _http.patch(_uri(path), headers: _signedJsonHeaders(bytes), body: bytes),
       attemptRefresh: attemptRefresh,
     );
   }
@@ -114,11 +136,20 @@ class ApiClient {
 
   /// Uploads a single file as `multipart/form-data` under the given field name.
   Future<dynamic> postMultipartFile(String path, {required String fieldName, required String filePath}) async {
-    final request = http.MultipartRequest('POST', _uri(path));
-    request.headers.addAll(_headers(json: false));
-    request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
-    final streamedResponse = await _http.send(request);
-    final response = await http.Response.fromStream(streamedResponse);
+    final multipart = http.MultipartRequest('POST', _uri(path));
+    multipart.headers.addAll(_headers(json: false));
+    multipart.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+
+    // The exact bytes CloudFront's OAC signs must be the exact bytes on the
+    // wire, so the multipart body is finalized to bytes up front (rather than
+    // streamed) purely to hash it — the file sizes involved here (logo
+    // uploads, capped server-side at 2 MB) make that trade fine.
+    final bytes = await multipart.finalize().toBytes();
+    final headers = Map<String, String>.from(multipart.headers)
+      ..remove('content-length')
+      ..['x-amz-content-sha256'] = sha256.convert(bytes).toString();
+
+    final response = await _http.post(_uri(path), headers: headers, body: bytes);
     return _handle(response);
   }
 }

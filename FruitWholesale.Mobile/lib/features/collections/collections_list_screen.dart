@@ -3,12 +3,21 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/widgets/date_range_filter_row.dart';
 import '../../core/widgets/paginated_list_view.dart';
+import '../shop_master/shop_master_models.dart';
+import '../shop_master/shop_master_service.dart';
 import 'collection_form_screen.dart';
 import 'collection_models.dart';
 import 'collection_service.dart';
 import 'settle_collections_dialog.dart';
+
+class _ShopFilterOption {
+  final int? id;
+  final String label;
+  const _ShopFilterOption(this.id, this.label);
+}
 
 class CollectionsListScreen extends StatefulWidget {
   const CollectionsListScreen({super.key});
@@ -19,10 +28,44 @@ class CollectionsListScreen extends StatefulWidget {
 
 class _CollectionsListScreenState extends State<CollectionsListScreen> {
   late final CollectionService _service = CollectionService(context.read<ApiClient>());
+  late final ShopMasterService _shopService = ShopMasterService(context.read<ApiClient>());
   static final _isoFormat = DateFormat('yyyy-MM-dd');
   Key _listKey = UniqueKey();
   DateTime? _fromDate;
   DateTime? _toDate;
+
+  List<ShopMaster> _shops = [];
+  int? _shopId;
+  bool _loadingShops = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShops();
+  }
+
+  Future<void> _loadShops() async {
+    try {
+      final shops = await _shopService.getAllActive();
+      if (mounted) setState(() => _shops = shops);
+    } on ApiException {
+      // Shop filter just stays empty; the list itself still loads unfiltered.
+    } finally {
+      if (mounted) setState(() => _loadingShops = false);
+    }
+  }
+
+  ShopMaster? get _selectedShop {
+    for (final shop in _shops) {
+      if (shop.shopId == _shopId) return shop;
+    }
+    return null;
+  }
+
+  void _onShopChanged(int? shopId) => setState(() {
+        _shopId = shopId;
+        _listKey = UniqueKey();
+      });
 
   void _reload() => setState(() => _listKey = UniqueKey());
 
@@ -73,6 +116,32 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
     return Scaffold(
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _loadingShops
+                ? const LinearProgressIndicator()
+                : Autocomplete<_ShopFilterOption>(
+                    initialValue: TextEditingValue(text: _selectedShop?.shopName ?? ''),
+                    displayStringForOption: (opt) => opt.label,
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      final all = [
+                        const _ShopFilterOption(null, 'All Shops'),
+                        ..._shops.map((s) => _ShopFilterOption(s.shopId, s.shopName)),
+                      ];
+                      if (query.isEmpty) return all;
+                      return all.where((o) => o.label.toLowerCase().contains(query));
+                    },
+                    onSelected: (opt) => _onShopChanged(opt.id),
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      return TextField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(labelText: 'Filter by Shop', prefixIcon: Icon(Icons.storefront_outlined)),
+                      );
+                    },
+                  ),
+          ),
           DateRangeFilterRow(
             fromDate: _fromDate,
             toDate: _toDate,
@@ -84,6 +153,7 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
               key: _listKey,
               fetchPage: (page) => _service.getPaged(
                 pageNumber: page,
+                shopId: _shopId,
                 fromDate: _fromDate != null ? _isoFormat.format(_fromDate!) : null,
                 toDate: _toDate != null ? _isoFormat.format(_toDate!) : null,
               ),

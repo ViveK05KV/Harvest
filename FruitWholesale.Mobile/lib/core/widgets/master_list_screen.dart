@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/api_exception.dart';
 import '../models/paginated_list.dart';
+import '../theme/app_theme.dart';
 import 'paginated_list_view.dart';
 
 /// Generic list+search+activate/deactivate screen for simple master-data
@@ -111,8 +112,8 @@ class _MasterListScreenState<T> extends State<MasterListScreen<T>> {
                 final active = widget.isActiveOf(item);
                 final extra = widget.trailingExtra?.call(item);
                 return ListTile(
-                  title: Text(widget.titleOf(item), style: const TextStyle(color: Color(0xFF1D3125), fontWeight: FontWeight.w600)),
-                  subtitle: Text(widget.subtitleOf(item), style: const TextStyle(color: Color(0xFF4F6255))),
+                  title: Text(widget.titleOf(item), style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w600)),
+                  subtitle: Text(widget.subtitleOf(item), style: const TextStyle(color: AppColors.mutedInk)),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

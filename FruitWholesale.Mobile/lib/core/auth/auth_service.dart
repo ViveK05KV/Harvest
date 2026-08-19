@@ -77,6 +77,34 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Returns null on success, or an error message on failure. On success the
+  /// stored session's username is updated in place so the drawer/app bar
+  /// reflect it immediately, without forcing a re-login.
+  Future<String?> changeUsername(String newUsername, String currentPassword) async {
+    try {
+      final json = await _api.post('/auth/change-username', body: {
+        'newUsername': newUsername,
+        'currentPassword': currentPassword,
+      });
+      final current = _user!;
+      final updated = CurrentUser(
+        token: current.token,
+        expiresAt: current.expiresAt,
+        refreshToken: current.refreshToken,
+        userId: current.userId,
+        fullName: current.fullName,
+        username: json as String,
+        role: current.role,
+      );
+      _setUser(updated);
+      await _storage.save(updated);
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
   Future<void> logout() async {
     final refreshToken = _user?.refreshToken;
     _setUser(null);

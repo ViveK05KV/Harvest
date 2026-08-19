@@ -15,7 +15,17 @@ import 'company_settings_models.dart';
 import 'company_settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  /// Seeded from the shell's own fetch (`HomeShell._companySettings`) so this
+  /// screen doesn't flash a loading state for data the shell already has.
+  final CompanySettings? companySettings;
+
+  /// Fired whenever this screen changes company settings (profile save, logo
+  /// upload, Manager Access toggles) so the shell's copy — and therefore the
+  /// drawer's Reports/Profit Calculator gating — stays live without the user
+  /// having to leave and re-enter Settings.
+  final ValueChanged<CompanySettings>? onCompanySettingsChanged;
+
+  const SettingsScreen({super.key, this.companySettings, this.onCompanySettingsChanged});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -29,11 +39,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _loading = true;
   String? _loadError;
 
+  bool get _isAdmin => context.read<AuthService>().user!.role == UserRole.admin;
+
   @override
   void initState() {
     super.initState();
-    final canAdjustCash = context.read<AuthService>().user!.role != UserRole.staff;
-    _tabController = TabController(length: canAdjustCash ? 3 : 2, vsync: this);
+    _settings = widget.companySettings;
+    // Admin gets Company Profile, Manager Access, Account, Cash Adjustment;
+    // everyone else just gets Account (their own username/password) — mirrors
+    // the web Settings page's per-role cards.
+    _tabController = TabController(length: _isAdmin ? 4 : 1, vsync: this);
     _load();
   }
 
@@ -48,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     try {
       final settings = await _service.get();
       setState(() => _settings = settings);
+      if (settings != null) widget.onCompanySettingsChanged?.call(settings);
     } on ApiException catch (e) {
       setState(() => _loadError = e.message);
     } finally {
@@ -55,20 +71,33 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
   }
 
+  void _onSettingsUpdated(CompanySettings settings) {
+    setState(() => _settings = settings);
+    widget.onCompanySettingsChanged?.call(settings);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final role = context.watch<AuthService>().user!.role;
-    final canAdjustCash = role != UserRole.staff;
+    if (!_isAdmin) {
+      // Single-tab case: skip the TabBar entirely rather than show a bar with
+      // nothing to switch between.
+      return Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: const _AccountTab(),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
-            const Tab(text: 'Company Profile'),
-            const Tab(text: 'Change Password'),
-            if (canAdjustCash) const Tab(text: 'Cash Adjustment'),
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'Company Profile'),
+            Tab(text: 'Manager Access'),
+            Tab(text: 'Account'),
+            Tab(text: 'Cash Adjustment'),
           ],
         ),
       ),
@@ -78,8 +107,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               controller: _tabController,
               children: [
                 _CompanyProfileTab(initial: _settings, loadError: _loadError, onSaved: _load),
-                const _ChangePasswordTab(),
-                if (canAdjustCash) const _CashAdjustmentTab(),
+                _ManagerAccessTab(settings: _settings, onChanged: _onSettingsUpdated),
+                const _AccountTab(),
+                const _CashAdjustmentTab(),
               ],
             ),
     );
@@ -256,76 +286,230 @@ class _CompanyProfileTabState extends State<_CompanyProfileTab> {
   }
 }
 
-class _ChangePasswordTab extends StatefulWidget {
-  const _ChangePasswordTab();
+/// Self-service username + password change, available to every role — the
+/// mobile counterpart of the web Settings page's "Account" card.
+class _AccountTab extends StatefulWidget {
+  const _AccountTab();
 
   @override
-  State<_ChangePasswordTab> createState() => _ChangePasswordTabState();
+  State<_AccountTab> createState() => _AccountTabState();
 }
 
-class _ChangePasswordTabState extends State<_ChangePasswordTab> {
-  final _formKey = GlobalKey<FormState>();
-  final _currentController = TextEditingController();
-  final _newController = TextEditingController();
+class _AccountTabState extends State<_AccountTab> {
+  final _usernameFormKey = GlobalKey<FormState>();
+  late final _newUsernameController = TextEditingController(text: context.read<AuthService>().user!.username);
+  final _usernamePasswordController = TextEditingController();
+  bool _savingUsername = false;
+  String? _usernameError;
 
-  bool _saving = false;
-  String? _error;
+  final _passwordFormKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  bool _savingPassword = false;
+  String? _passwordError;
 
   @override
   void dispose() {
-    _currentController.dispose();
-    _newController.dispose();
+    _newUsernameController.dispose();
+    _usernamePasswordController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _saveUsername() async {
+    if (!_usernameFormKey.currentState!.validate()) return;
     setState(() {
-      _saving = true;
-      _error = null;
+      _savingUsername = true;
+      _usernameError = null;
+    });
+    final error = await context.read<AuthService>().changeUsername(
+          _newUsernameController.text.trim(),
+          _usernamePasswordController.text,
+        );
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _usernameError = error);
+    } else {
+      _usernamePasswordController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Username updated')));
+    }
+    setState(() => _savingUsername = false);
+  }
+
+  Future<void> _savePassword() async {
+    if (!_passwordFormKey.currentState!.validate()) return;
+    setState(() {
+      _savingPassword = true;
+      _passwordError = null;
     });
     final service = CompanySettingsService(context.read<ApiClient>());
     try {
-      await service.changePassword(currentPassword: _currentController.text, newPassword: _newController.text);
-      _currentController.clear();
-      _newController.clear();
+      await service.changePassword(
+        currentPassword: _currentPasswordController.text,
+        newPassword: _newPasswordController.text,
+      );
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated')));
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _passwordError = e.message);
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _savingPassword = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_error != null) ...[
-            ErrorBanner(_error!),
-            const SizedBox(height: 16),
-          ],
-          TextFormField(
-            controller: _currentController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Current Password'),
-            validator: (v) => (v == null || v.isEmpty) ? 'Current password is required' : null,
+    final username = context.watch<AuthService>().user!.username;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text('Signed in as $username.', style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 16),
+        Text('Username', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 12),
+        Form(
+          key: _usernameFormKey,
+          child: Column(
+            children: [
+              if (_usernameError != null) ...[
+                ErrorBanner(_usernameError!),
+                const SizedBox(height: 16),
+              ],
+              TextFormField(
+                controller: _newUsernameController,
+                decoration: const InputDecoration(labelText: 'New Username'),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Username is required';
+                  if (!RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(v.trim())) {
+                    return 'Only letters, numbers, dot, dash and underscore allowed';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _usernamePasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Current Password'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Confirm with your current password' : null,
+              ),
+              const SizedBox(height: 24),
+              SaveButton(saving: _savingUsername, onPressed: _saveUsername, label: 'Update Username'),
+            ],
           ),
+        ),
+        const Padding(padding: EdgeInsets.symmetric(vertical: 28), child: Divider()),
+        Text('Password', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 12),
+        Form(
+          key: _passwordFormKey,
+          child: Column(
+            children: [
+              if (_passwordError != null) ...[
+                ErrorBanner(_passwordError!),
+                const SizedBox(height: 16),
+              ],
+              TextFormField(
+                controller: _currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Current Password'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Current password is required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New Password'),
+                validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
+              ),
+              const SizedBox(height: 24),
+              SaveButton(saving: _savingPassword, onPressed: _savePassword, label: 'Update Password', icon: Icons.lock_reset),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Admin-only toggles for opening Reports / Profit Calculator to Manager —
+/// mirrors the web Settings page's "Manager Access" card.
+class _ManagerAccessTab extends StatefulWidget {
+  final CompanySettings? settings;
+  final ValueChanged<CompanySettings> onChanged;
+
+  const _ManagerAccessTab({required this.settings, required this.onChanged});
+
+  @override
+  State<_ManagerAccessTab> createState() => _ManagerAccessTabState();
+}
+
+class _ManagerAccessTabState extends State<_ManagerAccessTab> {
+  late final CompanySettingsService _service = CompanySettingsService(context.read<ApiClient>());
+  bool _savingReports = false;
+  bool _savingProfit = false;
+  String? _error;
+
+  Future<void> _toggleReports(bool next) async {
+    setState(() {
+      _savingReports = true;
+      _error = null;
+    });
+    try {
+      final updated = await _service.setReportsVisibility(next);
+      widget.onChanged(updated);
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _savingReports = false);
+    }
+  }
+
+  Future<void> _toggleProfit(bool next) async {
+    setState(() {
+      _savingProfit = true;
+      _error = null;
+    });
+    try {
+      final updated = await _service.setProfitVisibility(next);
+      widget.onChanged(updated);
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _savingProfit = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = widget.settings;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Give the Manager role visibility into these pages.'),
+        const SizedBox(height: 16),
+        if (_error != null) ...[
+          ErrorBanner(_error!),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _newController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'New Password'),
-            validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
-          ),
-          const SizedBox(height: 24),
-          SaveButton(saving: _saving, onPressed: _save, label: 'Update Password', icon: Icons.lock_reset),
         ],
-      ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Reports'),
+          subtitle: const Text('When off, only Admin can open Reports.'),
+          value: settings?.reportsVisibleToManagers ?? false,
+          onChanged: (_savingReports || settings == null) ? null : _toggleReports,
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Profit Calculator'),
+          subtitle: const Text('When off, only Admin can open Profit Calculator.'),
+          value: settings?.profitVisibleToManagers ?? false,
+          onChanged: (_savingProfit || settings == null) ? null : _toggleProfit,
+        ),
+      ],
     );
   }
 }

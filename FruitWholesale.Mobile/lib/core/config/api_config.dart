@@ -4,10 +4,10 @@
 /// - A physical device needs the host machine's LAN IP instead (e.g. `192.168.1.23`)
 ///   and the API must be started with `--urls http://0.0.0.0:5080` so it accepts
 ///   connections from outside the host.
-/// - Swap this for a real deployed URL once the API is hosted somewhere reachable
-///   from the internet.
+/// - Production points at the same CloudFront distribution as the Angular
+///   client's environment.prod.ts — keep the two in sync when either moves.
 class ApiConfig {
   ApiConfig._();
 
-  static const String baseUrl = 'https://harvest-erp-api-in.ambitiousdune-330fdd60.centralindia.azurecontainerapps.io/api';
+  static const String baseUrl = 'https://d1303bxd595i6l.cloudfront.net/api';
 }

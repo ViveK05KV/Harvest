@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
+import '../../core/api/lookup_service.dart';
+import '../../core/models/expense_category_option.dart';
 import '../../core/widgets/date_range_filter_row.dart';
 import '../../core/widgets/paginated_list_view.dart';
 import 'daily_expense_form_screen.dart';
@@ -18,10 +21,34 @@ class DailyExpenseListScreen extends StatefulWidget {
 
 class _DailyExpenseListScreenState extends State<DailyExpenseListScreen> {
   late final DailyExpenseService _service = DailyExpenseService(context.read<ApiClient>());
+  late final LookupService _lookupService = LookupService(context.read<ApiClient>());
   static final _isoFormat = DateFormat('yyyy-MM-dd');
   Key _listKey = UniqueKey();
   DateTime? _fromDate;
   DateTime? _toDate;
+
+  List<ExpenseCategoryOption> _categories = [];
+  int? _categoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _lookupService.getActiveExpenseCategories();
+      if (mounted) setState(() => _categories = categories);
+    } on ApiException {
+      // Category filter just stays empty; the list itself still loads unfiltered.
+    }
+  }
+
+  void _onCategoryChanged(int? categoryId) => setState(() {
+        _categoryId = categoryId;
+        _listKey = UniqueKey();
+      });
 
   void _reload() => setState(() => _listKey = UniqueKey());
 
@@ -48,9 +75,21 @@ class _DailyExpenseListScreenState extends State<DailyExpenseListScreen> {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daily Expenses')),
+      appBar: AppBar(title: const Text('Expenses')),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: DropdownButtonFormField<int?>(
+              initialValue: _categoryId,
+              decoration: const InputDecoration(labelText: 'Category', prefixIcon: Icon(Icons.category_outlined)),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('All Categories')),
+                for (final category in _categories) DropdownMenuItem(value: category.expenseCategoryId, child: Text(category.categoryName)),
+              ],
+              onChanged: _onCategoryChanged,
+            ),
+          ),
           DateRangeFilterRow(
             fromDate: _fromDate,
             toDate: _toDate,
@@ -62,6 +101,7 @@ class _DailyExpenseListScreenState extends State<DailyExpenseListScreen> {
               key: _listKey,
               fetchPage: (page) => _service.getPaged(
                 pageNumber: page,
+                expenseCategoryId: _categoryId,
                 fromDate: _fromDate != null ? _isoFormat.format(_fromDate!) : null,
                 toDate: _toDate != null ? _isoFormat.format(_toDate!) : null,
               ),

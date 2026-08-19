@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_client.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/models/nav_item.dart';
 import '../../core/models/user_role.dart';
+import '../../core/theme/app_theme.dart';
+import '../settings/company_settings_models.dart';
+import '../settings/company_settings_service.dart';
 import '../bill_printing/bill_printing_list_screen.dart';
 import '../collections/collections_list_screen.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -33,9 +37,10 @@ import '../users/user_list_screen.dart';
 /// Post-login shell: drawer navigation grouped and role-filtered exactly like
 /// the Angular sidenav (`main-layout.component.ts`). "Back office" = Admin,
 /// Manager, Accountant. Staff only ever sees Supply, Shop Returns,
-/// Collections, and Stock. Admin/Accountant have full access (including
-/// Administration and Profit Calculator); Manager has everything except
-/// those two.
+/// Collections, and Stock. Admin has full access, including Administration
+/// (Users, Settings). Manager has everything except Administration and Users
+/// management, plus Reports/Profit Calculator if the admin has switched
+/// those on for Manager from Settings.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -46,10 +51,10 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   static const List<UserRole> _backOffice = [UserRole.admin, UserRole.manager, UserRole.accountant];
 
-  static const _sidebarBg = Color(0xFF103B29);
-  static const _sidebarAccent = Color(0xFF277A4B);
-  static const _sidebarText = Color(0xFFE5F1E7);
-  static const _sidebarMuted = Color(0xFF96B99E);
+  static const _sidebarBg = AppColors.sidebarBg;
+  static const _sidebarAccent = AppColors.primary;
+  static const _sidebarText = AppColors.sidebarText;
+  static const _sidebarMuted = AppColors.sidebarMuted;
 
   late final List<NavGroup> _groups = [
     NavGroup(items: [
@@ -57,30 +62,30 @@ class _HomeShellState extends State<HomeShell> {
     ], label: 'Overview'),
     NavGroup(label: 'Transactions', items: [
       NavItem(label: 'Supply', icon: Icons.local_shipping_outlined, builder: (_) => const SupplyListScreen()),
-      NavItem(label: 'Bill Printing', icon: Icons.print_outlined, builder: (_) => const BillPrintingListScreen()),
-      NavItem(label: 'Shop Returns', icon: Icons.assignment_return_outlined, builder: (_) => const ShopReturnListScreen()),
-      NavItem(label: 'Purchase', icon: Icons.shopping_cart_outlined, builder: (_) => const PurchaseListScreen(), roles: _backOffice),
-      NavItem(
-        label: 'Supplier Returns',
-        icon: Icons.keyboard_return_outlined,
-        builder: (_) => const SupplierReturnListScreen(),
-        roles: _backOffice,
-      ),
       NavItem(label: 'Collections', icon: Icons.payments_outlined, builder: (_) => const CollectionsListScreen()),
+      NavItem(label: 'Purchases', icon: Icons.shopping_cart_outlined, builder: (_) => const PurchaseListScreen(), roles: _backOffice),
       NavItem(
         label: 'Supplier Payments',
         icon: Icons.account_balance_wallet_outlined,
         builder: (_) => const SupplierPaymentListScreen(),
         roles: _backOffice,
       ),
+      NavItem(label: 'Sales Returns', icon: Icons.assignment_return_outlined, builder: (_) => const ShopReturnListScreen()),
       NavItem(
-        label: 'Daily Expenses',
+        label: 'Purchase Returns',
+        icon: Icons.keyboard_return_outlined,
+        builder: (_) => const SupplierReturnListScreen(),
+        roles: _backOffice,
+      ),
+      NavItem(label: 'Billing', icon: Icons.print_outlined, builder: (_) => const BillPrintingListScreen()),
+      NavItem(
+        label: 'Expenses',
         icon: Icons.receipt_long_outlined,
         builder: (_) => const DailyExpenseListScreen(),
         roles: _backOffice,
       ),
       NavItem(
-        label: 'Employee Salary',
+        label: 'Salary Management',
         icon: Icons.work_history_outlined,
         builder: (_) => const EmployeeWorkLogListScreen(),
         roles: _backOffice,
@@ -99,12 +104,19 @@ class _HomeShellState extends State<HomeShell> {
       NavItem(label: 'Inventory', icon: Icons.inventory_outlined, builder: (_) => const StockScreen()),
     ]),
     NavGroup(label: 'Reports', items: [
-      NavItem(label: 'Reports', icon: Icons.assessment_outlined, builder: (_) => const ReportsScreen(), roles: [UserRole.admin]),
+      NavItem(
+        label: 'Reports',
+        icon: Icons.assessment_outlined,
+        builder: (_) => const ReportsScreen(),
+        roles: [UserRole.admin],
+        managerUnlockedBy: (s) => s?.reportsVisibleToManagers ?? false,
+      ),
       NavItem(
         label: 'Profit Calculator',
         icon: Icons.trending_up,
         builder: (_) => const ProfitScreen(),
         roles: [UserRole.admin],
+        managerUnlockedBy: (s) => s?.profitVisibleToManagers ?? false,
       ),
     ]),
     NavGroup(label: 'Masters', items: [
@@ -130,24 +142,42 @@ class _HomeShellState extends State<HomeShell> {
       NavItem(
         label: 'Settings',
         icon: Icons.settings_outlined,
-        builder: (_) => const SettingsScreen(),
-        roles: [UserRole.admin],
+        // Every role can reach Settings now (self-service password/username);
+        // no roles restriction.
+        builder: (_) => SettingsScreen(
+          companySettings: _companySettings,
+          onCompanySettingsChanged: (s) => setState(() => _companySettings = s),
+        ),
       ),
     ]),
   ];
 
   late NavItem _selected;
+  CompanySettings? _companySettings;
 
   @override
   void initState() {
     super.initState();
     final role = context.read<AuthService>().user!.role;
-    final visibleGroups = _groups.map((g) => g.visibleItems(role)).where((items) => items.isNotEmpty).toList();
+    final visibleGroups = _groups.map((g) => g.visibleItems(role, _companySettings)).where((items) => items.isNotEmpty).toList();
     // Staff's home is Supply; every other role lands on Dashboard.
     final home = role == UserRole.staff
         ? visibleGroups.expand((items) => items).firstWhere((item) => item.label == 'Supply')
         : visibleGroups.first.first;
     _selected = home;
+    _loadCompanySettings();
+  }
+
+  // Best-effort: only used to unlock Reports/Profit Calculator for Manager
+  // and to seed the Settings screen's "Manager Access" toggles. A failure
+  // here just leaves the nav at its Admin-only floor, same as before.
+  Future<void> _loadCompanySettings() async {
+    try {
+      final settings = await CompanySettingsService(context.read<ApiClient>()).get();
+      if (mounted) setState(() => _companySettings = settings);
+    } catch (_) {
+      // ignore
+    }
   }
 
   void _select(NavItem item) {
@@ -159,7 +189,10 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     final role = auth.user!.role;
-    final visibleGroups = _groups.map((g) => NavGroup(label: g.label, items: g.visibleItems(role))).where((g) => g.items.isNotEmpty).toList();
+    final visibleGroups = _groups
+        .map((g) => NavGroup(label: g.label, items: g.visibleItems(role, _companySettings)))
+        .where((g) => g.items.isNotEmpty)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(

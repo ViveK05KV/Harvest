@@ -7,10 +7,17 @@ class DailyExpenseService {
 
   DailyExpenseService(this._api);
 
-  Future<PaginatedList<DailyExpense>> getPaged({int pageNumber = 1, int pageSize = 20, String? fromDate, String? toDate}) async {
+  Future<PaginatedList<DailyExpense>> getPaged({
+    int pageNumber = 1,
+    int pageSize = 20,
+    int? expenseCategoryId,
+    String? fromDate,
+    String? toDate,
+  }) async {
     final json = await _api.get('/dailyexpense', query: {
       'pageNumber': pageNumber,
       'pageSize': pageSize,
+      if (expenseCategoryId != null) 'expenseCategoryId': expenseCategoryId,
       if (fromDate != null) 'fromDate': fromDate,
       if (toDate != null) 'toDate': toDate,
     });

@@ -7,10 +7,21 @@ class SupplierReturnService {
 
   SupplierReturnService(this._api);
 
-  Future<PaginatedList<SupplierReturnListItem>> getPaged({int pageNumber = 1, int pageSize = 20}) async {
+  Future<PaginatedList<SupplierReturnListItem>> getPaged({
+    int pageNumber = 1,
+    int pageSize = 20,
+    String? searchTerm,
+    int? supplierId,
+    String? fromDate,
+    String? toDate,
+  }) async {
     final json = await _api.get('/supplierreturn', query: {
       'pageNumber': pageNumber,
       'pageSize': pageSize,
+      if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
+      if (supplierId != null) 'supplierId': supplierId,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
     });
     return PaginatedList.fromJson(json as Map<String, dynamic>, SupplierReturnListItem.fromJson);
   }

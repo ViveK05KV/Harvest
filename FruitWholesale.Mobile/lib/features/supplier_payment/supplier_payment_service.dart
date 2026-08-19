@@ -7,10 +7,17 @@ class SupplierPaymentService {
 
   SupplierPaymentService(this._api);
 
-  Future<PaginatedList<SupplierPayment>> getPaged({int pageNumber = 1, int pageSize = 20, String? fromDate, String? toDate}) async {
+  Future<PaginatedList<SupplierPayment>> getPaged({
+    int pageNumber = 1,
+    int pageSize = 20,
+    int? supplierId,
+    String? fromDate,
+    String? toDate,
+  }) async {
     final json = await _api.get('/supplierpayment', query: {
       'pageNumber': pageNumber,
       'pageSize': pageSize,
+      if (supplierId != null) 'supplierId': supplierId,
       if (fromDate != null) 'fromDate': fromDate,
       if (toDate != null) 'toDate': toDate,
     });

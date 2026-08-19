@@ -42,4 +42,14 @@ class CompanySettingsService {
       'newPassword': newPassword,
     });
   }
+
+  Future<CompanySettings> setReportsVisibility(bool visible) async {
+    final json = await _api.patch('/companysettings/reports-visibility', body: {'visible': visible});
+    return CompanySettings.fromJson(json as Map<String, dynamic>);
+  }
+
+  Future<CompanySettings> setProfitVisibility(bool visible) async {
+    final json = await _api.patch('/companysettings/profit-visibility', body: {'visible': visible});
+    return CompanySettings.fromJson(json as Map<String, dynamic>);
+  }
 }

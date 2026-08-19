@@ -7,8 +7,22 @@ class PurchaseService {
 
   PurchaseService(this._api);
 
-  Future<PaginatedList<PurchaseListItem>> getPaged({int pageNumber = 1, int pageSize = 20}) async {
-    final json = await _api.get('/purchase', query: {'pageNumber': pageNumber, 'pageSize': pageSize});
+  Future<PaginatedList<PurchaseListItem>> getPaged({
+    int pageNumber = 1,
+    int pageSize = 20,
+    String? searchTerm,
+    int? supplierId,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final json = await _api.get('/purchase', query: {
+      'pageNumber': pageNumber,
+      'pageSize': pageSize,
+      if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
+      if (supplierId != null) 'supplierId': supplierId,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    });
     return PaginatedList.fromJson(json as Map<String, dynamic>, PurchaseListItem.fromJson);
   }
 

@@ -9,10 +9,10 @@ import '../../core/models/employee_option.dart';
 import 'report_service.dart';
 
 enum _ReportType {
-  dailySales('Daily Sales', needsDateRange: true),
-  dailyCollection('Daily Collection', needsDateRange: true),
-  dailyExpense('Daily Expense', needsDateRange: true),
-  purchase('Purchase', needsDateRange: true),
+  dailySales('Sales', needsDateRange: true),
+  dailyCollection('Collection', needsDateRange: true),
+  dailyExpense('Expense', needsDateRange: true),
+  purchase('Purchase Report', needsDateRange: true),
   fruitSales('Fruit Sales', needsDateRange: true),
   outstanding('Outstanding', needsDateRange: false),
   profitSummary('Profit Summary', needsDateRange: true),

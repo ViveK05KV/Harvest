@@ -7,10 +7,21 @@ class ShopReturnService {
 
   ShopReturnService(this._api);
 
-  Future<PaginatedList<ShopReturnListItem>> getPaged({int pageNumber = 1, int pageSize = 20}) async {
+  Future<PaginatedList<ShopReturnListItem>> getPaged({
+    int pageNumber = 1,
+    int pageSize = 20,
+    String? searchTerm,
+    int? shopId,
+    String? fromDate,
+    String? toDate,
+  }) async {
     final json = await _api.get('/shopreturn', query: {
       'pageNumber': pageNumber,
       'pageSize': pageSize,
+      if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
+      if (shopId != null) 'shopId': shopId,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
     });
     return PaginatedList.fromJson(json as Map<String, dynamic>, ShopReturnListItem.fromJson);
   }

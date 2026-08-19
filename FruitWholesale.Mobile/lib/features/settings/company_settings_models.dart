@@ -7,6 +7,8 @@ class CompanySettings {
   final String? gstNo;
   final String? logoUrl;
   final double openingCashBalance;
+  final bool reportsVisibleToManagers;
+  final bool profitVisibleToManagers;
 
   const CompanySettings({
     this.companyId = 0,
@@ -17,6 +19,8 @@ class CompanySettings {
     this.gstNo,
     this.logoUrl,
     this.openingCashBalance = 0,
+    this.reportsVisibleToManagers = false,
+    this.profitVisibleToManagers = false,
   });
 
   factory CompanySettings.fromJson(Map<String, dynamic> json) {
@@ -29,6 +33,8 @@ class CompanySettings {
       gstNo: json['gstNo'] as String?,
       logoUrl: json['logoUrl'] as String?,
       openingCashBalance: (json['openingCashBalance'] as num).toDouble(),
+      reportsVisibleToManagers: json['reportsVisibleToManagers'] as bool? ?? false,
+      profitVisibleToManagers: json['profitVisibleToManagers'] as bool? ?? false,
     );
   }
 
