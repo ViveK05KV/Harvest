@@ -76,10 +76,9 @@ export class CollectionFormComponent implements OnInit {
     return shop ? shop.currentOutstanding - this.receivingTotal() : 0;
   }
 
-  onShopChange(value: string): void {
-    const shopID = value ? Number(value) : null;
-    this.form.controls.shopID.setValue(shopID);
+  onShopChange(): void {
     this.recentActivity.set([]);
+    const shopID = this.form.controls.shopID.value;
     if (shopID) this.loadRecentActivity(shopID);
   }
 

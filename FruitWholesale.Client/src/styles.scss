@@ -328,6 +328,29 @@ table.mat-mdc-table {
     visibility: hidden;
   }
 
+  // Material's dialog surface/content set their own max-height + overflow:auto
+  // (mat-mdc-dialog-content is capped at 65vh) and the surface is
+  // position: relative, so .bill-print-area's absolute positioning below was
+  // containing-blocked to that small, clipped box instead of escaping to the
+  // full page — the printed page came out visually empty. Neutralize the
+  // whole dialog wrapper chain so nothing clips or repositions it.
+  .cdk-overlay-container,
+  .cdk-overlay-pane,
+  .cdk-global-overlay-wrapper,
+  .mat-mdc-dialog-container,
+  .mdc-dialog__container,
+  .mdc-dialog__surface,
+  .mat-mdc-dialog-surface {
+    position: static !important;
+    overflow: visible !important;
+    max-height: none !important;
+    max-width: none !important;
+    height: auto !important;
+    width: auto !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
   .bill-print-area,
   .bill-print-area * {
     visibility: visible;
@@ -339,6 +362,8 @@ table.mat-mdc-table {
     left: 0;
     width: 100%;
     max-width: none;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .bill-print-dialog-panel .mat-mdc-dialog-actions,
@@ -378,48 +403,6 @@ table.mat-mdc-table {
   color: var(--mat-sys-on-surface-variant);
 }
 
-.print-only {
-  display: none;
-}
-
-@media print {
-  app-main-layout mat-toolbar,
-  app-main-layout mat-sidenav,
-  .no-print {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
-  .invoice-print {
-    padding: 16px;
-
-    h2 { margin-bottom: 8px; }
-  }
-
-  .invoice-meta {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 16px;
-  }
-
-  .invoice-table {
-    width: 100%;
-    border-collapse: collapse;
-
-    th, td {
-      border: 1px solid #000;
-      padding: 6px 8px;
-      text-align: left;
-    }
-
-    tfoot td {
-      font-weight: 700;
-    }
-  }
-}
 
 .days-label {
   display: block;

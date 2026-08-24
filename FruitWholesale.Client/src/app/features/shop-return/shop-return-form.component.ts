@@ -98,15 +98,11 @@ export class ShopReturnFormComponent implements OnInit {
     });
   }
 
-  onShopChange(value: string): void {
-    const shopID = value ? Number(value) : null;
-    this.form.patchValue({ shopID, supplyID: null });
+  onShopChange(): void {
+    this.form.controls.supplyID.setValue(null);
     this.shopSupplies.set([]);
+    const shopID = this.form.controls.shopID.value;
     if (shopID) this.loadShopSupplies(shopID);
-  }
-
-  onSupplyChange(value: string): void {
-    this.form.controls.supplyID.setValue(value ? Number(value) : null);
   }
 
   private loadShopSupplies(shopId: number): void {

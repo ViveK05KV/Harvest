@@ -65,10 +65,9 @@ export class SupplierPaymentFormComponent implements OnInit {
     return supplier ? supplier.currentOutstanding - this.payingTotal() : 0;
   }
 
-  onSupplierChange(value: string): void {
-    const supplierID = value ? Number(value) : null;
-    this.form.controls.supplierID.setValue(supplierID);
+  onSupplierChange(): void {
     this.recentActivity.set([]);
+    const supplierID = this.form.controls.supplierID.value;
     if (supplierID) this.loadRecentActivity(supplierID);
   }
 

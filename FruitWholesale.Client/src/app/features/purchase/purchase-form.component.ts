@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,7 +15,7 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-purchase-form',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './purchase-form.component.html',
   styleUrl: './purchase-form.component.scss'
 })
@@ -147,10 +147,6 @@ export class PurchaseFormComponent implements OnInit {
     return this.itemsArray.controls.reduce((sum, _, i) => sum + this.rowAmount(i), 0);
   }
 
-  fruitName(fruitID: number | null): string {
-    return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
-  }
-
   fruitUnit(fruitID: number | null): string {
     return this.fruits().find((f) => f.fruitID === fruitID)?.unit ?? '';
   }
@@ -186,10 +182,6 @@ export class PurchaseFormComponent implements OnInit {
         this.router.navigate(['/purchase']);
       }
     });
-  }
-
-  printInvoice(): void {
-    window.print();
   }
 
   cancel(): void {

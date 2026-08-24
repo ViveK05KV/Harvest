@@ -11,10 +11,10 @@
   <div class="modal-main">
     <label class="field">
       <span class="field-label">Customer</span>
-      <select class="field-input" [value]="form.value.shopID ?? ''" (change)="onShopChange($any($event.target).value)">
-        <option value="">Select a shop</option>
+      <select class="field-input" formControlName="shopID" (change)="onShopChange()">
+        <option [ngValue]="null">Select a shop</option>
         @for (shop of shops(); track shop.shopID) {
-          <option [value]="shop.shopID">{{ shop.shopName }}</option>
+          <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
         }
       </select>
       @if (form.controls.shopID.touched && form.controls.shopID.hasError('required')) {

@@ -29,20 +29,20 @@
           </label>
           <label class="field">
             <span class="field-label">Shop</span>
-            <select class="field-plain" [value]="form.value.shopID ?? ''" (change)="onShopChange($any($event.target).value)">
-              <option value="">Select a shop</option>
+            <select class="field-plain" formControlName="shopID" (change)="onShopChange()">
+              <option [ngValue]="null">Select a shop</option>
               @for (shop of shops(); track shop.shopID) {
-                <option [value]="shop.shopID">{{ shop.shopName }}</option>
+                <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
               }
             </select>
           </label>
           <label class="field">
             <span class="field-label">Against Supply Invoice</span>
             <div class="invoice-field-row">
-              <select class="field-plain" [value]="form.value.supplyID ?? ''" [disabled]="!form.controls.shopID.value" (change)="onSupplyChange($any($event.target).value)">
-                <option value="">Not linked to an invoice</option>
+              <select class="field-plain" formControlName="supplyID" [disabled]="!form.controls.shopID.value">
+                <option [ngValue]="null">Not linked to an invoice</option>
                 @for (supply of shopSupplies(); track supply.supplyID) {
-                  <option [value]="supply.supplyID">{{ supply.invoiceNo }} ({{ supply.supplyDate | date: 'dd-MMM-yyyy' }})</option>
+                  <option [ngValue]="supply.supplyID">{{ supply.invoiceNo }} ({{ supply.supplyDate | date: 'dd-MMM-yyyy' }})</option>
                 }
               </select>
               @if (form.controls.supplyID.value) {

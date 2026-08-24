@@ -1,26 +1,21 @@
 @if (loading()) {
-  <div class="loading-state no-print">
+  <div class="loading-state">
     <mat-spinner diameter="40" />
   </div>
 } @else {
-  <div class="entry-header no-print">
+  <div class="entry-header">
     <div>
       <h2>{{ isEdit() ? 'Edit Purchase' : 'New Purchase' }}</h2>
       <p>{{ isEdit() ? 'Update this invoice — ledger entries adjust automatically.' : 'Record stock purchased from a supplier.' }}</p>
     </div>
     <span class="spacer"></span>
     <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
-    @if (isEdit()) {
-      <button type="button" class="btn-ghost" (click)="printInvoice()">
-        <mat-icon>print</mat-icon>Print Invoice
-      </button>
-    }
     <button type="button" class="btn-primary" (click)="save()" [disabled]="saving()">
       <mat-icon>check</mat-icon>Save
     </button>
   </div>
 
-  <form [formGroup]="form" class="no-print">
+  <form [formGroup]="form">
     <div class="entry-grid">
       <div class="entry-main">
         <div class="header-fields">
@@ -130,39 +125,4 @@
       </div>
     </div>
   </form>
-
-  <div class="print-only invoice-print">
-    <h2>Purchase Invoice</h2>
-    <div class="invoice-meta">
-      <div><strong>Invoice No:</strong> {{ form.controls.invoiceNo.value }}</div>
-      <div><strong>Date:</strong> {{ form.controls.purchaseDate.value | date: 'dd-MMM-yyyy' }}</div>
-      <div><strong>Supplier:</strong> {{ selectedSupplier()?.supplierName }}</div>
-    </div>
-    <table class="invoice-table">
-      <thead>
-        <tr>
-          <th>Fruit</th>
-          <th>Quantity</th>
-          <th>Rate</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (item of itemsArray.controls; track item; let i = $index) {
-          <tr>
-            <td>{{ fruitName(item.value.fruitID) }}</td>
-            <td>{{ item.value.quantity }} {{ fruitUnit(item.value.fruitID) }}</td>
-            <td>{{ item.value.purchasePrice | number: '1.2-2' }}</td>
-            <td>{{ rowAmount(i) | number: '1.2-2' }}</td>
-          </tr>
-        }
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3">Grand Total</td>
-          <td>{{ total() | number: '1.2-2' }}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
 }

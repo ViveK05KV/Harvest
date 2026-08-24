@@ -1,13 +1,15 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize, forkJoin } from 'rxjs';
 import { SupplyService } from './supply.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
 import { FruitMasterService } from '../fruit-master/fruit-master.service';
+import { BillPrintDialogComponent } from '../bill-printing/bill-print-dialog.component';
 import { ShopMaster, FruitMaster } from '../../core/models/master-data.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -16,7 +18,7 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-supply-form',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './supply-form.component.html',
   styleUrl: './supply-form.component.scss'
 })
@@ -27,6 +29,7 @@ export class SupplyFormComponent implements OnInit {
   private readonly fruitService = inject(FruitMasterService);
   private readonly notification = inject(NotificationService);
   private readonly authService = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -109,9 +112,8 @@ export class SupplyFormComponent implements OnInit {
     });
   }
 
-  onFruitChange(index: number, value: string): void {
-    const fruitID = value ? Number(value) : null;
-    this.itemsArray.at(index).patchValue({ fruitID, saleType: 'kg', boxCount: null });
+  onFruitChange(index: number): void {
+    this.itemsArray.at(index).patchValue({ saleType: 'kg', boxCount: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {
@@ -193,10 +195,6 @@ export class SupplyFormComponent implements OnInit {
     this.editingAmountIndex.set(null);
   }
 
-  fruitName(fruitID: number | null): string {
-    return this.fruits().find((f) => f.fruitID === fruitID)?.fruitName ?? '';
-  }
-
   fruitUnit(fruitID: number | null): string {
     return this.fruits().find((f) => f.fruitID === fruitID)?.unit ?? '';
   }
@@ -234,8 +232,15 @@ export class SupplyFormComponent implements OnInit {
     });
   }
 
-  printInvoice(): void {
-    window.print();
+  printBill(): void {
+    const id = this.supplyId();
+    if (!id) return;
+    this.dialog.open(BillPrintDialogComponent, {
+      data: { supplyId: id },
+      width: '420px',
+      maxHeight: '90vh',
+      panelClass: 'bill-print-dialog-panel'
+    });
   }
 
   cancel(): void {

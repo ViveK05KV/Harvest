@@ -1,9 +1,9 @@
 @if (loading()) {
-  <div class="loading-state no-print">
+  <div class="loading-state">
     <mat-spinner diameter="40" />
   </div>
 } @else {
-  <div class="entry-header no-print">
+  <div class="entry-header">
     <div>
       <h2>{{ isEdit() ? 'Edit Supply' : 'New Supply' }}</h2>
       <p>{{ isEdit() ? 'Update this invoice — ledger entries adjust automatically.' : 'Record wholesale stock supplied to a shop.' }}</p>
@@ -11,7 +11,7 @@
     <span class="spacer"></span>
     <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
     @if (isEdit()) {
-      <button type="button" class="btn-ghost" (click)="printInvoice()">
+      <button type="button" class="btn-ghost" (click)="printBill()">
         <mat-icon>print</mat-icon>Print Invoice
       </button>
     }
@@ -20,7 +20,7 @@
     </button>
   </div>
 
-  <form [formGroup]="form" class="no-print">
+  <form [formGroup]="form">
     <div class="entry-grid">
       <div class="entry-main">
         <div class="header-fields">
@@ -63,10 +63,10 @@
               @for (item of itemsArray.controls; track item; let i = $index) {
                 <tr [formGroupName]="i">
                   <td>
-                    <select class="cell-input" [value]="item.value.fruitID ?? ''" (change)="onFruitChange(i, $any($event.target).value)">
-                      <option value="">Select fruit</option>
+                    <select class="cell-input" formControlName="fruitID" (change)="onFruitChange(i)">
+                      <option [ngValue]="null">Select fruit</option>
                       @for (fruit of fruits(); track fruit.fruitID) {
-                        <option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</option>
+                        <option [ngValue]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</option>
                       }
                     </select>
                   </td>
@@ -146,39 +146,4 @@
       </div>
     </div>
   </form>
-
-  <div class="print-only invoice-print">
-    <h2>Supply Invoice</h2>
-    <div class="invoice-meta">
-      <div><strong>Invoice No:</strong> {{ form.controls.invoiceNo.value }}</div>
-      <div><strong>Date:</strong> {{ form.controls.supplyDate.value | date: 'dd-MMM-yyyy' }}</div>
-      <div><strong>Customer:</strong> {{ selectedShop()?.shopName }}</div>
-    </div>
-    <table class="invoice-table">
-      <thead>
-        <tr>
-          <th>Fruit</th>
-          <th>Quantity</th>
-          <th>Rate</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (item of itemsArray.controls; track item; let i = $index) {
-          <tr>
-            <td>{{ fruitName(item.value.fruitID) }}</td>
-            <td>{{ item.value.quantity }} {{ fruitUnit(item.value.fruitID) }}</td>
-            <td>{{ item.value.unitPrice | number: '1.2-2' }}</td>
-            <td>{{ rowAmount(i) | number: '1.0-0' }}</td>
-          </tr>
-        }
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3">Grand Total</td>
-          <td>{{ total() | number: '1.0-0' }}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
 }
