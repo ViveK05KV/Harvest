@@ -32,6 +32,7 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
   final _discountController = TextEditingController(text: '0');
   final _referenceController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _supplierController = TextEditingController();
 
   List<SupplierOption> _suppliers = [];
   int? _selectedSupplierId;
@@ -54,6 +55,7 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
     _discountController.dispose();
     _referenceController.dispose();
     _remarksController.dispose();
+    _supplierController.dispose();
     super.dispose();
   }
 
@@ -76,7 +78,10 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
         _remarksController.text = payment.remarks ?? '';
       }
 
-      setState(() => _suppliers = suppliers);
+      setState(() {
+        _suppliers = suppliers;
+        _supplierController.text = _findSupplier(_selectedSupplierId)?.supplierName ?? '';
+      });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -150,14 +155,17 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           Autocomplete<SupplierOption>(
-            initialValue: TextEditingValue(text: _findSupplier(_selectedSupplierId)?.supplierName ?? ''),
+            textEditingController: _supplierController,
             displayStringForOption: (supplier) => supplier.supplierName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
               if (query.isEmpty) return _suppliers;
               return _suppliers.where((supplier) => supplier.supplierName.toLowerCase().contains(query));
             },
-            onSelected: (supplier) => setState(() => _selectedSupplierId = supplier.supplierId),
+            onSelected: (supplier) => setState(() {
+              _selectedSupplierId = supplier.supplierId;
+              _supplierController.text = supplier.supplierName;
+            }),
             fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
               return TextFormField(
                 controller: controller,

@@ -39,6 +39,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
   final _addressController = TextEditingController();
   final _openingBalanceController = TextEditingController(text: '0');
   final _creditLimitController = TextEditingController(text: '0');
+  final _linkedSupplierController = TextEditingController();
 
   List<RouteOption> _routes = [];
   int? _routeId;
@@ -64,6 +65,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
     _addressController.dispose();
     _openingBalanceController.dispose();
     _creditLimitController.dispose();
+    _linkedSupplierController.dispose();
     super.dispose();
   }
 
@@ -89,6 +91,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
       setState(() {
         _routes = routes;
         _suppliers = suppliers;
+        _linkedSupplierController.text = _findSupplier(_linkedSupplierId)?.supplierName ?? '';
       });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -186,7 +189,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                   ),
                   const SizedBox(height: 16),
                   Autocomplete<_LinkedSupplierOption>(
-                    initialValue: TextEditingValue(text: _findSupplier(_linkedSupplierId)?.supplierName ?? ''),
+                    textEditingController: _linkedSupplierController,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -197,7 +200,10 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                       if (query.isEmpty) return all;
                       return all.where((o) => o.label.toLowerCase().contains(query));
                     },
-                    onSelected: (opt) => setState(() => _linkedSupplierId = opt.id),
+                    onSelected: (opt) => setState(() {
+                      _linkedSupplierId = opt.id;
+                      _linkedSupplierController.text = opt.label;
+                    }),
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                       return TextFormField(
                         controller: controller,

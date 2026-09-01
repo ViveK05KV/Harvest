@@ -30,6 +30,7 @@ class _LineItemForm {
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController boxCountController = TextEditingController();
+  final TextEditingController fruitController = TextEditingController();
 
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get price => double.tryParse(priceController.text) ?? 0;
@@ -40,6 +41,7 @@ class _LineItemForm {
     quantityController.dispose();
     priceController.dispose();
     boxCountController.dispose();
+    fruitController.dispose();
   }
 }
 
@@ -50,6 +52,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _invoiceNoController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _supplierController = TextEditingController();
 
   List<SupplierOption> _suppliers = [];
   List<FruitOption> _fruits = [];
@@ -71,6 +74,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   void dispose() {
     _invoiceNoController.dispose();
     _remarksController.dispose();
+    _supplierController.dispose();
     for (final item in _items) {
       item.dispose();
     }
@@ -111,6 +115,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       setState(() {
         _suppliers = suppliers;
         _fruits = fruits;
+        _supplierController.text = _findSupplier(_selectedSupplierId)?.supplierName ?? '';
+        for (final item in _items) {
+          item.fruitController.text = _findFruit(item.fruitId)?.fruitName ?? '';
+        }
       });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -242,14 +250,17 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           Autocomplete<SupplierOption>(
-            initialValue: TextEditingValue(text: _findSupplier(_selectedSupplierId)?.supplierName ?? ''),
+            textEditingController: _supplierController,
             displayStringForOption: (supplier) => supplier.supplierName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
               if (query.isEmpty) return _suppliers;
               return _suppliers.where((supplier) => supplier.supplierName.toLowerCase().contains(query));
             },
-            onSelected: (supplier) => setState(() => _selectedSupplierId = supplier.supplierId),
+            onSelected: (supplier) => setState(() {
+              _selectedSupplierId = supplier.supplierId;
+              _supplierController.text = supplier.supplierName;
+            }),
             fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
               return TextFormField(
                 controller: controller,
@@ -292,7 +303,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Expanded(
                   child: Autocomplete<FruitOption>(
-                    initialValue: TextEditingValue(text: _findFruit(item.fruitId)?.fruitName ?? ''),
+                    textEditingController: item.fruitController,
                     displayStringForOption: (fruit) => fruit.fruitName,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -301,6 +312,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                     },
                     onSelected: (fruit) => setState(() {
                       item.fruitId = fruit.fruitId;
+                      item.fruitController.text = fruit.fruitName;
                       item.boxCountController.clear();
                     }),
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {

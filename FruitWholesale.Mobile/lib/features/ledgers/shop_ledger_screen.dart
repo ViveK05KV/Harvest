@@ -28,6 +28,8 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
   late final LedgerService _ledgerService = LedgerService(context.read<ApiClient>());
   late final ShopMasterService _shopService = ShopMasterService(context.read<ApiClient>());
 
+  final _shopController = TextEditingController();
+
   List<ShopMaster> _shops = [];
   int? _selectedShopId;
   String? _error;
@@ -39,12 +41,19 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
     _loadShops();
   }
 
+  @override
+  void dispose() {
+    _shopController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadShops() async {
     try {
       final shops = await _shopService.getAllActive();
       setState(() {
         _shops = shops;
         _loadingShops = false;
+        _shopController.text = _selectedShop?.shopName ?? '';
       });
     } on ApiException catch (e) {
       setState(() {
@@ -76,7 +85,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
             child: _loadingShops
                 ? const LinearProgressIndicator()
                 : Autocomplete<_FilterOption>(
-                    initialValue: TextEditingValue(text: _selectedShop?.shopName ?? ''),
+                    textEditingController: _shopController,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -87,7 +96,10 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
                       if (query.isEmpty) return all;
                       return all.where((o) => o.label.toLowerCase().contains(query));
                     },
-                    onSelected: (opt) => setState(() => _selectedShopId = opt.id),
+                    onSelected: (opt) => setState(() {
+                      _selectedShopId = opt.id;
+                      _shopController.text = opt.label;
+                    }),
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
                       controller: controller,
                       focusNode: focusNode,

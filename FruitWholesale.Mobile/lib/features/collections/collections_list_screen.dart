@@ -34,6 +34,8 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
   DateTime? _fromDate;
   DateTime? _toDate;
 
+  final _shopController = TextEditingController();
+
   List<ShopMaster> _shops = [];
   int? _shopId;
   bool _loadingShops = true;
@@ -44,10 +46,21 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
     _loadShops();
   }
 
+  @override
+  void dispose() {
+    _shopController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadShops() async {
     try {
       final shops = await _shopService.getAllActive();
-      if (mounted) setState(() => _shops = shops);
+      if (mounted) {
+        setState(() {
+          _shops = shops;
+          _shopController.text = _selectedShop?.shopName ?? '';
+        });
+      }
     } on ApiException {
       // Shop filter just stays empty; the list itself still loads unfiltered.
     } finally {
@@ -121,7 +134,7 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
             child: _loadingShops
                 ? const LinearProgressIndicator()
                 : Autocomplete<_ShopFilterOption>(
-                    initialValue: TextEditingValue(text: _selectedShop?.shopName ?? ''),
+                    textEditingController: _shopController,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -132,7 +145,10 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
                       if (query.isEmpty) return all;
                       return all.where((o) => o.label.toLowerCase().contains(query));
                     },
-                    onSelected: (opt) => _onShopChanged(opt.id),
+                    onSelected: (opt) {
+                      _shopController.text = opt.label;
+                      _onShopChanged(opt.id);
+                    },
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                       return TextField(
                         controller: controller,

@@ -28,6 +28,8 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
   late final LedgerService _ledgerService = LedgerService(context.read<ApiClient>());
   late final SupplierMasterService _supplierService = SupplierMasterService(context.read<ApiClient>());
 
+  final _supplierController = TextEditingController();
+
   List<SupplierMaster> _suppliers = [];
   int? _selectedSupplierId;
   String? _error;
@@ -39,12 +41,19 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
     _loadSuppliers();
   }
 
+  @override
+  void dispose() {
+    _supplierController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSuppliers() async {
     try {
       final suppliers = await _supplierService.getAllActive();
       setState(() {
         _suppliers = suppliers;
         _loadingSuppliers = false;
+        _supplierController.text = _selectedSupplier?.supplierName ?? '';
       });
     } on ApiException catch (e) {
       setState(() {
@@ -76,7 +85,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             child: _loadingSuppliers
                 ? const LinearProgressIndicator()
                 : Autocomplete<_FilterOption>(
-                    initialValue: TextEditingValue(text: _selectedSupplier?.supplierName ?? ''),
+                    textEditingController: _supplierController,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -87,7 +96,10 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                       if (query.isEmpty) return all;
                       return all.where((o) => o.label.toLowerCase().contains(query));
                     },
-                    onSelected: (opt) => setState(() => _selectedSupplierId = opt.id),
+                    onSelected: (opt) => setState(() {
+                      _selectedSupplierId = opt.id;
+                      _supplierController.text = opt.label;
+                    }),
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
                       controller: controller,
                       focusNode: focusNode,

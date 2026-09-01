@@ -31,6 +31,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _employeeController = TextEditingController();
 
   List<EmployeeOption> _employees = [];
   List<RouteOption> _routes = [];
@@ -54,6 +55,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
   void dispose() {
     _amountController.dispose();
     _remarksController.dispose();
+    _employeeController.dispose();
     super.dispose();
   }
 
@@ -82,6 +84,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
       setState(() {
         _employees = employees;
         _routes = routes;
+        _employeeController.text = _findEmployee(_selectedEmployeeId)?.fullName ?? '';
       });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -157,14 +160,17 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
           DatePickerField(date: _date, onChanged: (picked) => setState(() => _date = picked)),
           const SizedBox(height: 16),
           Autocomplete<EmployeeOption>(
-            initialValue: TextEditingValue(text: _findEmployee(_selectedEmployeeId)?.fullName ?? ''),
+            textEditingController: _employeeController,
             displayStringForOption: (employee) => employee.fullName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
               if (query.isEmpty) return _employees;
               return _employees.where((employee) => employee.fullName.toLowerCase().contains(query));
             },
-            onSelected: (employee) => setState(() => _selectedEmployeeId = employee.employeeId),
+            onSelected: (employee) => setState(() {
+              _selectedEmployeeId = employee.employeeId;
+              _employeeController.text = employee.fullName;
+            }),
             fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
               return TextFormField(
                 controller: controller,

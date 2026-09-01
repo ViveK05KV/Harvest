@@ -47,6 +47,8 @@ class _ProfitScreenState extends State<ProfitScreen> {
   bool _tillToday = false;
   int? _selectedShopId;
 
+  final _shopController = TextEditingController();
+
   List<ShopOption> _shops = [];
   List<Widget>? _rows;
   String? _error;
@@ -56,8 +58,17 @@ class _ProfitScreenState extends State<ProfitScreen> {
   @override
   void initState() {
     super.initState();
-    _lookup.getActiveShops().then((shops) => setState(() => _shops = shops));
+    _lookup.getActiveShops().then((shops) => setState(() {
+          _shops = shops;
+          _shopController.text = _findShop(_selectedShopId)?.shopName ?? '';
+        }));
     _run();
+  }
+
+  @override
+  void dispose() {
+    _shopController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickDate({required bool isFrom}) async {
@@ -216,6 +227,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
                     setState(() {
                       _view = value!;
                       _selectedShopId = null;
+                      _shopController.clear();
                     });
                     _run();
                   },
@@ -223,7 +235,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
                 if (_usesShopFilter) ...[
                   const SizedBox(height: 12),
                   Autocomplete<_FilterOption>(
-                    initialValue: TextEditingValue(text: _findShop(_selectedShopId)?.shopName ?? ''),
+                    textEditingController: _shopController,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
@@ -235,7 +247,10 @@ class _ProfitScreenState extends State<ProfitScreen> {
                       return all.where((o) => o.label.toLowerCase().contains(query));
                     },
                     onSelected: (opt) {
-                      setState(() => _selectedShopId = opt.id);
+                      setState(() {
+                        _selectedShopId = opt.id;
+                        _shopController.text = opt.label;
+                      });
                       _run();
                     },
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
