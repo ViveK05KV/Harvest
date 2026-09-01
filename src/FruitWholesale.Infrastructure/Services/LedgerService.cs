@@ -439,37 +439,42 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         // day's end). ParentCreatedAt only breaks ties between two events of the same
         // inflow/outflow kind on the same day, so multiple same-day purchases still replay in
         // the order they were entered relative to each other.
+        // Postgres won't let ORDER BY after a UNION ALL reference an expression (the CASE
+        // below) that isn't one of the plain output columns - "move the UNION into a FROM
+        // clause" per its own hint - so the union is wrapped as a subquery and ordered
+        // from the outside instead.
         const string eventsSql = """
-            SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
-                   p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.TotalAmount / pi.Quantity AS UnitCost
-            FROM PurchaseItems pi
-            INNER JOIN Purchase p ON p.PurchaseID = pi.PurchaseID
-            WHERE pi.FruitID = @FruitID
+            SELECT * FROM (
+                SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
+                       p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.TotalAmount / pi.Quantity AS UnitCost
+                FROM PurchaseItems pi
+                INNER JOIN Purchase p ON p.PurchaseID = pi.PurchaseID
+                WHERE pi.FruitID = @FruitID
 
-            UNION ALL
+                UNION ALL
 
-            SELECT 'SHOP_RETURN' AS EventType, sri.ShopReturnItemID AS ItemID, sr.ReturnDate AS TransactionDate,
-                   sr.CreatedAt AS ParentCreatedAt, sri.Quantity, sri.CostBasis AS UnitCost
-            FROM ShopReturnItems sri
-            INNER JOIN ShopReturns sr ON sr.ShopReturnID = sri.ShopReturnID
-            WHERE sri.FruitID = @FruitID
+                SELECT 'SHOP_RETURN' AS EventType, sri.ShopReturnItemID AS ItemID, sr.ReturnDate AS TransactionDate,
+                       sr.CreatedAt AS ParentCreatedAt, sri.Quantity, sri.CostBasis AS UnitCost
+                FROM ShopReturnItems sri
+                INNER JOIN ShopReturns sr ON sr.ShopReturnID = sri.ShopReturnID
+                WHERE sri.FruitID = @FruitID
 
-            UNION ALL
+                UNION ALL
 
-            SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
-                   s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS UnitCost
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            WHERE si.FruitID = @FruitID
+                SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
+                       s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS UnitCost
+                FROM SupplyItems si
+                INNER JOIN Supply s ON s.SupplyID = si.SupplyID
+                WHERE si.FruitID = @FruitID
 
-            UNION ALL
+                UNION ALL
 
-            SELECT 'SUPPLIER_RETURN' AS EventType, sri2.SupplierReturnItemID AS ItemID, sr2.ReturnDate AS TransactionDate,
-                   sr2.CreatedAt AS ParentCreatedAt, sri2.Quantity, NULL AS UnitCost
-            FROM SupplierReturnItems sri2
-            INNER JOIN SupplierReturns sr2 ON sr2.SupplierReturnID = sri2.SupplierReturnID
-            WHERE sri2.FruitID = @FruitID
-
+                SELECT 'SUPPLIER_RETURN' AS EventType, sri2.SupplierReturnItemID AS ItemID, sr2.ReturnDate AS TransactionDate,
+                       sr2.CreatedAt AS ParentCreatedAt, sri2.Quantity, NULL AS UnitCost
+                FROM SupplierReturnItems sri2
+                INNER JOIN SupplierReturns sr2 ON sr2.SupplierReturnID = sri2.SupplierReturnID
+                WHERE sri2.FruitID = @FruitID
+            ) AS events
             ORDER BY TransactionDate ASC,
                      (CASE WHEN EventType IN ('PURCHASE', 'SHOP_RETURN') THEN 0 ELSE 1 END) ASC,
                      ParentCreatedAt ASC,
@@ -605,37 +610,41 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         // that day's purchase would replay against zero boxes on hand and silently fall
         // through the "oversold" fallback below instead of drawing down the boxes actually
         // bought that day.
+        // Same reason as RecalculateFruitCostBasisAsync above: Postgres rejects an
+        // ORDER BY expression after UNION ALL unless it's one of the plain output
+        // columns, so the union is wrapped as a subquery and ordered from outside it.
         const string eventsSql = """
-            SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
-                   p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.BoxCount, p.PurchaseID
-            FROM PurchaseItems pi
-            INNER JOIN Purchase p ON p.PurchaseID = pi.PurchaseID
-            WHERE pi.FruitID = @FruitID AND pi.BoxCount IS NOT NULL AND pi.BoxCount > 0
+            SELECT * FROM (
+                SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
+                       p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.BoxCount, p.PurchaseID
+                FROM PurchaseItems pi
+                INNER JOIN Purchase p ON p.PurchaseID = pi.PurchaseID
+                WHERE pi.FruitID = @FruitID AND pi.BoxCount IS NOT NULL AND pi.BoxCount > 0
 
-            UNION ALL
+                UNION ALL
 
-            SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
-                   s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS BoxCount, NULL AS PurchaseID
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            WHERE si.FruitID = @FruitID
+                SELECT 'SUPPLY' AS EventType, si.SupplyItemID AS ItemID, s.SupplyDate AS TransactionDate,
+                       s.CreatedAt AS ParentCreatedAt, si.Quantity, NULL AS BoxCount, NULL AS PurchaseID
+                FROM SupplyItems si
+                INNER JOIN Supply s ON s.SupplyID = si.SupplyID
+                WHERE si.FruitID = @FruitID
 
-            UNION ALL
+                UNION ALL
 
-            SELECT 'PURCHASE' AS EventType, ri.ShopReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
-                   r.CreatedAt AS ParentCreatedAt, ri.Quantity, ri.BoxCount, NULL AS PurchaseID
-            FROM ShopReturnItems ri
-            INNER JOIN ShopReturns r ON r.ShopReturnID = ri.ShopReturnID
-            WHERE ri.FruitID = @FruitID AND ri.BoxCount IS NOT NULL AND ri.BoxCount > 0
+                SELECT 'PURCHASE' AS EventType, ri.ShopReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
+                       r.CreatedAt AS ParentCreatedAt, ri.Quantity, ri.BoxCount, NULL AS PurchaseID
+                FROM ShopReturnItems ri
+                INNER JOIN ShopReturns r ON r.ShopReturnID = ri.ShopReturnID
+                WHERE ri.FruitID = @FruitID AND ri.BoxCount IS NOT NULL AND ri.BoxCount > 0
 
-            UNION ALL
+                UNION ALL
 
-            SELECT 'SUPPLY' AS EventType, ri.SupplierReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
-                   r.CreatedAt AS ParentCreatedAt, ri.Quantity, NULL AS BoxCount, NULL AS PurchaseID
-            FROM SupplierReturnItems ri
-            INNER JOIN SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
-            WHERE ri.FruitID = @FruitID
-
+                SELECT 'SUPPLY' AS EventType, ri.SupplierReturnItemID AS ItemID, r.ReturnDate AS TransactionDate,
+                       r.CreatedAt AS ParentCreatedAt, ri.Quantity, NULL AS BoxCount, NULL AS PurchaseID
+                FROM SupplierReturnItems ri
+                INNER JOIN SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
+                WHERE ri.FruitID = @FruitID
+            ) AS events
             ORDER BY TransactionDate ASC,
                      (CASE WHEN EventType = 'PURCHASE' THEN 0 ELSE 1 END) ASC,
                      ParentCreatedAt ASC,
