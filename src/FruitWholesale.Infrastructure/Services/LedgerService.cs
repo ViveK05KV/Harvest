@@ -428,6 +428,17 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         // kg, so using PurchasePrice as-is would price the whole kg quantity at the per-box
         // rate. TotalAmount is already correctly BoxCount*PurchasePrice (or Quantity*Price
         // for kg-rate fruits), so dividing by Quantity always yields the true per-kg cost.
+        //
+        // Ordering is by calendar date only (TransactionDate is a date, not a timestamp) -
+        // events on the same day never break ties by entry time (ParentCreatedAt). Within a
+        // day, inflows (Purchase, ShopReturn) are always replayed before outflows (Supply,
+        // SupplierReturn), regardless of which was actually entered into the system first:
+        // stock bought today is available to price a sale made earlier today, even if the
+        // purchase invoice itself gets entered into the app later that evening - matching how
+        // the business actually enters data (sales through the day, purchase invoice at
+        // day's end). ParentCreatedAt only breaks ties between two events of the same
+        // inflow/outflow kind on the same day, so multiple same-day purchases still replay in
+        // the order they were entered relative to each other.
         const string eventsSql = """
             SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
                    p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.TotalAmount / pi.Quantity AS UnitCost
@@ -459,7 +470,10 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             INNER JOIN SupplierReturns sr2 ON sr2.SupplierReturnID = sri2.SupplierReturnID
             WHERE sri2.FruitID = @FruitID
 
-            ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
+            ORDER BY TransactionDate ASC,
+                     (CASE WHEN EventType IN ('PURCHASE', 'SHOP_RETURN') THEN 0 ELSE 1 END) ASC,
+                     ParentCreatedAt ASC,
+                     ItemID ASC;
             """;
         var events = await connection.QueryAsync<CostBasisEvent>(eventsSql, new { FruitID = fruitId }, transaction);
 
