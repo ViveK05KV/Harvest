@@ -33,6 +33,7 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
   final _referenceController = TextEditingController();
   final _remarksController = TextEditingController();
   final _supplierController = TextEditingController();
+  final _supplierFocusNode = FocusNode();
 
   List<SupplierOption> _suppliers = [];
   int? _selectedSupplierId;
@@ -56,6 +57,7 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
     _referenceController.dispose();
     _remarksController.dispose();
     _supplierController.dispose();
+    _supplierFocusNode.dispose();
     super.dispose();
   }
 
@@ -156,6 +158,7 @@ class _SupplierPaymentFormScreenState extends State<SupplierPaymentFormScreen> {
           const SizedBox(height: 16),
           Autocomplete<SupplierOption>(
             textEditingController: _supplierController,
+            focusNode: _supplierFocusNode,
             displayStringForOption: (supplier) => supplier.supplierName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();

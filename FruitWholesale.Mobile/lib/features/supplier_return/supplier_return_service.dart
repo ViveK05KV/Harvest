@@ -31,10 +31,7 @@ class SupplierReturnService {
     return SupplierReturnDetail.fromJson(json as Map<String, dynamic>);
   }
 
-  Future<String> getNextReferenceNo() async {
-    final json = await _api.get('/supplierreturn/next-reference-no');
-    return json as String;
-  }
+  Future<String> getNextReferenceNo() => _api.getText('/supplierreturn/next-reference-no');
 
   Future<SupplierReturnDetail> create(SupplierReturnDetail supplierReturn) async {
     final json = await _api.post('/supplierreturn', body: supplierReturn.toSaveJson());

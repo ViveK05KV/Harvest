@@ -29,6 +29,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
   late final ShopMasterService _shopService = ShopMasterService(context.read<ApiClient>());
 
   final _shopController = TextEditingController();
+  final _shopFocusNode = FocusNode();
 
   List<ShopMaster> _shops = [];
   int? _selectedShopId;
@@ -44,6 +45,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
   @override
   void dispose() {
     _shopController.dispose();
+    _shopFocusNode.dispose();
     super.dispose();
   }
 
@@ -86,6 +88,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
                 ? const LinearProgressIndicator()
                 : Autocomplete<_FilterOption>(
                     textEditingController: _shopController,
+                    focusNode: _shopFocusNode,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

@@ -22,6 +22,7 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
   final _quantityController = TextEditingController();
   final _narrationController = TextEditingController();
   final _fruitController = TextEditingController();
+  final _fruitFocusNode = FocusNode();
 
   List<FruitOption> _fruits = [];
   int? _selectedFruitId;
@@ -42,6 +43,7 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
     _quantityController.dispose();
     _narrationController.dispose();
     _fruitController.dispose();
+    _fruitFocusNode.dispose();
     super.dispose();
   }
 
@@ -126,6 +128,7 @@ class _StockAdjustmentSheetState extends State<StockAdjustmentSheet> {
                     ],
                     Autocomplete<FruitOption>(
                       textEditingController: _fruitController,
+                      focusNode: _fruitFocusNode,
                       displayStringForOption: (fruit) => fruit.fruitName,
                       optionsBuilder: (value) {
                         final query = value.text.trim().toLowerCase();

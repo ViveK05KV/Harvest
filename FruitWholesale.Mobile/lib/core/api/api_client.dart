@@ -83,6 +83,22 @@ class ApiClient {
     throw ApiException(response.statusCode, ApiException.extractMessage(response.statusCode, decoded));
   }
 
+  /// A handful of endpoints (next-invoice/reference-no generators) respond
+  /// with a raw, unquoted text body rather than JSON — mirrors the Angular
+  /// client's `responseType: 'text'` for the same calls. Decoding those
+  /// through [_handle]'s `jsonDecode` throws FormatException.
+  String _handleText(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.body;
+    }
+
+    if (response.statusCode == 401) {
+      onUnauthorized?.call();
+    }
+    final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+    throw ApiException(response.statusCode, ApiException.extractMessage(response.statusCode, decoded));
+  }
+
   /// Sends via [sender], and on a 401 tries exactly one silent refresh-and-
   /// retry before falling through to [_handle]'s normal 401 handling. Pass
   /// `attemptRefresh: false` for calls that must not recurse into refresh
@@ -101,6 +117,17 @@ class ApiClient {
       () => _http.get(_uri(path, query), headers: _headers(json: false)),
       attemptRefresh: attemptRefresh,
     );
+  }
+
+  /// Like [get], but for endpoints that return a raw text body (see
+  /// [_handleText]) rather than JSON.
+  Future<String> getText(String path, {Map<String, dynamic>? query, bool attemptRefresh = true}) async {
+    var response = await _http.get(_uri(path, query), headers: _headers(json: false));
+    if (response.statusCode == 401 && attemptRefresh && onRefreshNeeded != null) {
+      final refreshed = await onRefreshNeeded!();
+      if (refreshed) response = await _http.get(_uri(path, query), headers: _headers(json: false));
+    }
+    return _handleText(response);
   }
 
   Future<dynamic> post(String path, {Object? body, bool attemptRefresh = true}) {

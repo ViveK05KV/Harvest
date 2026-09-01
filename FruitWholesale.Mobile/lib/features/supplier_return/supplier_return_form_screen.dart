@@ -32,6 +32,7 @@ class _LineItemForm {
   final TextEditingController unitPriceController = TextEditingController();
   final TextEditingController boxCountController = TextEditingController();
   final TextEditingController fruitController = TextEditingController();
+  final FocusNode fruitFocusNode = FocusNode();
 
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get unitPrice => double.tryParse(unitPriceController.text) ?? 0;
@@ -43,6 +44,7 @@ class _LineItemForm {
     unitPriceController.dispose();
     boxCountController.dispose();
     fruitController.dispose();
+    fruitFocusNode.dispose();
   }
 }
 
@@ -54,6 +56,7 @@ class _SupplierReturnFormScreenState extends State<SupplierReturnFormScreen> {
   final _referenceNoController = TextEditingController();
   final _remarksController = TextEditingController();
   final _supplierController = TextEditingController();
+  final _supplierFocusNode = FocusNode();
 
   List<SupplierOption> _suppliers = [];
   List<FruitOption> _fruits = [];
@@ -76,6 +79,7 @@ class _SupplierReturnFormScreenState extends State<SupplierReturnFormScreen> {
     _referenceNoController.dispose();
     _remarksController.dispose();
     _supplierController.dispose();
+    _supplierFocusNode.dispose();
     for (final item in _items) {
       item.dispose();
     }
@@ -252,6 +256,7 @@ class _SupplierReturnFormScreenState extends State<SupplierReturnFormScreen> {
           const SizedBox(height: 16),
           Autocomplete<SupplierOption>(
             textEditingController: _supplierController,
+            focusNode: _supplierFocusNode,
             displayStringForOption: (supplier) => supplier.supplierName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
@@ -305,6 +310,7 @@ class _SupplierReturnFormScreenState extends State<SupplierReturnFormScreen> {
                 Expanded(
                   child: Autocomplete<FruitOption>(
                     textEditingController: item.fruitController,
+                    focusNode: item.fruitFocusNode,
                     displayStringForOption: (fruit) => fruit.fruitName,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

@@ -48,6 +48,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
   int? _selectedShopId;
 
   final _shopController = TextEditingController();
+  final _shopFocusNode = FocusNode();
 
   List<ShopOption> _shops = [];
   List<Widget>? _rows;
@@ -68,6 +69,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
   @override
   void dispose() {
     _shopController.dispose();
+    _shopFocusNode.dispose();
     super.dispose();
   }
 
@@ -236,6 +238,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
                   const SizedBox(height: 12),
                   Autocomplete<_FilterOption>(
                     textEditingController: _shopController,
+                    focusNode: _shopFocusNode,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

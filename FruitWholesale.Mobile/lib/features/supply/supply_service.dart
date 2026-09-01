@@ -34,10 +34,7 @@ class SupplyService {
     return SupplyBillExtras.fromJson(json as Map<String, dynamic>);
   }
 
-  Future<String> getNextInvoiceNo() async {
-    final json = await _api.get('/supply/next-invoice-no');
-    return json as String;
-  }
+  Future<String> getNextInvoiceNo() => _api.getText('/supply/next-invoice-no');
 
   Future<SupplyDetail> create(SupplyDetail supply) async {
     final json = await _api.post('/supply', body: supply.toSaveJson());

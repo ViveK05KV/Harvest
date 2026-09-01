@@ -43,6 +43,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<EmployeeOption> _employees = [];
   int? _selectedEmployeeId;
   final _employeeController = TextEditingController();
+  final _employeeFocusNode = FocusNode();
 
   List<Widget>? _rows;
   String? _error;
@@ -61,6 +62,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void dispose() {
     _employeeController.dispose();
+    _employeeFocusNode.dispose();
     super.dispose();
   }
 
@@ -246,6 +248,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   const SizedBox(height: 12),
                   Autocomplete<EmployeeOption>(
                     textEditingController: _employeeController,
+                    focusNode: _employeeFocusNode,
                     displayStringForOption: (employee) => employee.fullName,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

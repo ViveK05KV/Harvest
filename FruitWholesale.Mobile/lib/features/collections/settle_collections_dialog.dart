@@ -30,6 +30,7 @@ class _SettleCollectionsDialogState extends State<_SettleCollectionsDialog> {
   late final CollectionService _collectionService = CollectionService(context.read<ApiClient>());
   late final LookupService _lookupService = LookupService(context.read<ApiClient>());
   final _shopController = TextEditingController();
+  final _shopFocusNode = FocusNode();
 
   List<ShopOption> _shops = [];
   int? _selectedShopId;
@@ -52,6 +53,7 @@ class _SettleCollectionsDialogState extends State<_SettleCollectionsDialog> {
   void dispose() {
     _shopController.removeListener(_onShopTextChanged);
     _shopController.dispose();
+    _shopFocusNode.dispose();
     super.dispose();
   }
 
@@ -146,6 +148,7 @@ class _SettleCollectionsDialogState extends State<_SettleCollectionsDialog> {
             else
               Autocomplete<ShopOption>(
                 textEditingController: _shopController,
+                focusNode: _shopFocusNode,
                 displayStringForOption: (shop) => shop.shopName,
                 optionsBuilder: (value) {
                   final query = value.text.trim().toLowerCase();

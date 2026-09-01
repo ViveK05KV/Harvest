@@ -31,6 +31,7 @@ class _LineItemForm {
   final TextEditingController priceController = TextEditingController();
   final TextEditingController boxCountController = TextEditingController();
   final TextEditingController fruitController = TextEditingController();
+  final FocusNode fruitFocusNode = FocusNode();
 
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get price => double.tryParse(priceController.text) ?? 0;
@@ -42,6 +43,7 @@ class _LineItemForm {
     priceController.dispose();
     boxCountController.dispose();
     fruitController.dispose();
+    fruitFocusNode.dispose();
   }
 }
 
@@ -53,6 +55,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _invoiceNoController = TextEditingController();
   final _remarksController = TextEditingController();
   final _supplierController = TextEditingController();
+  final _supplierFocusNode = FocusNode();
 
   List<SupplierOption> _suppliers = [];
   List<FruitOption> _fruits = [];
@@ -75,6 +78,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _invoiceNoController.dispose();
     _remarksController.dispose();
     _supplierController.dispose();
+    _supplierFocusNode.dispose();
     for (final item in _items) {
       item.dispose();
     }
@@ -251,6 +255,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           const SizedBox(height: 16),
           Autocomplete<SupplierOption>(
             textEditingController: _supplierController,
+            focusNode: _supplierFocusNode,
             displayStringForOption: (supplier) => supplier.supplierName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();
@@ -304,6 +309,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 Expanded(
                   child: Autocomplete<FruitOption>(
                     textEditingController: item.fruitController,
+                    focusNode: item.fruitFocusNode,
                     displayStringForOption: (fruit) => fruit.fruitName,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

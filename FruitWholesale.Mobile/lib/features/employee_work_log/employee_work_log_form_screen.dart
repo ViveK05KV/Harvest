@@ -32,6 +32,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
   final _amountController = TextEditingController();
   final _remarksController = TextEditingController();
   final _employeeController = TextEditingController();
+  final _employeeFocusNode = FocusNode();
 
   List<EmployeeOption> _employees = [];
   List<RouteOption> _routes = [];
@@ -56,6 +57,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
     _amountController.dispose();
     _remarksController.dispose();
     _employeeController.dispose();
+    _employeeFocusNode.dispose();
     super.dispose();
   }
 
@@ -161,6 +163,7 @@ class _EmployeeWorkLogFormScreenState extends State<EmployeeWorkLogFormScreen> {
           const SizedBox(height: 16),
           Autocomplete<EmployeeOption>(
             textEditingController: _employeeController,
+            focusNode: _employeeFocusNode,
             displayStringForOption: (employee) => employee.fullName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();

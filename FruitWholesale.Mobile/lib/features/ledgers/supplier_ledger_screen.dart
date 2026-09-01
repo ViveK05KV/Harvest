@@ -29,6 +29,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
   late final SupplierMasterService _supplierService = SupplierMasterService(context.read<ApiClient>());
 
   final _supplierController = TextEditingController();
+  final _supplierFocusNode = FocusNode();
 
   List<SupplierMaster> _suppliers = [];
   int? _selectedSupplierId;
@@ -44,6 +45,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
   @override
   void dispose() {
     _supplierController.dispose();
+    _supplierFocusNode.dispose();
     super.dispose();
   }
 
@@ -86,6 +88,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                 ? const LinearProgressIndicator()
                 : Autocomplete<_FilterOption>(
                     textEditingController: _supplierController,
+                    focusNode: _supplierFocusNode,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

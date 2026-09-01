@@ -35,6 +35,7 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
   DateTime? _toDate;
 
   final _shopController = TextEditingController();
+  final _shopFocusNode = FocusNode();
 
   List<ShopMaster> _shops = [];
   int? _shopId;
@@ -49,6 +50,7 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
   @override
   void dispose() {
     _shopController.dispose();
+    _shopFocusNode.dispose();
     super.dispose();
   }
 
@@ -135,6 +137,7 @@ class _CollectionsListScreenState extends State<CollectionsListScreen> {
                 ? const LinearProgressIndicator()
                 : Autocomplete<_ShopFilterOption>(
                     textEditingController: _shopController,
+                    focusNode: _shopFocusNode,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

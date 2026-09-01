@@ -40,6 +40,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
   final _openingBalanceController = TextEditingController(text: '0');
   final _creditLimitController = TextEditingController(text: '0');
   final _linkedSupplierController = TextEditingController();
+  final _linkedSupplierFocusNode = FocusNode();
 
   List<RouteOption> _routes = [];
   int? _routeId;
@@ -66,6 +67,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
     _openingBalanceController.dispose();
     _creditLimitController.dispose();
     _linkedSupplierController.dispose();
+    _linkedSupplierFocusNode.dispose();
     super.dispose();
   }
 
@@ -190,6 +192,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                   const SizedBox(height: 16),
                   Autocomplete<_LinkedSupplierOption>(
                     textEditingController: _linkedSupplierController,
+                    focusNode: _linkedSupplierFocusNode,
                     displayStringForOption: (opt) => opt.label,
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();

@@ -46,6 +46,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
   final _referenceController = TextEditingController();
   final _remarksController = TextEditingController();
   final _shopController = TextEditingController();
+  final _shopFocusNode = FocusNode();
 
   List<ShopMaster> _shops = [];
   int? _selectedShopId;
@@ -79,6 +80,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
     _referenceController.dispose();
     _remarksController.dispose();
     _shopController.dispose();
+    _shopFocusNode.dispose();
     super.dispose();
   }
 
@@ -202,6 +204,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
           const SizedBox(height: 16),
           Autocomplete<ShopMaster>(
             textEditingController: _shopController,
+            focusNode: _shopFocusNode,
             displayStringForOption: (shop) => shop.shopName,
             optionsBuilder: (value) {
               final query = value.text.trim().toLowerCase();

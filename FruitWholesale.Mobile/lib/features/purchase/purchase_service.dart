@@ -31,10 +31,7 @@ class PurchaseService {
     return PurchaseDetail.fromJson(json as Map<String, dynamic>);
   }
 
-  Future<String> getNextInvoiceNo() async {
-    final json = await _api.get('/purchase/next-invoice-no');
-    return json as String;
-  }
+  Future<String> getNextInvoiceNo() => _api.getText('/purchase/next-invoice-no');
 
   Future<PurchaseDetail> create(PurchaseDetail purchase) async {
     final json = await _api.post('/purchase', body: purchase.toSaveJson());
