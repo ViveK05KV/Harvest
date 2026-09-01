@@ -599,6 +599,12 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         // manual box reconciliation, just a full replay. Shop Returns add stock back (a box-in
         // event, same shape as Purchase) and Supplier Returns remove stock (a kg-out event,
         // same shape as Supply) so they fold into the same two event types.
+        //
+        // Same-day ties go to box-in before kg-out (see the ordering rationale in
+        // RecalculateFruitCostBasisAsync above) - otherwise a same-day sale entered before
+        // that day's purchase would replay against zero boxes on hand and silently fall
+        // through the "oversold" fallback below instead of drawing down the boxes actually
+        // bought that day.
         const string eventsSql = """
             SELECT 'PURCHASE' AS EventType, pi.PurchaseItemID AS ItemID, p.PurchaseDate AS TransactionDate,
                    p.CreatedAt AS ParentCreatedAt, pi.Quantity, pi.BoxCount, p.PurchaseID
@@ -630,7 +636,10 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             INNER JOIN SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
             WHERE ri.FruitID = @FruitID
 
-            ORDER BY TransactionDate ASC, ParentCreatedAt ASC, ItemID ASC;
+            ORDER BY TransactionDate ASC,
+                     (CASE WHEN EventType = 'PURCHASE' THEN 0 ELSE 1 END) ASC,
+                     ParentCreatedAt ASC,
+                     ItemID ASC;
             """;
         var events = await connection.QueryAsync<BoxEvent>(eventsSql, new { FruitID = fruitId }, transaction);
 
