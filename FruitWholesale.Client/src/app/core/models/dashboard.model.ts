@@ -4,6 +4,7 @@ export interface DashboardSummary {
   todaySales: number;
   todayPurchases: number;
   todayExpenses: number;
+  todaySalary: number;
   customerOutstanding: number;
   supplierOutstanding: number;
   netBusinessWorth: number;

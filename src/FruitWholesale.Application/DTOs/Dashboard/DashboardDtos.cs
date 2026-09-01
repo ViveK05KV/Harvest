@@ -7,14 +7,19 @@ public class DashboardSummaryDto
     public decimal TodaySales { get; set; }
     public decimal TodayPurchases { get; set; }
     public decimal TodayExpenses { get; set; }
+    public decimal TodaySalary { get; set; }
     public decimal CustomerOutstanding { get; set; }
     public decimal SupplierOutstanding { get; set; }
     public decimal NetBusinessWorth { get; set; }
 
-    /// <summary>Admin-only; left null for other roles so profit figures never reach non-admin clients.</summary>
+    /// <summary>Gross profit (revenue minus cost of goods sold) since profit tracking
+    /// began. Admin-only; left null for other roles so profit figures never reach
+    /// non-admin clients.</summary>
     public decimal? TotalProfit { get; set; }
 
-    /// <summary>Admin-only; left null for other roles so profit figures never reach non-admin clients.</summary>
+    /// <summary>Today's gross profit (today's revenue minus cost of goods sold).
+    /// Admin-only; left null for other roles so profit figures never reach
+    /// non-admin clients.</summary>
     public decimal? TodayProfit { get; set; }
 }
 

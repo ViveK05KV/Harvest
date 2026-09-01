@@ -1,6 +1,7 @@
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.Dashboard;
+using FruitWholesale.Domain.Common;
 using FruitWholesale.Domain.Enums;
 
 namespace FruitWholesale.Infrastructure.Repositories;
@@ -56,6 +57,14 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
             """;
         var result = await connection.QueryAsync<CategoryAmountDto>(sql, new { FromDate = fromDate, ToDate = toDate });
         return result.ToList();
+    }
+
+    public async Task<decimal> GetTotalSalaryAsync(DateTime fromDate, DateTime toDate)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        return await connection.ExecuteScalarAsync<decimal>(
+            "SELECT COALESCE(SUM(Amount), 0) FROM EmployeeWorkLog WHERE WorkDate BETWEEN @FromDate AND @ToDate",
+            new { FromDate = fromDate, ToDate = toDate });
     }
 
     public async Task<List<TopFruitDto>> GetTopSellingFruitsAsync(int top, DateTime fromDate, DateTime toDate)
@@ -136,7 +145,7 @@ public class DashboardRepository(IDbConnectionFactory connectionFactory) : IDash
 
     private static (List<(DateTime Date, string Label)> Points, bool ByMonth) BuildSpine(string period)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         switch (period)
         {
             case DashboardPeriods.ThisWeek:

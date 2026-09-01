@@ -202,6 +202,7 @@ RETURNS TABLE (
     TodaySales            DECIMAL(18,2),
     TodayPurchases        DECIMAL(18,2),
     TodayExpenses         DECIMAL(18,2),
+    TodaySalary           DECIMAL(18,2),
     CustomerOutstanding   DECIMAL(18,2),
     SupplierOutstanding   DECIMAL(18,2),
     NetBusinessWorth      DECIMAL(18,2)
@@ -213,6 +214,7 @@ DECLARE
     v_today_sales DECIMAL(18,2);
     v_today_purchases DECIMAL(18,2);
     v_today_expenses DECIMAL(18,2);
+    v_today_salary DECIMAL(18,2);
     v_customer_outstanding DECIMAL(18,2);
     v_supplier_outstanding DECIMAL(18,2);
 BEGIN
@@ -236,6 +238,7 @@ BEGIN
     SELECT COALESCE(SUM(TotalAmount), 0) INTO v_today_sales FROM Supply WHERE SupplyDate = p_today;
     SELECT COALESCE(SUM(TotalAmount), 0) INTO v_today_purchases FROM Purchase WHERE PurchaseDate = p_today;
     SELECT COALESCE(SUM(Amount), 0) INTO v_today_expenses FROM DailyExpense WHERE ExpenseDate = p_today;
+    SELECT COALESCE(SUM(Amount), 0) INTO v_today_salary FROM EmployeeWorkLog WHERE WorkDate = p_today;
 
     SELECT COALESCE(SUM(latest.RunningBalance), 0) INTO v_customer_outstanding
     FROM ShopMaster s
@@ -265,6 +268,7 @@ BEGIN
         v_today_sales,
         v_today_purchases,
         v_today_expenses,
+        v_today_salary,
         v_customer_outstanding,
         v_supplier_outstanding,
         (v_current_cash_balance + v_customer_outstanding - v_supplier_outstanding);

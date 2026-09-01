@@ -1,5 +1,6 @@
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Application.DTOs.Dashboard;
+using FruitWholesale.Domain.Common;
 
 namespace FruitWholesale.Application.Services;
 
@@ -17,7 +18,7 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
 {
     public async Task<DashboardSummaryDto> GetSummaryAsync(bool includeProfit)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         var summaryTask = repository.GetSummaryAsync(today);
 
         if (!includeProfit)
@@ -30,6 +31,9 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
         await Task.WhenAll(summaryTask, totalProfitTask, todayProfitTask);
 
         var summary = await summaryTask;
+
+        // Both gross (revenue - cost of goods sold): TotalProfit since tracking
+        // began, TodayProfit for today only.
         summary.TotalProfit = (await totalProfitTask).Profit;
         summary.TodayProfit = (await todayProfitTask).FirstOrDefault()?.Profit ?? 0m;
         return summary;
@@ -37,22 +41,36 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
 
     public async Task<DashboardChartsDto> GetChartsAsync()
     {
-        var toDate = DateTime.UtcNow.Date;
+        var toDate = BusinessClock.Today;
         var fromDate = toDate.AddMonths(-6);
 
         var salesByMonthTask = repository.GetSalesByMonthAsync(6);
         var collectionsByMonthTask = repository.GetCollectionsByMonthAsync(6);
         var expensesByCategoryTask = repository.GetExpensesByCategoryAsync(fromDate, toDate);
+        var totalSalaryTask = repository.GetTotalSalaryAsync(fromDate, toDate);
         var topSellingFruitsTask = repository.GetTopSellingFruitsAsync(10, fromDate, toDate);
         var topCustomersTask = repository.GetTopCustomersAsync(10, fromDate, toDate);
 
-        await Task.WhenAll(salesByMonthTask, collectionsByMonthTask, expensesByCategoryTask, topSellingFruitsTask, topCustomersTask);
+        await Task.WhenAll(salesByMonthTask, collectionsByMonthTask, expensesByCategoryTask, totalSalaryTask, topSellingFruitsTask, topCustomersTask);
+
+        // "Where the money went" folds salary paid in as its own category
+        // alongside the DailyExpense categories, so the breakdown reflects all
+        // cash spent, not just what was logged as an expense.
+        var expensesByCategory = await expensesByCategoryTask;
+        var totalSalary = await totalSalaryTask;
+        if (totalSalary > 0)
+        {
+            expensesByCategory = expensesByCategory
+                .Append(new CategoryAmountDto { Category = "Salary Paid", Amount = totalSalary })
+                .OrderByDescending(c => c.Amount)
+                .ToList();
+        }
 
         return new DashboardChartsDto
         {
             SalesByMonth = await salesByMonthTask,
             CollectionsByMonth = await collectionsByMonthTask,
-            ExpensesByCategory = await expensesByCategoryTask,
+            ExpensesByCategory = expensesByCategory,
             TopSellingFruits = await topSellingFruitsTask,
             TopCustomers = await topCustomersTask
         };
@@ -80,7 +98,7 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
             return [];
         }
 
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         var fromDate = today.AddDays(-6);
         var rows = await profitRepository.GetShopDailyProfitAsync(null, fromDate, today);
         var byDate = rows.ToDictionary(r => r.Date.Date, r => r.Profit);

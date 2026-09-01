@@ -96,10 +96,10 @@ export class DashboardComponent implements OnInit {
       { label: 'Sales', value: s.todaySales },
       { label: 'Collections', value: s.todayCollection },
       { label: 'Purchases', value: s.todayPurchases },
-      { label: 'Expenses', value: s.todayExpenses }
+      { label: 'Expenses', value: s.todayExpenses + s.todaySalary }
     ];
     if (s.todayProfit !== null) {
-      tiles.push({ label: 'Profit', value: s.todayProfit });
+      tiles.push({ label: "Today's Profit", value: s.todayProfit });
     }
     tiles.push({ label: 'Net Cash', value: s.todayCollection - s.todayPurchases - s.todayExpenses });
     return tiles;

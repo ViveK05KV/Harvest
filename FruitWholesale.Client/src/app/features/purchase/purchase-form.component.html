@@ -47,8 +47,8 @@
             <thead>
               <tr>
                 <th class="col-fruit">Fruit</th>
+                <th class="col-type">Sell by</th>
                 <th class="col-num">Quantity</th>
-                <th class="col-type">Boxes</th>
                 <th class="col-num">Rate</th>
                 <th class="col-num">Amount</th>
                 <th class="col-del"></th>
@@ -66,24 +66,36 @@
                     </select>
                   </td>
                   <td>
-                    @if (fruitTracksByBox(item.value.fruitID) && fruitBoxWeight(item.value.fruitID) != null) {
-                      <span class="no-box-track">{{ item.value.quantity }} kg</span>
+                    @if (fruitTracksByBox(item.value.fruitID)) {
+                      <select class="cell-input cell-input--narrow" formControlName="saleType" (change)="onSaleTypeChange(i)">
+                        <option value="kg">Kg</option>
+                        <option value="box">Box</option>
+                      </select>
+                    } @else {
+                      <span class="no-box-track">{{ fruitUnit(item.value.fruitID) || '—' }}</span>
+                    }
+                  </td>
+                  <td>
+                    @if (fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box') {
+                      <input class="cell-input cell-input--num mono-cell" type="number" formControlName="boxCount" min="0.01" step="0.01" placeholder="Boxes" (input)="onBoxCountChange(i)" />
+                      <span class="cell-hint">{{ item.value.quantity }} kg</span>
                     } @else {
                       <input class="cell-input cell-input--num mono-cell" type="number" formControlName="quantity" min="0" step="0.01" />
                     }
                   </td>
                   <td>
-                    @if (fruitTracksByBox(item.value.fruitID)) {
-                      <input class="cell-input cell-input--num mono-cell" type="number" formControlName="boxCount" min="0.01" step="0.01" placeholder="Boxes" (input)="onBoxCountChange(i)" />
+                    <input class="cell-input cell-input--num mono-cell" type="number" formControlName="purchasePrice" min="0" step="0.01" />
+                    <span class="cell-hint">{{ fruitTracksByBox(item.value.fruitID) && item.value.saleType === 'box' ? '/box' : '/kg' }}</span>
+                  </td>
+                  <td class="amount-cell mono-cell">
+                    @if (isAdmin && editingAmountIndex() === i) {
+                      <input class="cell-input cell-input--num mono-cell" type="number" [value]="rowAmount(i)" (blur)="onAmountChange(i, $event)" min="0" step="0.01" />
                     } @else {
-                      <span class="no-box-track">—</span>
+                      <span [class.admin-editable-amount]="isAdmin" (dblclick)="isAdmin && startEditAmount(i, $event)">
+                        {{ rowAmount(i) | number: '1.2-2' }}
+                      </span>
                     }
                   </td>
-                  <td>
-                    <input class="cell-input cell-input--num mono-cell" type="number" formControlName="purchasePrice" min="0" step="0.01" />
-                    <span class="cell-hint">{{ fruitTracksByBox(item.value.fruitID) && item.value.boxCount ? '/box' : '/kg' }}</span>
-                  </td>
-                  <td class="amount-cell mono-cell">{{ rowAmount(i) | number: '1.2-2' }}</td>
                   <td>
                     <button type="button" class="row-icon-btn" (click)="removeRow(i)"><mat-icon>delete_outline</mat-icon></button>
                   </td>

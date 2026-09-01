@@ -10,6 +10,7 @@ public interface IDashboardRepository
     Task<List<MonthlyAmountDto>> GetSalesByMonthAsync(int months);
     Task<List<MonthlyAmountDto>> GetCollectionsByMonthAsync(int months);
     Task<List<CategoryAmountDto>> GetExpensesByCategoryAsync(DateTime fromDate, DateTime toDate);
+    Task<decimal> GetTotalSalaryAsync(DateTime fromDate, DateTime toDate);
     Task<List<TopFruitDto>> GetTopSellingFruitsAsync(int top, DateTime fromDate, DateTime toDate);
     Task<List<TopCustomerDto>> GetTopCustomersAsync(int top, DateTime fromDate, DateTime toDate);
     Task<List<TrendPointDto>> GetSalesTrendAsync(string period);
@@ -22,6 +23,7 @@ public interface IReportRepository
     Task<List<DailySalesReportRow>> GetDailySalesAsync(DateTime fromDate, DateTime toDate, int? shopId);
     Task<List<DailyCollectionReportRow>> GetDailyCollectionAsync(DateTime fromDate, DateTime toDate, int? shopId);
     Task<List<DailyExpenseReportRow>> GetDailyExpenseAsync(DateTime fromDate, DateTime toDate, int? expenseCategoryId);
+    Task<List<DailyExpenseReportRow>> GetDailySalaryAsync(DateTime fromDate, DateTime toDate);
     Task<List<PurchaseReportRow>> GetPurchaseReportAsync(DateTime fromDate, DateTime toDate, int? supplierId);
     Task<List<FruitSalesReportRow>> GetFruitSalesReportAsync(DateTime fromDate, DateTime toDate);
     Task<List<OutstandingReportRow>> GetOutstandingReportAsync();

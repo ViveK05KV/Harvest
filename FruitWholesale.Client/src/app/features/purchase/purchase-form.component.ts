@@ -10,6 +10,7 @@ import { SupplierMasterService } from '../supplier-master/supplier-master.servic
 import { FruitMasterService } from '../fruit-master/fruit-master.service';
 import { SupplierMaster, FruitMaster } from '../../core/models/master-data.model';
 import { NotificationService } from '../../core/services/notification.service';
+import { AuthService } from '../../core/services/auth.service';
 import { toIso } from '../../core/utils/date.util';
 
 @Component({
@@ -25,8 +26,12 @@ export class PurchaseFormComponent implements OnInit {
   private readonly supplierService = inject(SupplierMasterService);
   private readonly fruitService = inject(FruitMasterService);
   private readonly notification = inject(NotificationService);
+  private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  readonly isAdmin = this.authService.hasRole('Admin');
+  readonly editingAmountIndex = signal<number | null>(null);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -96,6 +101,7 @@ export class PurchaseFormComponent implements OnInit {
   buildItem(fruitID: number | null = null, quantity = 0, purchasePrice = 0, boxCount: number | null = null) {
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
+      saleType: this.fb.nonNullable.control<'kg' | 'box'>(boxCount != null ? 'box' : 'kg'),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
       purchasePrice: [purchasePrice, [Validators.required, Validators.min(0.01)]],
       boxCount: this.fb.control<number | null>(boxCount, Validators.min(0.01))
@@ -103,7 +109,7 @@ export class PurchaseFormComponent implements OnInit {
   }
 
   onFruitChange(index: number): void {
-    this.itemsArray.at(index).patchValue({ boxCount: null });
+    this.itemsArray.at(index).patchValue({ saleType: 'kg', boxCount: null });
   }
 
   fruitTracksByBox(fruitID: number | null): boolean {
@@ -114,7 +120,20 @@ export class PurchaseFormComponent implements OnInit {
     return this.fruits().find((f) => f.fruitID === fruitID)?.boxWeightKg ?? null;
   }
 
+  onSaleTypeChange(index: number): void {
+    const item = this.itemsArray.at(index);
+    if (item.value.saleType === 'kg') {
+      item.patchValue({ boxCount: null });
+    } else {
+      this.recomputeQuantityFromBoxes(index);
+    }
+  }
+
   onBoxCountChange(index: number): void {
+    this.recomputeQuantityFromBoxes(index);
+  }
+
+  private recomputeQuantityFromBoxes(index: number): void {
     const item = this.itemsArray.at(index);
     const boxWeight = this.fruitBoxWeight(item.value.fruitID);
     const boxCount = item.value.boxCount;
@@ -137,14 +156,37 @@ export class PurchaseFormComponent implements OnInit {
 
   rowAmount(index: number): number {
     const item = this.itemsArray.at(index).getRawValue();
-    if (this.fruitTracksByBox(item.fruitID) && item.boxCount) {
-      return item.boxCount * (item.purchasePrice || 0);
+    if (this.fruitTracksByBox(item.fruitID) && item.saleType === 'box') {
+      return (item.boxCount || 0) * (item.purchasePrice || 0);
     }
     return (item.quantity || 0) * (item.purchasePrice || 0);
   }
 
   total(): number {
     return this.itemsArray.controls.reduce((sum, _, i) => sum + this.rowAmount(i), 0);
+  }
+
+  // Admin-only: let the row's Amount be typed directly, back-solving Rate
+  // from it (Rate = Amount / effective quantity) instead of the usual
+  // Rate-in, Amount-out direction. Double-click enters edit mode; the
+  // input auto-focuses/selects so typing replaces the shown amount outright.
+  startEditAmount(index: number, event: MouseEvent): void {
+    this.editingAmountIndex.set(index);
+    const cell = (event.target as HTMLElement).closest('td');
+    setTimeout(() => cell?.querySelector('input')?.select());
+  }
+
+  onAmountChange(index: number, event: Event): void {
+    const amount = Number((event.target as HTMLInputElement).value);
+    const item = this.itemsArray.at(index);
+    const raw = item.getRawValue();
+    const usesBox = this.fruitTracksByBox(raw.fruitID) && raw.saleType === 'box';
+    const divisor = usesBox ? raw.boxCount : raw.quantity;
+
+    if (amount && amount > 0 && divisor) {
+      item.patchValue({ purchasePrice: Math.round((amount / divisor) * 100) / 100 });
+    }
+    this.editingAmountIndex.set(null);
   }
 
   fruitUnit(fruitID: number | null): string {
@@ -168,7 +210,7 @@ export class PurchaseFormComponent implements OnInit {
         fruitID: i.fruitID,
         quantity: i.quantity,
         purchasePrice: i.purchasePrice,
-        boxCount: this.fruitTracksByBox(i.fruitID) ? i.boxCount : null
+        boxCount: this.fruitTracksByBox(i.fruitID) && i.saleType === 'box' ? i.boxCount : null
       }))
     };
 

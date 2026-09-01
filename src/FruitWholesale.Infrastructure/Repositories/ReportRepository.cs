@@ -51,6 +51,22 @@ public class ReportRepository(IDbConnectionFactory connectionFactory) : IReportR
         return result.ToList();
     }
 
+    /// <summary>Salary paid, shaped as DailyExpenseReportRow so it can merge into the
+    /// same Expense tab listing as DailyExpense rows.</summary>
+    public async Task<List<DailyExpenseReportRow>> GetDailySalaryAsync(DateTime fromDate, DateTime toDate)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT w.WorkDate AS ExpenseDate, 'Salary Paid' AS CategoryName, w.Amount, emp.FullName AS PaidTo, w.PaymentMode
+            FROM EmployeeWorkLog w
+            INNER JOIN EmployeeMaster emp ON emp.EmployeeID = w.EmployeeID
+            WHERE w.WorkDate BETWEEN @FromDate AND @ToDate
+            ORDER BY w.WorkDate;
+            """;
+        var result = await connection.QueryAsync<DailyExpenseReportRow>(sql, new { FromDate = fromDate, ToDate = toDate });
+        return result.ToList();
+    }
+
     public async Task<List<PurchaseReportRow>> GetPurchaseReportAsync(DateTime fromDate, DateTime toDate, int? supplierId)
     {
         using var connection = connectionFactory.CreateConnection();
