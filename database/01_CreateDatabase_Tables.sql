@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS SupplierLedger;
 DROP TABLE IF EXISTS ShopLedger;
 DROP TABLE IF EXISTS FruitBoxes;
 DROP TABLE IF EXISTS StockLedger;
+DROP TABLE IF EXISTS FruitCostLayers;
 DROP TABLE IF EXISTS FruitCostBasis;
 DROP TABLE IF EXISTS EmployeeWorkLog;
 DROP TABLE IF EXISTS DailyExpense;
@@ -126,6 +127,24 @@ CREATE TABLE FruitCostBasis
     CONSTRAINT PK_FruitCostBasis PRIMARY KEY (FruitID),
     CONSTRAINT FK_FruitCostBasis_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
 );
+
+/* =====================================================================
+   FruitCostLayers (FIFO queue of remaining purchase/return batches per
+   fruit — rebuilt from scratch on every cost-basis recalculation)
+   ===================================================================== */
+CREATE TABLE FruitCostLayers
+(
+    FruitCostLayerID  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    FruitID           INT            NOT NULL,
+    SourceType        VARCHAR(20)    NOT NULL,
+    SourceItemID      INT            NOT NULL,
+    TransactionDate   DATE           NOT NULL,
+    UnitCost          DECIMAL(18,4)  NOT NULL,
+    RemainingQuantity DECIMAL(18,3)  NOT NULL,
+    CreatedAt         TIMESTAMP      NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    CONSTRAINT FK_FruitCostLayers_FruitMaster FOREIGN KEY (FruitID) REFERENCES FruitMaster(FruitID)
+);
+CREATE INDEX IX_FruitCostLayers_FruitID ON FruitCostLayers(FruitID);
 
 /* =====================================================================
    RouteMaster (a supply route groups a set of shops that share a

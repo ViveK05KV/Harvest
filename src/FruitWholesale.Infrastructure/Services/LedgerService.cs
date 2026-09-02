@@ -416,12 +416,14 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
 
     public async Task RecalculateFruitCostBasisAsync(IDbConnection connection, IDbTransaction transaction, int fruitId)
     {
-        // Inflow events (Purchase, ShopReturn) blend into the weighted average using their
-        // own UnitCost. Outflow events (Supply, SupplierReturn) consume stock at whatever the
-        // average is at that moment and snapshot it onto their own row — never the other
-        // way round — so a later purchase/return never retroactively changes profit already
-        // booked on a past sale/return. See database/08_AddProfitTracking.sql and
-        // database/09_AddReturns.sql for the full rationale.
+        // FIFO: inflow events (Purchase, ShopReturn) push a new cost layer at their own
+        // UnitCost. Outflow events (Supply, SupplierReturn) draw down the OLDEST layer(s)
+        // first and snapshot the cost of exactly what they drew onto their own row — never
+        // the other way round — so a later purchase/return never retroactively changes
+        // profit already booked on a past sale/return. See database/08_AddProfitTracking.sql
+        // and database/09_AddReturns.sql for the original weighted-average rationale (same
+        // "never retroactive" principle carries over to FIFO), and
+        // database/30_SwitchToFifoCostBasis.sql for the FIFO switch itself.
         //
         // Purchase UnitCost is TotalAmount/Quantity, not PurchasePrice directly: for
         // box-tracked fruits PurchasePrice is entered per BOX, while Quantity is always in
@@ -482,8 +484,10 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             """;
         var events = await connection.QueryAsync<CostBasisEvent>(eventsSql, new { FruitID = fruitId }, transaction);
 
-        var quantityOnHand = 0m;
-        var averageCost = 0m;
+        // FIFO queue of remaining cost layers, oldest first (index 0). Inflows append to the
+        // end; outflows always draw from the front, spanning more than one layer in a single
+        // line if the oldest layer alone doesn't cover it.
+        var layers = new List<CostLayer>();
         var supplyCostBasis = new Dictionary<int, decimal>();
         var supplierReturnCostBasis = new Dictionary<int, decimal>();
 
@@ -491,29 +495,26 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         {
             if (evt.EventType is "PURCHASE" or "SHOP_RETURN")
             {
-                var newQuantity = quantityOnHand + evt.Quantity;
-                // When on-hand is zero or negative (oversold - Supply/SupplierReturn allowed to
-                // exceed stock elsewhere in the app), there's no real inventory value behind
-                // quantityOnHand to blend: e.g. sell 10 with none in stock (quantityOnHand=-10,
-                // averageCost=0), then buy 20 @ ₹5 - blending would compute
-                // (-10*0 + 20*5)/10 = ₹10/unit instead of the ₹5 actually paid. Treat the
-                // incoming UnitCost as the new average outright in that case.
-                averageCost = quantityOnHand <= 0
-                    ? evt.UnitCost ?? 0m
-                    : newQuantity > 0
-                        ? (quantityOnHand * averageCost + evt.Quantity * (evt.UnitCost ?? 0m)) / newQuantity
-                        : 0m;
-                quantityOnHand = newQuantity;
+                layers.Add(new CostLayer
+                {
+                    UnitCost = evt.UnitCost ?? 0m,
+                    RemainingQuantity = evt.Quantity,
+                    SourceType = evt.EventType,
+                    SourceItemID = evt.ItemID,
+                    TransactionDate = evt.TransactionDate
+                });
             }
-            else if (evt.EventType == "SUPPLY")
+            else
             {
-                supplyCostBasis[evt.ItemID] = averageCost;
-                quantityOnHand -= evt.Quantity;
-            }
-            else // SUPPLIER_RETURN
-            {
-                supplierReturnCostBasis[evt.ItemID] = averageCost;
-                quantityOnHand -= evt.Quantity;
+                var costBasis = ConsumeFifoLayers(layers, evt.Quantity);
+                if (evt.EventType == "SUPPLY")
+                {
+                    supplyCostBasis[evt.ItemID] = costBasis;
+                }
+                else // SUPPLIER_RETURN
+                {
+                    supplierReturnCostBasis[evt.ItemID] = costBasis;
+                }
             }
         }
 
@@ -523,6 +524,40 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         await BatchUpdateCostBasisAsync(connection, transaction, "SupplyItems", "SupplyItemID", supplyCostBasis);
         await BatchUpdateCostBasisAsync(connection, transaction, "SupplierReturnItems", "SupplierReturnItemID", supplierReturnCostBasis);
 
+        // FruitCostLayers is rebuilt from scratch every time, same "delete-all, replay,
+        // reinsert current state" idiom as FruitBoxes below — it only ever holds whatever
+        // layers are still unconsumed after this replay.
+        await connection.ExecuteAsync("DELETE FROM FruitCostLayers WHERE FruitID = @FruitID", new { FruitID = fruitId }, transaction);
+        if (layers.Count > 0)
+        {
+            var layersJson = JsonSerializer.Serialize(layers.Select(l => new
+            {
+                sourcetype = l.SourceType,
+                sourceitemid = l.SourceItemID,
+                transactiondate = l.TransactionDate,
+                unitcost = l.UnitCost,
+                remainingquantity = l.RemainingQuantity
+            }));
+            const string insertLayersSql = """
+                INSERT INTO FruitCostLayers (FruitID, SourceType, SourceItemID, TransactionDate, UnitCost, RemainingQuantity)
+                SELECT @FruitID, SourceType, SourceItemID, TransactionDate, UnitCost, RemainingQuantity
+                FROM jsonb_to_recordset(@Json::jsonb) AS x(
+                    SourceType varchar(20),
+                    SourceItemID int,
+                    TransactionDate date,
+                    UnitCost numeric(18,4),
+                    RemainingQuantity numeric(18,3)
+                );
+                """;
+            await connection.ExecuteAsync(insertLayersSql, new { FruitID = fruitId, Json = layersJson }, transaction);
+        }
+
+        // FruitCostBasis stays a derived summary of whatever's currently on hand (blended
+        // cost of the remaining layers) - ShopReturnRepository.ResolveReturnCostBasisBatchAsync
+        // reads AverageCost from here as its fallback for an unlinked return, unchanged.
+        var quantityOnHand = layers.Sum(l => l.RemainingQuantity);
+        var averageCost = quantityOnHand > 0 ? layers.Sum(l => l.RemainingQuantity * l.UnitCost) / quantityOnHand : 0m;
+
         const string upsertSql = """
             INSERT INTO FruitCostBasis (FruitID, QuantityOnHand, AverageCost, UpdatedAt)
             VALUES (@FruitID, @QuantityOnHand, @AverageCost, (now() AT TIME ZONE 'utc'))
@@ -530,6 +565,58 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             SET QuantityOnHand = EXCLUDED.QuantityOnHand, AverageCost = EXCLUDED.AverageCost, UpdatedAt = EXCLUDED.UpdatedAt;
             """;
         await connection.ExecuteAsync(upsertSql, new { FruitID = fruitId, QuantityOnHand = quantityOnHand, AverageCost = averageCost }, transaction);
+    }
+
+    /// <summary>
+    /// Draws quantityToConsume off the front of the FIFO queue (oldest layer first),
+    /// spanning multiple layers if needed, and returns the weighted cost of exactly what was
+    /// drawn. If the queue runs out before quantityToConsume is satisfied (oversold - Supply/
+    /// SupplierReturn allowed to exceed stock elsewhere in the app), the unsupported portion
+    /// costs 0 - there's no real inventory value behind it, same fail-safe the old
+    /// weighted-average logic used rather than fabricating a number.
+    /// </summary>
+    private static decimal ConsumeFifoLayers(List<CostLayer> layers, decimal quantityToConsume)
+    {
+        if (quantityToConsume <= 0)
+        {
+            return 0m;
+        }
+
+        var remaining = quantityToConsume;
+        var totalCost = 0m;
+
+        while (remaining > 0 && layers.Count > 0)
+        {
+            var layer = layers[0];
+            var draw = Math.Min(remaining, layer.RemainingQuantity);
+            totalCost += draw * layer.UnitCost;
+            layer.RemainingQuantity -= draw;
+            remaining -= draw;
+            if (layer.RemainingQuantity <= 0)
+            {
+                layers.RemoveAt(0);
+            }
+        }
+
+        return totalCost / quantityToConsume;
+    }
+
+    /// <summary>One-time maintenance sweep: recalculates every fruit's FIFO cost basis from
+    /// scratch. Reuses RecalculateFruitCostBasisAsync per fruit (each in its own transaction)
+    /// so there's no separately-maintained backfill logic to drift from the real algorithm -
+    /// safe to re-run, since a full replay is idempotent.</summary>
+    public async Task RecalculateAllFruitCostBasisAsync()
+    {
+        using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+        var fruitIds = await connection.QueryAsync<int>("SELECT FruitID FROM FruitMaster");
+
+        foreach (var fruitId in fruitIds)
+        {
+            using var transaction = connection.BeginTransaction();
+            await RecalculateFruitCostBasisAsync(connection, transaction, fruitId);
+            transaction.Commit();
+        }
     }
 
     /// <summary>
@@ -564,6 +651,15 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         public DateTime ParentCreatedAt { get; set; }
         public decimal Quantity { get; set; }
         public decimal? UnitCost { get; set; }
+    }
+
+    private sealed class CostLayer
+    {
+        public decimal UnitCost { get; set; }
+        public decimal RemainingQuantity { get; set; }
+        public string SourceType { get; set; } = string.Empty;
+        public int SourceItemID { get; set; }
+        public DateTime TransactionDate { get; set; }
     }
 
     public async Task<decimal> GetCurrentStockAsync(int fruitId)
