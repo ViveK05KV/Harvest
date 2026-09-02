@@ -4,6 +4,7 @@ class DashboardSummary {
   final double todaySales;
   final double todayPurchases;
   final double todayExpenses;
+  final double todaySalary;
   final double customerOutstanding;
   final double supplierOutstanding;
   final double netBusinessWorth;
@@ -19,6 +20,7 @@ class DashboardSummary {
     required this.todaySales,
     required this.todayPurchases,
     required this.todayExpenses,
+    required this.todaySalary,
     required this.customerOutstanding,
     required this.supplierOutstanding,
     required this.netBusinessWorth,
@@ -35,6 +37,7 @@ class DashboardSummary {
       todaySales: d('todaySales'),
       todayPurchases: d('todayPurchases'),
       todayExpenses: d('todayExpenses'),
+      todaySalary: d('todaySalary'),
       customerOutstanding: d('customerOutstanding'),
       supplierOutstanding: d('supplierOutstanding'),
       netBusinessWorth: d('netBusinessWorth'),

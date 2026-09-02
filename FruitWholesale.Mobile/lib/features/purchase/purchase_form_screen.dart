@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
+import '../../core/auth/auth_service.dart';
 import '../../core/models/fruit_option.dart';
 import '../../core/models/supplier_option.dart';
+import '../../core/models/user_role.dart';
 import '../../core/utils/number_format_utils.dart';
 import '../../core/widgets/date_picker_field.dart';
 import '../../core/widgets/error_banner.dart';
@@ -27,6 +29,7 @@ class PurchaseFormScreen extends StatefulWidget {
 
 class _LineItemForm {
   int? fruitId;
+  String saleType = 'kg';
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController boxCountController = TextEditingController();
@@ -36,7 +39,7 @@ class _LineItemForm {
   double get quantity => double.tryParse(quantityController.text) ?? 0;
   double get price => double.tryParse(priceController.text) ?? 0;
   double? get boxCount => double.tryParse(boxCountController.text);
-  double get amount => (boxCount != null && boxCount! > 0) ? boxCount! * price : quantity * price;
+  double get amount => (saleType == 'box' && boxCount != null) ? boxCount! * price : quantity * price;
 
   void dispose() {
     quantityController.dispose();
@@ -108,7 +111,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             final form = _LineItemForm()..fruitId = i.fruitId;
             form.quantityController.text = trimZeros(i.quantity);
             form.priceController.text = trimZeros(i.purchasePrice);
-            if (i.boxCount != null) form.boxCountController.text = '${i.boxCount}';
+            if (i.boxCount != null) {
+              form.saleType = 'box';
+              form.boxCountController.text = '${i.boxCount}';
+            }
             return form;
           }));
         if (_items.isEmpty) _items.add(_LineItemForm());
@@ -151,6 +157,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   double? _fruitBoxWeight(int? fruitId) => _findFruit(fruitId)?.boxWeightKg;
 
+  bool get _isAdmin => context.read<AuthService>().user?.role == UserRole.admin;
+
   void _onBoxCountChanged(_LineItemForm item) {
     final boxWeight = _fruitBoxWeight(item.fruitId);
     final boxCount = item.boxCount;
@@ -159,6 +167,35 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     } else {
       setState(() {});
     }
+  }
+
+  // Admin-only: back-solve Rate from a typed Amount (Rate = Amount / effective
+  // quantity) instead of the usual Rate-in, Amount-out direction.
+  Future<void> _editAmount(_LineItemForm item) async {
+    final controller = TextEditingController(text: trimZeros(item.amount));
+    final entered = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter Amount'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(prefixText: '₹'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(double.tryParse(controller.text)),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    if (entered == null || entered <= 0) return;
+    final divisor = (_fruitTracksByBox(item.fruitId) && item.saleType == 'box') ? item.boxCount : item.quantity;
+    if (divisor == null || divisor <= 0) return;
+    setState(() => item.priceController.text = trimZeros((entered / divisor * 100).round() / 100));
   }
 
   void _addRow() => setState(() => _items.add(_LineItemForm()));
@@ -198,7 +235,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 fruitId: i.fruitId!,
                 quantity: i.quantity,
                 purchasePrice: i.price,
-                boxCount: _fruitTracksByBox(i.fruitId) ? i.boxCount : null,
+                boxCount: (_fruitTracksByBox(i.fruitId) && i.saleType == 'box') ? i.boxCount : null,
               ))
           .toList(),
     );
@@ -319,6 +356,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                     onSelected: (fruit) => setState(() {
                       item.fruitId = fruit.fruitId;
                       item.fruitController.text = fruit.fruitName;
+                      item.saleType = 'kg';
                       item.boxCountController.clear();
                     }),
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
@@ -334,32 +372,43 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               ],
             ),
             if (_fruitTracksByBox(item.fruitId)) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: item.boxCountController,
-                      decoration: const InputDecoration(labelText: 'Box Count'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (_) => _onBoxCountChanged(item),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _fruitBoxWeight(item.fruitId) != null
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text('= ${trimZeros(item.quantity)} kg', style: const TextStyle(fontSize: 13)),
-                          )
-                        : TextFormField(
-                            controller: item.quantityController,
-                            decoration: const InputDecoration(labelText: 'Quantity (kg)'),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                  ),
+              DropdownButtonFormField<String>(
+                initialValue: item.saleType,
+                decoration: const InputDecoration(labelText: 'Sell By'),
+                items: const [
+                  DropdownMenuItem(value: 'kg', child: Text('By Kg')),
+                  DropdownMenuItem(value: 'box', child: Text('By Box')),
                 ],
+                onChanged: (value) => setState(() => item.saleType = value ?? 'kg'),
               ),
+              const SizedBox(height: 12),
+              if (item.saleType == 'box')
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: item.boxCountController,
+                        decoration: const InputDecoration(labelText: 'Boxes'),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => _onBoxCountChanged(item),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text('= ${trimZeros(item.quantity)} kg', style: const TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                TextFormField(
+                  controller: item.quantityController,
+                  decoration: const InputDecoration(labelText: 'Quantity (kg)'),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => setState(() {}),
+                ),
             ] else
               TextFormField(
                 controller: item.quantityController,
@@ -372,7 +421,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               controller: item.priceController,
               decoration: InputDecoration(
                 labelText: 'Purchase Price',
-                suffixText: (_fruitTracksByBox(item.fruitId) && item.boxCount != null) ? '/box' : '/kg',
+                suffixText: (_fruitTracksByBox(item.fruitId) && item.saleType == 'box') ? '/box' : '/kg',
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => setState(() {}),
@@ -380,10 +429,26 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(item.amount)}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+              child: _isAdmin
+                  ? InkWell(
+                      onTap: () => _editAmount(item),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        child: Text(
+                          'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(item.amount)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                            decorationStyle: TextDecorationStyle.dotted,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Text(
+                      'Amount: ${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(item.amount)}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
             ),
           ],
         ),

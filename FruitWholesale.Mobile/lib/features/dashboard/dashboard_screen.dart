@@ -536,7 +536,7 @@ class _TotalProfitCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Today's profit", style: TextStyle(color: _kFootnoteText, fontSize: 12)),
+                const Text("Today's Profit", style: TextStyle(color: _kFootnoteText, fontSize: 12)),
                 Text(currency.format(summary.todayProfit ?? 0), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: _kFootnoteStrong)),
               ],
             ),
@@ -590,8 +590,8 @@ class _TodayStrip extends StatelessWidget {
       ('Sales', summary.todaySales, false),
       ('Collections', summary.todayCollection, false),
       ('Purchases', summary.todayPurchases, false),
-      ('Expenses', summary.todayExpenses, false),
-      if (showProfit) ('Profit', summary.todayProfit ?? 0, false),
+      ('Expenses', summary.todayExpenses + summary.todaySalary, false),
+      if (showProfit) ("Today's Profit", summary.todayProfit ?? 0, false),
       ('Net Cash', summary.todayCollection - summary.todayPurchases - summary.todayExpenses, true),
     ];
     return Card(
