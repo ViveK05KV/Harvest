@@ -30,7 +30,9 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
             // aren't stored in the DB - the balance is computed live in
             // EmployeeLoanService - so they're folded in here rather than in
             // sp_get_dashboard_summary.
-            plainSummary.NetBusinessWorth += (await employeeLoansTask).Sum(l => l.OutstandingLoan);
+            var plainLoanTotal = (await employeeLoansTask).Sum(l => l.OutstandingLoan);
+            plainSummary.NetBusinessWorth += plainLoanTotal;
+            plainSummary.EmployeeLoanTotal = plainLoanTotal;
             return plainSummary;
         }
 
@@ -44,7 +46,9 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
         // began, TodayProfit for today only.
         summary.TotalProfit = (await totalProfitTask).Profit;
         summary.TodayProfit = (await todayProfitTask).FirstOrDefault()?.Profit ?? 0m;
-        summary.NetBusinessWorth += (await employeeLoansTask).Sum(l => l.OutstandingLoan);
+        var loanTotal = (await employeeLoansTask).Sum(l => l.OutstandingLoan);
+        summary.NetBusinessWorth += loanTotal;
+        summary.EmployeeLoanTotal = loanTotal;
         return summary;
     }
 

@@ -8,6 +8,7 @@ export interface DashboardSummary {
   customerOutstanding: number;
   supplierOutstanding: number;
   netBusinessWorth: number;
+  employeeLoanTotal: number;
   totalProfit: number | null;
   todayProfit: number | null;
 }

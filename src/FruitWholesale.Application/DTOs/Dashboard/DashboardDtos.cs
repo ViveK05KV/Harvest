@@ -12,6 +12,11 @@ public class DashboardSummaryDto
     public decimal SupplierOutstanding { get; set; }
     public decimal NetBusinessWorth { get; set; }
 
+    /// <summary>Sum of every employee's outstanding loan, already folded into
+    /// NetBusinessWorth - broken out separately so clients can show a
+    /// "cash + receivables" breakdown that includes it.</summary>
+    public decimal EmployeeLoanTotal { get; set; }
+
     /// <summary>Gross profit (revenue minus cost of goods sold) since profit tracking
     /// began. Admin-only; left null for other roles so profit figures never reach
     /// non-admin clients.</summary>

@@ -8,6 +8,7 @@ class DashboardSummary {
   final double customerOutstanding;
   final double supplierOutstanding;
   final double netBusinessWorth;
+  final double employeeLoanTotal;
 
   /// Admin-only; null for other roles (the API never populates these fields
   /// for a non-admin caller - see DashboardController).
@@ -24,6 +25,7 @@ class DashboardSummary {
     required this.customerOutstanding,
     required this.supplierOutstanding,
     required this.netBusinessWorth,
+    required this.employeeLoanTotal,
     this.totalProfit,
     this.todayProfit,
   });
@@ -41,6 +43,7 @@ class DashboardSummary {
       customerOutstanding: d('customerOutstanding'),
       supplierOutstanding: d('supplierOutstanding'),
       netBusinessWorth: d('netBusinessWorth'),
+      employeeLoanTotal: d('employeeLoanTotal'),
       totalProfit: dOrNull('totalProfit'),
       todayProfit: dOrNull('todayProfit'),
     );

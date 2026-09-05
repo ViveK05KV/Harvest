@@ -78,6 +78,11 @@
         <mat-icon class="hero-icon hero-icon--green">trending_up</mat-icon>
       </div>
       <span class="hero-value hero-value--green">{{ s.netBusinessWorth | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+      <span class="hero-spacer"></span>
+      <div class="hero-footnote">
+        <span>Cash + Receivables</span>
+        <strong>{{ s.currentCashBalance + s.customerOutstanding + s.employeeLoanTotal | currency: 'INR' : 'symbol' : '1.0-0' }}</strong>
+      </div>
     </mat-card>
 
     <mat-card class="hero-card">

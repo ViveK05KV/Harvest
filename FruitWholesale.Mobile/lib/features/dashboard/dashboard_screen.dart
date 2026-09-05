@@ -558,6 +558,17 @@ class _NetWorthCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(currency.format(summary.netBusinessWorth), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _kHeroValueGreen)),
+            const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Cash + Receivables', style: TextStyle(color: _kFootnoteText, fontSize: 12)),
+                Text(
+                  currency.format(summary.currentCashBalance + summary.customerOutstanding + summary.employeeLoanTotal),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: _kFootnoteStrong),
+                ),
+              ],
+            ),
           ],
         ),
       ),
