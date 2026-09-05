@@ -5,8 +5,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { EmployeeWorkLogService } from './employee-work-log.service';
 import { EmployeeWorkLogFormComponent } from './employee-work-log-form.component';
+import { EmployeeLoanService } from './employee-loan.service';
+import { EmployeeLoanRepaymentFormComponent } from './employee-loan-repayment-form.component';
 import { EmployeeService } from '../employee/employee.service';
-import { Employee, EmployeeWorkLog } from '../../core/models/master-data.model';
+import { Employee, EmployeeLoanHistoryRow, EmployeeLoanSummaryRow, EmployeeWorkLog } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
@@ -20,10 +22,13 @@ import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog
 })
 export class EmployeeWorkLogListComponent implements OnInit {
   private readonly service = inject(EmployeeWorkLogService);
+  private readonly loanService = inject(EmployeeLoanService);
   private readonly employeeService = inject(EmployeeService);
   private readonly dialog = inject(MatDialog);
   private readonly notification = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+
+  readonly activeTab = signal(0);
 
   readonly items = signal<EmployeeWorkLog[]>([]);
   readonly totalCount = signal(0);
@@ -47,9 +52,100 @@ export class EmployeeWorkLogListComponent implements OnInit {
     return `${start}–${end} of ${total}`;
   });
 
+  // --- Loan Management tab ---
+  readonly loanSummary = signal<EmployeeLoanSummaryRow[]>([]);
+  readonly loanLoading = signal(false);
+  readonly loanHistory = signal<EmployeeLoanHistoryRow[]>([]);
+  readonly loanHistoryLoading = signal(false);
+  selectedLoanEmployeeId: number | null = null;
+
+  selectedLoanEmployee(): EmployeeLoanSummaryRow | undefined {
+    return this.loanSummary().find((r) => r.employeeID === this.selectedLoanEmployeeId);
+  }
+
   ngOnInit(): void {
     this.employeeService.getAllActive().subscribe((employees) => this.employees.set(employees));
     this.load();
+  }
+
+  onTabChange(index: number): void {
+    this.activeTab.set(index);
+    if (index === 1 && this.loanSummary().length === 0) this.loadLoanSummary();
+  }
+
+  loadLoanSummary(): void {
+    this.loanLoading.set(true);
+    this.loanService.getSummary().subscribe({
+      next: (rows) => {
+        const active = rows.filter((r) => r.outstandingLoan > 0);
+        this.loanSummary.set(active);
+        this.loanLoading.set(false);
+        if (!this.selectedLoanEmployeeId && active.length > 0) this.selectLoanEmployee(active[0].employeeID);
+      },
+      error: () => this.loanLoading.set(false)
+    });
+  }
+
+  selectLoanEmployee(employeeId: number): void {
+    this.selectedLoanEmployeeId = employeeId;
+    this.loadLoanHistory();
+  }
+
+  loadLoanHistory(): void {
+    if (!this.selectedLoanEmployeeId) return;
+    this.loanHistoryLoading.set(true);
+    this.loanService.getHistory(this.selectedLoanEmployeeId).subscribe({
+      next: (rows) => {
+        this.loanHistory.set(rows);
+        this.loanHistoryLoading.set(false);
+      },
+      error: () => this.loanHistoryLoading.set(false)
+    });
+  }
+
+  openRecordRepayment(): void {
+    const employee = this.selectedLoanEmployee();
+    if (!employee) return;
+    this.dialog
+      .open(EmployeeLoanRepaymentFormComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        data: { employeeId: employee.employeeID, employeeName: employee.employeeName, repayment: null },
+        autoFocus: 'dialog'
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.loanService.createRepayment(result).subscribe({
+          next: () => {
+            this.notification.success('Repayment recorded. Cash ledger updated.');
+            this.loadLoanSummary();
+            this.loadLoanHistory();
+          }
+        });
+      });
+  }
+
+  deleteRepayment(row: EmployeeLoanHistoryRow): void {
+    if (!row.employeeLoanRepaymentID) return;
+    const repaymentId = row.employeeLoanRepaymentID;
+    this.confirmDialog
+      .confirm({
+        title: 'Delete Repayment',
+        message: 'Delete this repayment? The cash ledger will be reversed automatically.',
+        destructive: true,
+        confirmLabel: 'Delete'
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.loanService.deleteRepayment(repaymentId).subscribe({
+          next: () => {
+            this.notification.success('Repayment deleted and cash ledger updated.');
+            this.loadLoanSummary();
+            this.loadLoanHistory();
+          }
+        });
+      });
   }
 
   onEmployeeChange(value: string): void {

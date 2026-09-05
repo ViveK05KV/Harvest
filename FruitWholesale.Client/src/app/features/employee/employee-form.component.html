@@ -26,6 +26,24 @@
     <textarea class="field-input" formControlName="address" rows="2"></textarea>
   </label>
 
+  <div class="field-row">
+    <label class="field">
+      <span class="field-label">Salary Type</span>
+      <div class="mode-row">
+        @for (type of salaryTypes; track type) {
+          <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.salaryType === type" (click)="setSalaryType(type)">{{ type }}</button>
+        }
+      </div>
+    </label>
+    <label class="field">
+      <span class="field-label">{{ form.value.salaryType === 'Daily' ? 'Daily Rate' : 'Monthly Salary' }}</span>
+      <span class="amount-input">
+        <span class="rupee">₹</span>
+        <input type="number" formControlName="salaryAmount" />
+      </span>
+    </label>
+  </div>
+
   <div class="modal-actions">
     <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
     <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save</button>

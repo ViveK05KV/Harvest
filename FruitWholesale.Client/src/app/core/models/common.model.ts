@@ -30,3 +30,6 @@ export type UserRole = (typeof USER_ROLES)[number];
 
 export const JOB_TYPES = ['Supply', 'Collection', 'Loading', 'Other'] as const;
 export type JobType = (typeof JOB_TYPES)[number];
+
+export const SALARY_TYPES = ['Monthly', 'Daily'] as const;
+export type SalaryType = (typeof SALARY_TYPES)[number];

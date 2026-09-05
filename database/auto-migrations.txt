@@ -38,3 +38,4 @@
 28_AddProfitVisibleToManagers.sql
 29_AddDashboardSalaryTracking.sql
 30_SwitchToFifoCostBasis.sql
+31_AddEmployeeLoan.sql

@@ -2,6 +2,7 @@ using FluentValidation;
 using FruitWholesale.Application.DTOs.Employee;
 using FruitWholesale.Application.DTOs.RouteMaster;
 using FruitWholesale.Application.DTOs.Stock;
+using FruitWholesale.Domain.Enums;
 
 namespace FruitWholesale.Application.Validators;
 
@@ -30,6 +31,8 @@ public class CreateEmployeeValidator : AbstractValidator<CreateEmployeeDto>
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Phone).MaximumLength(20);
+        RuleFor(x => x.SalaryType).Must(t => SalaryTypes.All.Contains(t)).WithMessage("Invalid salary type.");
+        RuleFor(x => x.SalaryAmount).GreaterThanOrEqualTo(0);
     }
 }
 
@@ -40,6 +43,19 @@ public class UpdateEmployeeValidator : AbstractValidator<UpdateEmployeeDto>
         RuleFor(x => x.EmployeeID).GreaterThan(0);
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Phone).MaximumLength(20);
+        RuleFor(x => x.SalaryType).Must(t => SalaryTypes.All.Contains(t)).WithMessage("Invalid salary type.");
+        RuleFor(x => x.SalaryAmount).GreaterThanOrEqualTo(0);
+    }
+}
+
+public class SaveEmployeeLoanRepaymentValidator : AbstractValidator<SaveEmployeeLoanRepaymentDto>
+{
+    public SaveEmployeeLoanRepaymentValidator()
+    {
+        RuleFor(x => x.EmployeeID).GreaterThan(0);
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.PaymentMode).NotEmpty().Must(m => PaymentModes.All.Contains(m)).WithMessage("Invalid payment mode.");
+        RuleFor(x => x.Remarks).MaximumLength(500);
     }
 }
 

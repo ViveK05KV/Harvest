@@ -45,6 +45,8 @@ public class EmployeeService(IEmployeeRepository repository, IMapper mapper) : I
             FullName = dto.FullName,
             Phone = dto.Phone,
             Address = dto.Address,
+            SalaryType = dto.SalaryType,
+            SalaryAmount = dto.SalaryAmount,
             IsActive = true
         };
         employee.EmployeeID = await repository.CreateAsync(employee);
@@ -57,6 +59,8 @@ public class EmployeeService(IEmployeeRepository repository, IMapper mapper) : I
         employee.FullName = dto.FullName;
         employee.Phone = dto.Phone;
         employee.Address = dto.Address;
+        employee.SalaryType = dto.SalaryType;
+        employee.SalaryAmount = dto.SalaryAmount;
         await repository.UpdateAsync(employee);
 
         return Result.Success(mapper.Map<EmployeeDto>(employee));

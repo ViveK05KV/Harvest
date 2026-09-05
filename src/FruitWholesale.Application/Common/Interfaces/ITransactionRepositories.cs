@@ -1,4 +1,5 @@
 using FruitWholesale.Application.DTOs.Collection;
+using FruitWholesale.Application.DTOs.Employee;
 using FruitWholesale.Application.DTOs.Supply;
 using FruitWholesale.Domain.Entities;
 using FruitWholesale.Shared.Pagination;
@@ -86,4 +87,19 @@ public interface IEmployeeWorkLogRepository
     Task<int> CreateAsync(EmployeeWorkLog workLog);
     Task UpdateAsync(EmployeeWorkLog workLog);
     Task DeleteAsync(int employeeWorkLogId);
+}
+
+public interface IEmployeeLoanRepository
+{
+    /// <summary>Completed calendar months (current month excluded) that have at least one EmployeeWorkLog entry, oldest first.</summary>
+    Task<List<EmployeeMonthlyPayTotal>> GetMonthlyPayTotalsAsync(int employeeId);
+    /// <summary>Same as <see cref="GetMonthlyPayTotalsAsync"/> but batched for every active employee at once, keyed by EmployeeID.</summary>
+    Task<Dictionary<int, List<EmployeeMonthlyPayTotal>>> GetMonthlyPayTotalsBatchAsync();
+    Task<List<EmployeeLoanRepayment>> GetRepaymentsAsync(int employeeId);
+    /// <summary>Sum of all repayments per employee, keyed by EmployeeID. Employees with no repayments are absent from the result.</summary>
+    Task<Dictionary<int, decimal>> GetRepaymentTotalsBatchAsync();
+    Task<EmployeeLoanRepayment?> GetRepaymentByIdAsync(int employeeLoanRepaymentId);
+    Task<int> CreateRepaymentAsync(EmployeeLoanRepayment repayment);
+    Task UpdateRepaymentAsync(EmployeeLoanRepayment repayment);
+    Task DeleteRepaymentAsync(int employeeLoanRepaymentId);
 }

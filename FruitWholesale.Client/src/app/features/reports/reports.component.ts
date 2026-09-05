@@ -5,8 +5,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ReportService } from './report.service';
 import { ExportService } from '../../core/services/export.service';
 import { EmployeeService } from '../employee/employee.service';
+import { EmployeeLoanService } from '../employee-work-log/employee-loan.service';
 import { firstOfMonth, toIso } from '../../core/utils/date.util';
-import { Employee } from '../../core/models/master-data.model';
+import { Employee, EmployeeLoanSummaryRow } from '../../core/models/master-data.model';
 import {
   DailyCollectionReportRow,
   DailyExpenseReportRow,
@@ -30,6 +31,7 @@ export class ReportsComponent implements OnInit {
   private readonly reportService = inject(ReportService);
   private readonly exportService = inject(ExportService);
   private readonly employeeService = inject(EmployeeService);
+  private readonly loanService = inject(EmployeeLoanService);
 
   fromDate = toIso(firstOfMonth());
   toDate = toIso(new Date());
@@ -45,6 +47,7 @@ export class ReportsComponent implements OnInit {
   readonly profitSummary = signal<ProfitSummaryReportRow[]>([]);
   readonly expenseByCategory = signal<ExpenseByCategoryReportRow[]>([]);
   readonly salaryByEmployee = signal<SalaryByEmployeeReportRow[]>([]);
+  readonly loanSummary = signal<EmployeeLoanSummaryRow[]>([]);
 
   private loadRequestId = 0;
 
@@ -174,6 +177,16 @@ export class ReportsComponent implements OnInit {
           error: finish
         });
         break;
+      case 9:
+        this.loanService.getSummary().subscribe({
+          next: (r) => {
+            if (isStale()) return;
+            this.loanSummary.set(r.filter((row) => row.outstandingLoan > 0));
+            finish();
+          },
+          error: finish
+        });
+        break;
     }
   }
 
@@ -283,6 +296,18 @@ export class ReportsComponent implements OnInit {
             { header: 'Amount', field: 'totalAmount' }
           ],
           'salary-by-employee-report'
+        );
+        break;
+      case 9:
+        this.exportService.exportToExcel(
+          this.loanSummary(),
+          [
+            { header: 'Employee', field: 'employeeName' },
+            { header: 'Salary Type', field: 'salaryType' },
+            { header: 'Salary Amount', field: 'salaryAmount' },
+            { header: 'Outstanding Loan', field: 'outstandingLoan' }
+          ],
+          'employee-loans-report'
         );
         break;
     }

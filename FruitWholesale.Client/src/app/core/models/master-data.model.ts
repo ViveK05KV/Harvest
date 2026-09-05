@@ -169,6 +169,8 @@ export interface Employee {
   fullName: string;
   phone?: string;
   address?: string;
+  salaryType: string;
+  salaryAmount: number;
   isActive: boolean;
 }
 
@@ -177,6 +179,8 @@ export interface SaveEmployee {
   fullName: string;
   phone?: string;
   address?: string;
+  salaryType: string;
+  salaryAmount: number;
 }
 
 export interface EmployeeWorkLog {
@@ -198,6 +202,42 @@ export interface SaveEmployeeWorkLog {
   employeeID: number | null;
   jobType: string;
   routeID?: number | null;
+  amount: number;
+  paymentMode: string;
+  remarks?: string;
+}
+
+export interface EmployeeLoanSummaryRow {
+  employeeID: number;
+  employeeName: string;
+  salaryType: string;
+  salaryAmount: number;
+  outstandingLoan: number;
+}
+
+export interface EmployeeLoanHistoryRow {
+  transactionDate: string;
+  particulars: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+  employeeLoanRepaymentID?: number | null;
+}
+
+export interface EmployeeLoanRepayment {
+  employeeLoanRepaymentID: number;
+  employeeID: number;
+  employeeName: string;
+  repaymentDate: string;
+  amount: number;
+  paymentMode: string;
+  remarks?: string;
+}
+
+export interface SaveEmployeeLoanRepayment {
+  employeeLoanRepaymentID?: number;
+  employeeID: number | null;
+  repaymentDate: string;
   amount: number;
   paymentMode: string;
   remarks?: string;

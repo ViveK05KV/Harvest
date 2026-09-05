@@ -1,83 +1,169 @@
 <div class="page-heading"><h1>Salary Management</h1></div>
 
-<div class="list-card">
-  <div class="filter-bar">
-    <label class="field" style="min-width: 190px">
-      <span class="field-label">Employee</span>
-      <select [value]="employeeId ?? ''" (change)="onEmployeeChange($any($event.target).value)">
-        <option value="">All employees</option>
-        @for (employee of employees(); track employee.employeeID) {
-          <option [value]="employee.employeeID">{{ employee.fullName }}</option>
+<div class="tab-nav">
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 0" (click)="onTabChange(0)">Work Log</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 1" (click)="onTabChange(1)">Loan Management</button>
+</div>
+
+@switch (activeTab()) {
+  @case (0) {
+    <div class="list-card">
+      <div class="filter-bar">
+        <label class="field" style="min-width: 190px">
+          <span class="field-label">Employee</span>
+          <select [value]="employeeId ?? ''" (change)="onEmployeeChange($any($event.target).value)">
+            <option value="">All employees</option>
+            @for (employee of employees(); track employee.employeeID) {
+              <option [value]="employee.employeeID">{{ employee.fullName }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">From</span>
+          <input type="date" [value]="fromDate ?? ''" (change)="fromDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">To</span>
+          <input type="date" [value]="toDate ?? ''" (change)="toDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+        </label>
+
+        <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
+
+        <span class="spacer"></span>
+
+        <button type="button" class="btn-primary" (click)="openCreate()">
+          <mat-icon>add</mat-icon>New Work Entry
+        </button>
+      </div>
+
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Job Type</th>
+              <th>Route</th>
+              <th class="amount-column">Amount</th>
+              <th>Mode</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of items(); track row.employeeWorkLogID) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.workDate | date: 'dd MMM yyyy' }}</td>
+                <td class="strong-cell">{{ row.employeeName }}</td>
+                <td><span class="mode-chip">{{ row.jobType }}</span></td>
+                <td class="muted-cell">{{ row.routeName || '—' }}</td>
+                <td class="mono-cell amount-column negative-cell">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td><span class="mode-chip">{{ row.paymentMode }}</span></td>
+                <td class="row-actions">
+                  <button type="button" class="row-icon-btn" (click)="openEdit(row)" title="Edit"><mat-icon>edit</mat-icon></button>
+                  <button type="button" class="row-icon-btn" (click)="deleteItem(row)" title="Delete"><mat-icon>delete</mat-icon></button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && items().length === 0) {
+          <div class="empty-state">
+            <mat-icon>work_history</mat-icon>
+            <p>No work entries recorded yet.</p>
+          </div>
         }
-      </select>
-    </label>
+      </div>
 
-    <label class="field">
-      <span class="field-label">From</span>
-      <input type="date" [value]="fromDate ?? ''" (change)="fromDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
-    </label>
-
-    <label class="field">
-      <span class="field-label">To</span>
-      <input type="date" [value]="toDate ?? ''" (change)="toDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
-    </label>
-
-    <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
-
-    <span class="spacer"></span>
-
-    <button type="button" class="btn-primary" (click)="openCreate()">
-      <mat-icon>add</mat-icon>New Work Entry
-    </button>
-  </div>
-
-  @if (loading()) {
-    <mat-progress-bar mode="indeterminate" />
+      <div class="table-footer">
+        <span class="footer-label">{{ rangeLabel() }}</span>
+        <span class="pager">
+          <button type="button" class="pager-btn" [disabled]="pageIndex() === 0" (click)="prevPage()"><mat-icon>chevron_left</mat-icon></button>
+          <button type="button" class="pager-btn" [disabled]="(pageIndex() + 1) * pageSize >= totalCount()" (click)="nextPage()"><mat-icon>chevron_right</mat-icon></button>
+        </span>
+      </div>
+    </div>
   }
-
-  <div class="table-scroll">
-    <table class="mock-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Employee</th>
-          <th>Job Type</th>
-          <th>Route</th>
-          <th class="amount-column">Amount</th>
-          <th>Mode</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of items(); track row.employeeWorkLogID) {
-          <tr>
-            <td class="mono-cell muted-cell">{{ row.workDate | date: 'dd MMM yyyy' }}</td>
-            <td class="strong-cell">{{ row.employeeName }}</td>
-            <td><span class="mode-chip">{{ row.jobType }}</span></td>
-            <td class="muted-cell">{{ row.routeName || '—' }}</td>
-            <td class="mono-cell amount-column negative-cell">{{ row.amount | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
-            <td><span class="mode-chip">{{ row.paymentMode }}</span></td>
-            <td class="row-actions">
-              <button type="button" class="row-icon-btn" (click)="openEdit(row)" title="Edit"><mat-icon>edit</mat-icon></button>
-              <button type="button" class="row-icon-btn" (click)="deleteItem(row)" title="Delete"><mat-icon>delete</mat-icon></button>
-            </td>
-          </tr>
+  @case (1) {
+    <div class="list-card">
+      @if (loanLoading()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead><tr><th>Employee</th><th>Salary</th><th class="amount-column">Outstanding Loan</th></tr></thead>
+          <tbody>
+            @for (row of loanSummary(); track row.employeeID) {
+              <tr class="clickable-row" [class.selected-row]="row.employeeID === selectedLoanEmployeeId" (click)="selectLoanEmployee(row.employeeID)">
+                <td class="strong-cell">{{ row.employeeName }}</td>
+                <td class="muted-cell">{{ row.salaryAmount | currency: 'INR' : 'symbol' : '1.0-0' }} / {{ row.salaryType === 'Daily' ? 'day' : 'month' }}</td>
+                <td class="amount-column">
+                  <span class="status-tag" [class.status-tag--red]="row.outstandingLoan > 0" [class.status-tag--gray]="row.outstandingLoan <= 0">
+                    {{ row.outstandingLoan | currency: 'INR' : 'symbol' : '1.0-0' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loanLoading() && loanSummary().length === 0) {
+          <div class="empty-state">
+            <mat-icon>account_balance_wallet</mat-icon>
+            <p>No active loans. Everyone's paid within salary.</p>
+          </div>
         }
-      </tbody>
-    </table>
-    @if (!loading() && items().length === 0) {
-      <div class="empty-state">
-        <mat-icon>work_history</mat-icon>
-        <p>No work entries recorded yet.</p>
+      </div>
+    </div>
+
+    @if (selectedLoanEmployee(); as employee) {
+      <div class="section-heading">{{ employee.employeeName }}'s Loan History</div>
+      <div class="filter-bar filter-bar--card">
+        <div class="balance-chip" [class.balance-chip--positive]="employee.outstandingLoan <= 0" [class.balance-chip--negative]="employee.outstandingLoan > 0">
+          Outstanding Loan: {{ employee.outstandingLoan | currency: 'INR' : 'symbol' : '1.2-2' }}
+        </div>
+        <span class="spacer"></span>
+        <button type="button" class="btn-primary" (click)="openRecordRepayment()">
+          <mat-icon>add</mat-icon>Record Repayment
+        </button>
+      </div>
+
+      <div class="list-card">
+        @if (loanHistoryLoading()) {
+          <mat-progress-bar mode="indeterminate" />
+        }
+        <div class="table-scroll">
+          <table class="mock-table">
+            <thead><tr><th>Date</th><th>Particulars</th><th class="amount-column">Debit</th><th class="amount-column">Credit</th><th class="amount-column">Balance</th><th></th></tr></thead>
+            <tbody>
+              @for (row of loanHistory(); track $index) {
+                <tr>
+                  <td class="mono-cell muted-cell">{{ row.transactionDate | date: 'dd MMM yyyy' }}</td>
+                  <td>{{ row.particulars }}</td>
+                  <td class="mono-cell amount-column">{{ row.debit ? (row.debit | currency: 'INR' : 'symbol' : '1.2-2') : '—' }}</td>
+                  <td class="mono-cell amount-column positive-cell">{{ row.credit ? (row.credit | currency: 'INR' : 'symbol' : '1.2-2') : '—' }}</td>
+                  <td class="mono-cell amount-column strong-cell">{{ row.runningBalance | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                  <td class="row-actions">
+                    @if (row.employeeLoanRepaymentID) {
+                      <button type="button" class="row-icon-btn" title="Delete repayment" (click)="deleteRepayment(row)"><mat-icon>delete</mat-icon></button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (!loanHistoryLoading() && loanHistory().length === 0) {
+            <div class="empty-state">
+              <mat-icon>account_balance_wallet</mat-icon>
+              <p>No loan activity for this employee.</p>
+            </div>
+          }
+        </div>
       </div>
     }
-  </div>
-
-  <div class="table-footer">
-    <span class="footer-label">{{ rangeLabel() }}</span>
-    <span class="pager">
-      <button type="button" class="pager-btn" [disabled]="pageIndex() === 0" (click)="prevPage()"><mat-icon>chevron_left</mat-icon></button>
-      <button type="button" class="pager-btn" [disabled]="(pageIndex() + 1) * pageSize >= totalCount()" (click)="nextPage()"><mat-icon>chevron_right</mat-icon></button>
-    </span>
-  </div>
-</div>
+  }
+}

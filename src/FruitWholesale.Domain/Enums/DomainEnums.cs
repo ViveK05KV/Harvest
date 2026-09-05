@@ -34,6 +34,7 @@ public static class LedgerTransactionTypes
     public const string ShopReturn = "ShopReturn";
     public const string SupplierReturn = "SupplierReturn";
     public const string LinkedShopSale = "LinkedShopSale";
+    public const string LoanRepayment = "LoanRepayment";
 }
 
 public static class CollectionTypes
@@ -65,6 +66,15 @@ public static class ReferenceTables
     public const string EmployeeWorkLog = "EmployeeWorkLog";
     public const string ShopReturns = "ShopReturns";
     public const string SupplierReturns = "SupplierReturns";
+    public const string EmployeeLoanRepayment = "EmployeeLoanRepayment";
+}
+
+public static class SalaryTypes
+{
+    public const string Monthly = "Monthly";
+    public const string Daily = "Daily";
+
+    public static readonly string[] All = [Monthly, Daily];
 }
 
 public static class DashboardPeriods

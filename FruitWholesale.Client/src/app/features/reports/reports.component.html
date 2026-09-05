@@ -1,7 +1,7 @@
 <div class="page-heading"><h1>Reports</h1></div>
 
 <div class="filter-bar filter-bar--card">
-  @if (activeTab() !== 5) {
+  @if (activeTab() !== 5 && activeTab() !== 9) {
     <label class="field">
       <span class="field-label">From</span>
       <input type="date" [value]="fromDate" (change)="fromDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
@@ -42,6 +42,7 @@
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 6" (click)="onTabChange(6)">Profit Summary</button>
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 7" (click)="onTabChange(7)">Expense by Category</button>
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 8" (click)="onTabChange(8)">Salary by Employee</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 9" (click)="onTabChange(9)">Loans</button>
 </div>
 
 <div class="list-card">
@@ -53,7 +54,7 @@
     @switch (activeTab()) {
       @case (0) {
         <table class="mock-table">
-          <thead><tr><th>Date</th><th>Invoice No</th><th>Shop</th><th class="amount-column">Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Invoice No</th><th>Customer</th><th class="amount-column">Amount</th></tr></thead>
           <tbody>
             @for (row of dailySales(); track row.invoiceNo) {
               <tr>
@@ -69,7 +70,7 @@
       }
       @case (1) {
         <table class="mock-table">
-          <thead><tr><th>Date</th><th>Shop</th><th class="amount-column">Amount</th><th>Mode</th></tr></thead>
+          <thead><tr><th>Date</th><th>Customer</th><th class="amount-column">Amount</th><th>Mode</th></tr></thead>
           <tbody>
             @for (row of dailyCollection(); track $index) {
               <tr>
@@ -192,6 +193,25 @@
           </tbody>
         </table>
         @if (!loading() && salaryByEmployee().length === 0) { <div class="empty-state"><p>No work-log entries for this date range.</p></div> }
+      }
+      @case (9) {
+        <table class="mock-table">
+          <thead><tr><th>Employee</th><th>Salary</th><th class="amount-column">Outstanding Loan</th></tr></thead>
+          <tbody>
+            @for (row of loanSummary(); track row.employeeID) {
+              <tr>
+                <td class="strong-cell">{{ row.employeeName }}</td>
+                <td class="muted-cell">{{ row.salaryAmount | currency: 'INR' : 'symbol' : '1.0-0' }} / {{ row.salaryType === 'Daily' ? 'day' : 'month' }}</td>
+                <td class="amount-column">
+                  <span class="status-tag" [class.status-tag--red]="row.outstandingLoan > 0" [class.status-tag--gray]="row.outstandingLoan <= 0">
+                    {{ row.outstandingLoan | currency: 'INR' : 'symbol' : '1.0-0' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && loanSummary().length === 0) { <div class="empty-state"><p>No active loans.</p></div> }
       }
     }
   </div>

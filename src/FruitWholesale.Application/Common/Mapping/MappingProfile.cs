@@ -69,5 +69,6 @@ public class MappingProfile : Profile
 
         CreateMap<Employee, EmployeeDto>();
         CreateMap<EmployeeWorkLog, EmployeeWorkLogDto>();
+        CreateMap<EmployeeLoanRepayment, EmployeeLoanRepaymentDto>();
     }
 }

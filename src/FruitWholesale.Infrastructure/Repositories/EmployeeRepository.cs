@@ -55,8 +55,8 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            INSERT INTO EmployeeMaster (FullName, Phone, Address, IsActive)
-            VALUES (@FullName, @Phone, @Address, @IsActive)
+            INSERT INTO EmployeeMaster (FullName, Phone, Address, SalaryType, SalaryAmount, IsActive)
+            VALUES (@FullName, @Phone, @Address, @SalaryType, @SalaryAmount, @IsActive)
             RETURNING EmployeeID;
             """;
         return await connection.QuerySingleAsync<int>(sql, employee);
@@ -67,7 +67,8 @@ public class EmployeeRepository(IDbConnectionFactory connectionFactory) : IEmplo
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
             UPDATE EmployeeMaster
-            SET FullName = @FullName, Phone = @Phone, Address = @Address, UpdatedAt = (now() AT TIME ZONE 'utc')
+            SET FullName = @FullName, Phone = @Phone, Address = @Address,
+                SalaryType = @SalaryType, SalaryAmount = @SalaryAmount, UpdatedAt = (now() AT TIME ZONE 'utc')
             WHERE EmployeeID = @EmployeeID;
             """;
         await connection.ExecuteAsync(sql, employee);

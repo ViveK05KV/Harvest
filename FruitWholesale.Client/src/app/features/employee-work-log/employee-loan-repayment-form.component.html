@@ -1,0 +1,43 @@
+<div class="modal-header">
+  <div>
+    <h2>{{ data.repayment ? 'Edit Repayment' : 'Record Repayment' }}</h2>
+    <p>Cash received back from {{ data.employeeName }}; posts as cash-in and reduces the outstanding loan.</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <div class="field-row">
+    <label class="field">
+      <span class="field-label">Amount</span>
+      <span class="amount-input">
+        <span class="rupee">₹</span>
+        <input type="number" formControlName="amount" />
+      </span>
+    </label>
+    <label class="field">
+      <span class="field-label">Date</span>
+      <input class="field-input" type="date" formControlName="repaymentDate" (click)="$any($event.target).showPicker?.()" />
+    </label>
+  </div>
+
+  <label class="field">
+    <span class="field-label">Payment mode</span>
+    <div class="mode-row">
+      @for (mode of paymentModes; track mode) {
+        <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.paymentMode === mode" (click)="setPaymentMode(mode)">{{ mode }}</button>
+      }
+    </div>
+  </label>
+
+  <label class="field">
+    <span class="field-label">Remarks</span>
+    <textarea class="field-input" formControlName="remarks" rows="2" placeholder="Optional"></textarea>
+  </label>
+
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save repayment</button>
+  </div>
+</form>
