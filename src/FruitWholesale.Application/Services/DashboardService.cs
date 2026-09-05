@@ -14,21 +14,29 @@ public interface IDashboardService
     Task<List<TrendPointDto>> GetProfitTrendAsync(bool includeProfit);
 }
 
-public class DashboardService(IDashboardRepository repository, IProfitRepository profitRepository) : IDashboardService
+public class DashboardService(IDashboardRepository repository, IProfitRepository profitRepository, IEmployeeLoanService employeeLoanService) : IDashboardService
 {
     public async Task<DashboardSummaryDto> GetSummaryAsync(bool includeProfit)
     {
         var today = BusinessClock.Today;
         var summaryTask = repository.GetSummaryAsync(today);
+        var employeeLoansTask = employeeLoanService.GetSummaryAsync();
 
         if (!includeProfit)
         {
-            return await summaryTask;
+            await Task.WhenAll(summaryTask, employeeLoansTask);
+            var plainSummary = await summaryTask;
+            // Employee loans are receivables (money owed back to the business) but
+            // aren't stored in the DB - the balance is computed live in
+            // EmployeeLoanService - so they're folded in here rather than in
+            // sp_get_dashboard_summary.
+            plainSummary.NetBusinessWorth += (await employeeLoansTask).Sum(l => l.OutstandingLoan);
+            return plainSummary;
         }
 
         var totalProfitTask = profitRepository.GetBusinessTotalProfitAsync();
         var todayProfitTask = profitRepository.GetShopDailyProfitAsync(null, today, today);
-        await Task.WhenAll(summaryTask, totalProfitTask, todayProfitTask);
+        await Task.WhenAll(summaryTask, totalProfitTask, todayProfitTask, employeeLoansTask);
 
         var summary = await summaryTask;
 
@@ -36,6 +44,7 @@ public class DashboardService(IDashboardRepository repository, IProfitRepository
         // began, TodayProfit for today only.
         summary.TotalProfit = (await totalProfitTask).Profit;
         summary.TodayProfit = (await todayProfitTask).FirstOrDefault()?.Profit ?? 0m;
+        summary.NetBusinessWorth += (await employeeLoansTask).Sum(l => l.OutstandingLoan);
         return summary;
     }
 

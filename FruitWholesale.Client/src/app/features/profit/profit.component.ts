@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ProfitService } from './profit.service';
 import { ShopMasterService } from '../shop-master/shop-master.service';
+import { DashboardService } from '../dashboard/dashboard.service';
 import { ShopMaster } from '../../core/models/master-data.model';
 import { toIso } from '../../core/utils/date.util';
 
@@ -30,6 +31,7 @@ import {
 export class ProfitComponent implements OnInit {
   private readonly profitService = inject(ProfitService);
   private readonly shopService = inject(ShopMasterService);
+  private readonly dashboardService = inject(DashboardService);
 
   fromDate = toIso(PROFIT_TRACKING_START_DATE);
   toDate = toIso(new Date());
@@ -41,6 +43,7 @@ export class ProfitComponent implements OnInit {
   selectedShopId: number | null = null;
 
   readonly businessTotal = signal<BusinessProfitTotal | null>(null);
+  readonly netBusinessWorth = signal<number | null>(null);
   readonly shopSummary = signal<ShopProfitSummaryRow[]>([]);
   readonly shopDaily = signal<ShopDailyProfitRow[]>([]);
   readonly fruitSummary = signal<FruitProfitSummaryRow[]>([]);
@@ -88,10 +91,11 @@ export class ProfitComponent implements OnInit {
 
     switch (this.activeTab()) {
       case 0:
-        this.profitService.getBusinessTotalProfit().subscribe({
-          next: (r) => {
+        forkJoin({ total: this.profitService.getBusinessTotalProfit(), summary: this.dashboardService.getSummary() }).subscribe({
+          next: ({ total, summary }) => {
             if (isStale()) return;
-            this.businessTotal.set(r);
+            this.businessTotal.set(total);
+            this.netBusinessWorth.set(summary.netBusinessWorth);
             finish();
           },
           error: finish

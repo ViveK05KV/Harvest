@@ -269,17 +269,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           overLimitShopCount: _overLimitShopCount,
         ),
         const SizedBox(height: 12),
+        if (backOffice) ...[
+          _TotalProfitCard(summary: s, currency: currency, sparklineData: _profitTrend),
+          const SizedBox(height: 12),
+        ],
+        _NetWorthCard(summary: s, currency: currency),
+        const SizedBox(height: 12),
         _SupplierOutstandingCard(
           summary: s,
           currency: currency,
           supplierCount: _supplierCount,
           payables: _payables,
-          showNetWorthFootnote: backOffice,
         ),
-        const SizedBox(height: 12),
-        backOffice
-            ? _TotalProfitCard(summary: s, currency: currency, sparklineData: _profitTrend)
-            : _NetWorthCard(summary: s, currency: currency),
 
         const SizedBox(height: 20),
         _TodayStrip(summary: s, currency: currency, showProfit: s.todayProfit != null),
@@ -441,13 +442,11 @@ class _SupplierOutstandingCard extends StatelessWidget {
     required this.currency,
     required this.supplierCount,
     required this.payables,
-    required this.showNetWorthFootnote,
   });
   final DashboardSummary summary;
   final NumberFormat currency;
   final int supplierCount;
   final List<_PayableRow> payables;
-  final bool showNetWorthFootnote;
 
   @override
   Widget build(BuildContext context) {
@@ -484,16 +483,6 @@ class _SupplierOutstandingCard extends StatelessWidget {
                   ),
                 ),
               ),
-            if (showNetWorthFootnote) ...[
-              const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Net business worth', style: TextStyle(color: _kFootnoteText, fontSize: 12)),
-                  Text(currency.format(summary.netBusinessWorth), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: _kFootnoteStrong)),
-                ],
-              ),
-            ],
           ],
         ),
       ),
@@ -569,8 +558,6 @@ class _NetWorthCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(currency.format(summary.netBusinessWorth), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _kHeroValueGreen)),
-            const SizedBox(height: 2),
-            const Text('Cash + receivables − payables', style: TextStyle(color: _kHeroSub, fontSize: 12)),
           ],
         ),
       ),

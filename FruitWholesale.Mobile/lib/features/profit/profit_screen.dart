@@ -6,6 +6,9 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
 import '../../core/models/shop_option.dart';
+import '../dashboard/dashboard_models.dart';
+import '../dashboard/dashboard_service.dart';
+import 'profit_models.dart';
 import 'profit_service.dart';
 
 enum _ProfitView {
@@ -40,6 +43,7 @@ class ProfitScreen extends StatefulWidget {
 class _ProfitScreenState extends State<ProfitScreen> {
   late final ProfitService _service = ProfitService(context.read<ApiClient>());
   late final LookupService _lookup = LookupService(context.read<ApiClient>());
+  late final DashboardService _dashboardService = DashboardService(context.read<ApiClient>());
 
   _ProfitView _view = _ProfitView.businessTotal;
   DateTime _from = DateTime(2026, 8, 1);
@@ -120,7 +124,9 @@ class _ProfitScreenState extends State<ProfitScreen> {
       List<Widget> rows;
       switch (_view) {
         case _ProfitView.businessTotal:
-          final data = await _service.businessTotal();
+          final results = await Future.wait([_service.businessTotal(), _dashboardService.getSummary()]);
+          final data = results[0] as BusinessProfitTotal;
+          final summary = results[1] as DashboardSummary;
           if (!mounted || requestId != _loadRequestId) return;
           rows = [
             Card(
@@ -156,6 +162,16 @@ class _ProfitScreenState extends State<ProfitScreen> {
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: data.netProfit < 0 ? Colors.red : Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text('Net Business Worth', style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      currencyFormat.format(summary.netBusinessWorth),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: summary.netBusinessWorth < 0 ? Colors.red : Colors.green,
                       ),
                     ),
                   ],

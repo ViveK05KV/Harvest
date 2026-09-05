@@ -91,6 +91,13 @@
           <span class="stat-value">{{ total.netProfit | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
           <span class="stat-sub">Profit minus expenses, till date</span>
         </div>
+        @if (netBusinessWorth() !== null) {
+          <div class="stat-card" [class.stat-card--positive]="netBusinessWorth()! >= 0" [class.stat-card--negative]="netBusinessWorth()! < 0">
+            <span class="stat-kicker">Net Business Worth</span>
+            <span class="stat-value">{{ netBusinessWorth() | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
+            <span class="stat-sub">Cash + receivables − payables</span>
+          </div>
+        }
       </div>
     }
   }
