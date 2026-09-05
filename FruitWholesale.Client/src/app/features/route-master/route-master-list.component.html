@@ -30,7 +30,7 @@
             <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : sortDirection() === 'desc' ? 'arrow_downward' : 'unfold_more' }}</mat-icon>
           </th>
           <th>Description</th>
-          <th class="amount-column">Shops</th>
+          <th class="amount-column">Customers</th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -41,7 +41,7 @@
             <td class="strong-cell">{{ row.routeName }}</td>
             <td class="muted-cell">{{ row.description || '—' }}</td>
             <td class="amount-column">
-              <button type="button" class="mode-chip mode-chip--btn" title="View shops on this route" (click)="openShops(row)">{{ row.shopCount }}</button>
+              <button type="button" class="mode-chip mode-chip--btn" title="View customers on this route" (click)="openShops(row)">{{ row.shopCount }}</button>
             </td>
             <td>
               <button type="button" class="status-toggle" [class.status-toggle--on]="row.isActive" (click)="toggleActive(row)" [title]="row.isActive ? 'Active — click to deactivate' : 'Inactive — click to activate'">

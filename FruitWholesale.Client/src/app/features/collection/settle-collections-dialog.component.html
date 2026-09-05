@@ -1,7 +1,7 @@
 <div class="modal-header">
   <div>
     <h2>Settle Temporary Deposits</h2>
-    <p>Cash was already received daily; settling only posts a shop ledger credit.</p>
+    <p>Cash was already received daily; settling only posts a customer ledger credit.</p>
   </div>
   <span class="spacer"></span>
   <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
@@ -10,9 +10,9 @@
 <form [formGroup]="form" (ngSubmit)="submit()" class="modal-body">
   <div class="modal-main">
     <label class="field">
-      <span class="field-label">Shop</span>
+      <span class="field-label">Customer</span>
       <select class="field-input" formControlName="shopID" (change)="onShopChange()">
-        <option [ngValue]="null">Select a shop</option>
+        <option [ngValue]="null">Select a customer</option>
         @for (shop of shops(); track shop.shopID) {
           <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
         }
@@ -28,7 +28,7 @@
   <div class="modal-side">
     @if (previewData(); as preview) {
       <div class="preview-card">
-        <span class="preview-kicker">Shop</span>
+        <span class="preview-kicker">Customer</span>
         <span class="preview-name">{{ preview.shopName }}</span>
         <div class="preview-rows">
           <div class="preview-row"><span>Pending rows</span><strong class="mono-cell">{{ preview.pendingCount }}</strong></div>
@@ -36,7 +36,7 @@
         </div>
       </div>
     } @else {
-      <div class="preview-card preview-card--empty">Select a shop and preview to see pending deposits.</div>
+      <div class="preview-card preview-card--empty">Select a customer and preview to see pending deposits.</div>
     }
 
     <span class="spacer"></span>

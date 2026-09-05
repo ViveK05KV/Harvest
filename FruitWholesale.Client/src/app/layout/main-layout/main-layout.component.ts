@@ -100,7 +100,7 @@ export class MainLayoutComponent {
     {
       label: 'Ledgers',
       items: [
-        { label: 'Shop Ledger', icon: 'storefront', route: '/ledgers/shop', roles: MainLayoutComponent.BACK_OFFICE },
+        { label: 'Customer Ledger', icon: 'storefront', route: '/ledgers/shop', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Supplier Ledger', icon: 'inventory_2', route: '/ledgers/supplier', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Cash Ledger', icon: 'account_balance', route: '/ledgers/cash', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Inventory', icon: 'inventory', route: '/stock' }
@@ -118,7 +118,7 @@ export class MainLayoutComponent {
     {
       label: 'Masters',
       items: [
-        { label: 'Shops', icon: 'store', route: '/shops', roles: MainLayoutComponent.BACK_OFFICE },
+        { label: 'Customers', icon: 'store', route: '/shops', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Suppliers', icon: 'groups', route: '/suppliers', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Fruits', icon: 'spa', route: '/fruits', roles: MainLayoutComponent.BACK_OFFICE },
         { label: 'Routes', icon: 'alt_route', route: '/routes', roles: MainLayoutComponent.BACK_OFFICE },

@@ -1,8 +1,8 @@
-<div class="page-heading"><h1>Shop Ledger</h1></div>
+<div class="page-heading"><h1>Customer Ledger</h1></div>
 
 <div class="filter-bar filter-bar--card">
   <label class="field" style="min-width: 190px">
-    <span class="field-label">Shop</span>
+    <span class="field-label">Customer</span>
     <select [value]="shopId ?? ''" (change)="onShopChange($any($event.target).value)">
       @for (shop of shops(); track shop.shopID) {
         <option [value]="shop.shopID">{{ shop.shopName }}</option>
@@ -77,7 +77,7 @@
     @if (!loading() && items().length === 0) {
       <div class="empty-state">
         <mat-icon>storefront</mat-icon>
-        <p>No ledger entries for this shop.</p>
+        <p>No ledger entries for this customer.</p>
       </div>
     }
   </div>

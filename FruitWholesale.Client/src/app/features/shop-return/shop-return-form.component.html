@@ -6,7 +6,7 @@
   <div class="entry-header">
     <div>
       <h2>{{ isEdit() ? 'Edit Sales Return' : 'New Sales Return' }}</h2>
-      <p>{{ isEdit() ? 'Update this return — ledger and stock entries adjust automatically.' : 'Record stock returned by a shop.' }}</p>
+      <p>{{ isEdit() ? 'Update this return — ledger and stock entries adjust automatically.' : 'Record stock returned by a customer.' }}</p>
     </div>
     <span class="spacer"></span>
     <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
@@ -28,9 +28,9 @@
             <input class="field-plain" type="date" formControlName="returnDate" (click)="$any($event.target).showPicker?.()" />
           </label>
           <label class="field">
-            <span class="field-label">Shop</span>
+            <span class="field-label">Customer</span>
             <select class="field-plain" formControlName="shopID" (change)="onShopChange()">
-              <option [ngValue]="null">Select a shop</option>
+              <option [ngValue]="null">Select a customer</option>
               @for (shop of shops(); track shop.shopID) {
                 <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
               }
@@ -121,14 +121,14 @@
         <div class="entry-footer-bar">
           <span class="footer-stat"><span class="footer-stat-label">Lines</span><span class="footer-stat-value mono-cell">{{ itemsArray.length }}</span></span>
           <span class="spacer"></span>
-          <span class="grand-total"><span class="footer-stat-label">Total credited to shop</span><strong class="mono-cell">{{ total() | number: '1.2-2' }}</strong></span>
+          <span class="grand-total"><span class="footer-stat-label">Total credited to customer</span><strong class="mono-cell">{{ total() | number: '1.2-2' }}</strong></span>
         </div>
       </div>
 
       <div class="entry-side">
         @if (selectedShop(); as shop) {
           <div class="context-card">
-            <span class="context-kicker">Shop</span>
+            <span class="context-kicker">Customer</span>
             <span class="context-name">{{ shop.shopName }}</span>
             <span class="context-sub">{{ shop.routeName || 'No route' }} · {{ shop.phone || '—' }}</span>
             <div class="context-rows">
@@ -138,8 +138,8 @@
           </div>
         } @else {
           <div class="context-card context-card--empty">
-            <span class="context-kicker">Shop</span>
-            <span class="context-sub">Select a shop to see its balance.</span>
+            <span class="context-kicker">Customer</span>
+            <span class="context-sub">Select a customer to see its balance.</span>
           </div>
         }
       </div>

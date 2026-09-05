@@ -6,14 +6,14 @@
       <span class="field-label">Search</span>
       <span class="field-input">
         <mat-icon>search</mat-icon>
-        <input type="text" [value]="searchTerm" (input)="onSearch($any($event.target).value)" placeholder="Invoice no / shop" />
+        <input type="text" [value]="searchTerm" (input)="onSearch($any($event.target).value)" placeholder="Invoice no / customer" />
       </span>
     </label>
 
     <label class="field" style="min-width: 190px">
-      <span class="field-label">Shop</span>
+      <span class="field-label">Customer</span>
       <select [value]="shopId ?? ''" (change)="onShopChange($any($event.target).value)">
-        <option value="">All shops</option>
+        <option value="">All customers</option>
         @for (shop of shops(); track shop.shopID) {
           <option [value]="shop.shopID">{{ shop.shopName }}</option>
         }
@@ -43,7 +43,7 @@
         <tr>
           <th>Date</th>
           <th>Invoice</th>
-          <th>Shop</th>
+          <th>Customer</th>
           <th class="amount-column">Amount</th>
           <th></th>
         </tr>

@@ -3,9 +3,9 @@
 <div class="list-card">
   <div class="filter-bar">
     <label class="field" style="min-width: 190px">
-      <span class="field-label">Shop</span>
+      <span class="field-label">Customer</span>
       <select [value]="shopId ?? ''" (change)="onShopChange($any($event.target).value)">
-        <option value="">All shops</option>
+        <option value="">All customers</option>
         @for (shop of shops(); track shop.shopID) {
           <option [value]="shop.shopID">{{ shop.shopName }}</option>
         }
@@ -44,7 +44,7 @@
       <thead>
         <tr>
           <th>Date</th>
-          <th>Shop</th>
+          <th>Customer</th>
           <th class="amount-column">Amount</th>
           <th class="amount-column">Discount</th>
           <th>Mode</th>

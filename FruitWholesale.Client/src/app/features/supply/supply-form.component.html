@@ -6,7 +6,7 @@
   <div class="entry-header">
     <div>
       <h2>{{ isEdit() ? 'Edit Supply' : 'New Supply' }}</h2>
-      <p>{{ isEdit() ? 'Update this invoice — ledger entries adjust automatically.' : 'Record wholesale stock supplied to a shop.' }}</p>
+      <p>{{ isEdit() ? 'Update this invoice — ledger entries adjust automatically.' : 'Record wholesale stock supplied to a customer.' }}</p>
     </div>
     <span class="spacer"></span>
     <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
@@ -33,9 +33,9 @@
             <input class="field-plain" type="date" formControlName="supplyDate" (click)="$any($event.target).showPicker?.()" />
           </label>
           <label class="field">
-            <span class="field-label">Customer (Shop)</span>
+            <span class="field-label">Customer</span>
             <select class="field-plain" formControlName="shopID">
-              <option [ngValue]="null">Select a shop</option>
+              <option [ngValue]="null">Select a customer</option>
               @for (shop of shops(); track shop.shopID) {
                 <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
               }
@@ -140,7 +140,7 @@
         } @else {
           <div class="context-card context-card--empty">
             <span class="context-kicker">Customer</span>
-            <span class="context-sub">Select a shop to see its balance.</span>
+            <span class="context-sub">Select a customer to see its balance.</span>
           </div>
         }
       </div>

@@ -1,6 +1,6 @@
 <div class="modal-header">
   <div>
-    <h2>Shops on {{ route.routeName }}</h2>
+    <h2>Customers on {{ route.routeName }}</h2>
   </div>
   <span class="spacer"></span>
   <button type="button" class="close-btn" (click)="close()"><mat-icon>close</mat-icon></button>
@@ -12,7 +12,7 @@
       <mat-spinner diameter="32" />
     </div>
   } @else if (shops().length === 0) {
-    <p class="field-hint">No shops assigned to this route.</p>
+    <p class="field-hint">No customers assigned to this route.</p>
   } @else {
     <div class="shop-rows">
       @for (shop of shops(); track shop.shopID) {

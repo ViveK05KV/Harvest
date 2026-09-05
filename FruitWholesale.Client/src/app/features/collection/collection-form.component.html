@@ -1,7 +1,7 @@
 <div class="modal-header">
   <div>
     <h2>{{ data ? 'Edit Collection' : 'Record a collection' }}</h2>
-    <p>Cash goes in today; the shop ledger reduces by amount plus discount.</p>
+    <p>Cash goes in today; the customer ledger reduces by amount plus discount.</p>
   </div>
   <span class="spacer"></span>
   <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
@@ -12,13 +12,13 @@
     <label class="field">
       <span class="field-label">Customer</span>
       <select class="field-input" formControlName="shopID" (change)="onShopChange()">
-        <option [ngValue]="null">Select a shop</option>
+        <option [ngValue]="null">Select a customer</option>
         @for (shop of shops(); track shop.shopID) {
           <option [ngValue]="shop.shopID">{{ shop.shopName }}</option>
         }
       </select>
       @if (form.controls.shopID.touched && form.controls.shopID.hasError('required')) {
-        <span class="field-error">Shop is required</span>
+        <span class="field-error">Customer is required</span>
       }
     </label>
 
@@ -78,7 +78,7 @@
       </span>
       <span class="temp-toggle-text">
         <span class="temp-toggle-title">Temporary deposit</span>
-        <span class="temp-toggle-sub">Adds cash today but leaves the shop balance untouched until you settle it.</span>
+        <span class="temp-toggle-sub">Adds cash today but leaves the customer balance untouched until you settle it.</span>
       </span>
     </button>
   </div>
@@ -111,7 +111,7 @@
         </div>
       </div>
     } @else {
-      <div class="shop-summary shop-summary--empty">Select a shop to see its balance.</div>
+      <div class="shop-summary shop-summary--empty">Select a customer to see its balance.</div>
     }
 
     <span class="spacer"></span>

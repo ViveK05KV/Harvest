@@ -40,7 +40,7 @@
         <mat-icon class="hero-icon">storefront</mat-icon>
       </div>
       <span class="hero-value hero-value--dark">{{ s.customerOutstanding | currency: 'INR' : 'symbol' : '1.0-0' }}</span>
-      <span class="hero-sub">{{ shopsWithBalanceCount() }} {{ shopsWithBalanceCount() === 1 ? 'shop' : 'shops' }} with a balance</span>
+      <span class="hero-sub">{{ shopsWithBalanceCount() }} {{ shopsWithBalanceCount() === 1 ? 'customer' : 'customers' }} with a balance</span>
       <span class="hero-spacer"></span>
       <div class="hero-progress">
         <span class="hero-progress-fill" [style.width.%]="customerAtRiskPercent()"></span>
@@ -48,7 +48,7 @@
       @if (overLimitAmount() > 0) {
         <div class="hero-alert">
           <mat-icon>error_outline</mat-icon>
-          {{ overLimitAmount() | currency: 'INR' : 'symbol' : '1.0-0' }} over credit limit · {{ overLimitShopCount() }} shops
+          {{ overLimitAmount() | currency: 'INR' : 'symbol' : '1.0-0' }} over credit limit · {{ overLimitShopCount() }} customers
         </div>
       }
     </mat-card>

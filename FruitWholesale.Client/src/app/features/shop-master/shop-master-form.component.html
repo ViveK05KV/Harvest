@@ -1,6 +1,6 @@
 <div class="modal-header">
   <div>
-    <h2>{{ isEdit ? 'Edit Shop' : 'Add Shop' }}</h2>
+    <h2>{{ isEdit ? 'Edit Customer' : 'Add Customer' }}</h2>
     <p>Customer master record.</p>
   </div>
   <span class="spacer"></span>
@@ -9,10 +9,10 @@
 
 <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
   <label class="field">
-    <span class="field-label">Shop Name</span>
+    <span class="field-label">Customer Name</span>
     <input class="field-input" formControlName="shopName" />
     @if (form.controls.shopName.touched && form.controls.shopName.hasError('required')) {
-      <span class="field-error">Shop name is required</span>
+      <span class="field-error">Customer name is required</span>
     }
   </label>
 
@@ -52,7 +52,7 @@
       </select>
     </label>
   </div>
-  <p class="field-hint">If this shop is also one of your suppliers, link it to see a combined net balance.</p>
+  <p class="field-hint">If this customer is also one of your suppliers, link it to see a combined net balance.</p>
 
   <div class="field-row">
     <label class="field">

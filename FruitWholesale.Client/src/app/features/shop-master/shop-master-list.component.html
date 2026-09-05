@@ -1,4 +1,4 @@
-<div class="page-heading"><h1>Shops</h1></div>
+<div class="page-heading"><h1>Customers</h1></div>
 
 <div class="list-card">
   <div class="filter-bar">
@@ -6,7 +6,7 @@
       <span class="field-label">Search</span>
       <span class="field-input">
         <mat-icon>search</mat-icon>
-        <input type="text" (input)="onSearch($any($event.target).value)" placeholder="Shop name" />
+        <input type="text" (input)="onSearch($any($event.target).value)" placeholder="Customer name" />
       </span>
     </label>
 
@@ -26,7 +26,7 @@
     <button type="button" class="icon-btn" title="Export to PDF" (click)="exportPdf()"><mat-icon>picture_as_pdf</mat-icon></button>
 
     <button type="button" class="btn-primary" (click)="openCreate()">
-      <mat-icon>add</mat-icon>Add Shop
+      <mat-icon>add</mat-icon>Add Customer
     </button>
   </div>
 
@@ -39,7 +39,7 @@
       <thead>
         <tr>
           <th class="sortable" (click)="toggleSort()">
-            Shop Name
+            Customer Name
             <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : sortDirection() === 'desc' ? 'arrow_downward' : 'unfold_more' }}</mat-icon>
           </th>
           <th>Owner</th>
@@ -82,7 +82,7 @@
     @if (!loading() && items().length === 0) {
       <div class="empty-state">
         <mat-icon>store</mat-icon>
-        <p>No shops found. Add your first shop to get started.</p>
+        <p>No customers found. Add your first customer to get started.</p>
       </div>
     }
   </div>
