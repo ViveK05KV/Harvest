@@ -58,8 +58,8 @@ class _ShopMasterListScreenState extends State<ShopMasterListScreen> {
   @override
   Widget build(BuildContext context) {
     return MasterListScreen<ShopMaster>(
-      title: 'Shops',
-      emptyLabel: 'No shops yet',
+      title: 'Customers',
+      emptyLabel: 'No customers yet',
       emptyIcon: Icons.store_outlined,
       fetchPaged: (page) => _service.getPaged(page, routeId: _routeId),
       filterSignal: (_routeId, _reloadNonce),

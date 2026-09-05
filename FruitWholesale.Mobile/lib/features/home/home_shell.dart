@@ -92,7 +92,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ]),
     NavGroup(label: 'Ledgers', items: [
-      NavItem(label: 'Shop Ledger', icon: Icons.storefront_outlined, builder: (_) => const ShopLedgerScreen(), roles: _backOffice),
+      NavItem(label: 'Customer Ledger', icon: Icons.storefront_outlined, builder: (_) => const ShopLedgerScreen(), roles: _backOffice),
       NavItem(
         label: 'Supplier Ledger',
         icon: Icons.inventory_2_outlined,
@@ -120,7 +120,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ]),
     NavGroup(label: 'Masters', items: [
-      NavItem(label: 'Shops', icon: Icons.store_outlined, builder: (_) => const ShopMasterListScreen(), roles: _backOffice),
+      NavItem(label: 'Customers', icon: Icons.store_outlined, builder: (_) => const ShopMasterListScreen(), roles: _backOffice),
       NavItem(label: 'Suppliers', icon: Icons.groups_outlined, builder: (_) => const SupplierMasterListScreen(), roles: _backOffice),
       NavItem(label: 'Fruits', icon: Icons.local_florist_outlined, builder: (_) => const FruitMasterListScreen(), roles: _backOffice),
       NavItem(label: 'Routes', icon: Icons.alt_route_outlined, builder: (_) => const RouteMasterListScreen(), roles: _backOffice),

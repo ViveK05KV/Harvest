@@ -144,7 +144,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedShopId == null) {
-      setState(() => _error = 'Select a shop.');
+      setState(() => _error = 'Select a customer.');
       return;
     }
 
@@ -223,7 +223,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
               return TextFormField(
                 controller: controller,
                 focusNode: focusNode,
-                decoration: const InputDecoration(labelText: 'Shop'),
+                decoration: const InputDecoration(labelText: 'Customer'),
               );
             },
           ),
@@ -243,7 +243,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
             controller: _discountController,
             decoration: const InputDecoration(
               labelText: 'Discount Given',
-              helperText: 'Optional — reduces the shop\'s outstanding in addition to the amount received',
+              helperText: 'Optional — reduces the customer\'s outstanding in addition to the amount received',
               helperMaxLines: 2,
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -273,7 +273,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
             title: const Text('Temporary deposit'),
             subtitle: _isTemporary
                 ? const Text(
-                    'Adds cash today but leaves the shop balance untouched until you settle it.',
+                    'Adds cash today but leaves the customer balance untouched until you settle it.',
                     style: TextStyle(color: AppColors.mutedInk),
                   )
                 : null,

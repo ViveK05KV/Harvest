@@ -52,7 +52,7 @@ class _RouteShopsDialogState extends State<_RouteShopsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Shops on ${widget.route.routeName}'),
+      title: Text('Customers on ${widget.route.routeName}'),
       content: SizedBox(
         width: double.maxFinite,
         child: _loading
@@ -60,7 +60,7 @@ class _RouteShopsDialogState extends State<_RouteShopsDialog> {
             : _error != null
                 ? Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))
                 : _shops.isEmpty
-                    ? const Text('No shops assigned to this route.')
+                    ? const Text('No customers assigned to this route.')
                     : ListView.builder(
                         shrinkWrap: true,
                         itemCount: _shops.length,

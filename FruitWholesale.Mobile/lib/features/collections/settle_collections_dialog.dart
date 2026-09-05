@@ -166,7 +166,7 @@ class _SettleCollectionsDialogState extends State<_SettleCollectionsDialog> {
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
-                    decoration: const InputDecoration(labelText: 'Shop'),
+                    decoration: const InputDecoration(labelText: 'Customer'),
                   );
                 },
               ),
@@ -185,7 +185,7 @@ class _SettleCollectionsDialogState extends State<_SettleCollectionsDialog> {
               Text('Total pending: ${currency.format(preview.pendingTotal)}'),
               const SizedBox(height: 8),
               const Text(
-                "Cash was already received daily, so no additional cash is booked. This creates one credit on the shop ledger.",
+                "Cash was already received daily, so no additional cash is booked. This creates one credit on the customer ledger.",
                 style: TextStyle(fontSize: 12, color: Colors.black54),
               ),
             ],

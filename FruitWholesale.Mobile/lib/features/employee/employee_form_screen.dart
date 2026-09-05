@@ -26,7 +26,9 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+  final _salaryAmountController = TextEditingController(text: '0');
 
+  String _salaryType = salaryTypes.first;
   bool _loading = false;
   bool _saving = false;
   String? _error;
@@ -42,6 +44,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _salaryAmountController.dispose();
     super.dispose();
   }
 
@@ -52,6 +55,8 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
       _nameController.text = employee.fullName;
       _phoneController.text = employee.phone ?? '';
       _addressController.text = employee.address ?? '';
+      _salaryType = employee.salaryType;
+      _salaryAmountController.text = employee.salaryAmount.toString();
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -69,6 +74,8 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
       fullName: _nameController.text.trim(),
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
       address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+      salaryType: _salaryType,
+      salaryAmount: double.tryParse(_salaryAmountController.text) ?? 0,
     );
     try {
       if (widget.isEditing) {
@@ -116,6 +123,19 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
                     controller: _addressController,
                     decoration: const InputDecoration(labelText: 'Address'),
                     maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _salaryType,
+                    decoration: const InputDecoration(labelText: 'Salary Type'),
+                    items: [for (final type in salaryTypes) DropdownMenuItem(value: type, child: Text(type))],
+                    onChanged: (value) => setState(() => _salaryType = value!),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _salaryAmountController,
+                    decoration: InputDecoration(labelText: _salaryType == 'Daily' ? 'Daily Rate' : 'Monthly Salary'),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
                   const SizedBox(height: 24),
                   SaveButton(saving: _saving, onPressed: _save),

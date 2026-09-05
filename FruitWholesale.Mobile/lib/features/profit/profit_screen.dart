@@ -10,9 +10,9 @@ import 'profit_service.dart';
 
 enum _ProfitView {
   businessTotal('Business Total'),
-  byShop('By Shop'),
+  byShop('By Customer'),
   byFruit('By Fruit'),
-  byShopFruit('By Shop & Fruit');
+  byShopFruit('By Customer & Fruit');
 
   final String label;
 
@@ -148,6 +148,16 @@ class _ProfitScreenState extends State<ProfitScreen> {
                     const SizedBox(height: 12),
                     Text('Margin', style: Theme.of(context).textTheme.bodySmall),
                     marginText(data.marginPercent),
+                    const SizedBox(height: 12),
+                    Text('Net Profit (Profit minus Expenses)', style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      currencyFormat.format(data.netProfit),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: data.netProfit < 0 ? Colors.red : Colors.green,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -243,7 +253,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
                       final all = [
-                        const _FilterOption(null, 'All Shops'),
+                        const _FilterOption(null, 'All Customers'),
                         ..._shops.map((s) => _FilterOption(s.shopId, s.shopName)),
                       ];
                       if (query.isEmpty) return all;
@@ -260,7 +270,7 @@ class _ProfitScreenState extends State<ProfitScreen> {
                       controller: controller,
                       focusNode: focusNode,
                       decoration: InputDecoration(
-                        labelText: _view == _ProfitView.byShop ? 'Shop (for daily breakdown)' : 'Shop (optional filter)',
+                        labelText: _view == _ProfitView.byShop ? 'Customer (for daily breakdown)' : 'Customer (optional filter)',
                       ),
                     ),
                   ),

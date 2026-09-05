@@ -125,12 +125,16 @@ class BusinessProfitTotal {
   final double revenue;
   final double cost;
   final double profit;
+  final double expenses;
+  final double netProfit;
   final double marginPercent;
 
   const BusinessProfitTotal({
     required this.revenue,
     required this.cost,
     required this.profit,
+    required this.expenses,
+    required this.netProfit,
     required this.marginPercent,
   });
 
@@ -138,6 +142,8 @@ class BusinessProfitTotal {
         revenue: (json['revenue'] as num).toDouble(),
         cost: (json['cost'] as num).toDouble(),
         profit: (json['profit'] as num).toDouble(),
+        expenses: (json['expenses'] as num).toDouble(),
+        netProfit: (json['netProfit'] as num).toDouble(),
         marginPercent: (json['marginPercent'] as num).toDouble(),
       );
 }

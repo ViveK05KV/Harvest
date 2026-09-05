@@ -23,13 +23,13 @@ class RouteMasterListScreen extends StatelessWidget {
       fetchPaged: service.getPaged,
       idOf: (r) => r.routeId,
       titleOf: (r) => r.routeName,
-      subtitleOf: (r) => '${r.shopCount} shop${r.shopCount == 1 ? '' : 's'}',
+      subtitleOf: (r) => '${r.shopCount} customer${r.shopCount == 1 ? '' : 's'}',
       isActiveOf: (r) => r.isActive,
       onSetActive: service.setActive,
       formBuilder: (context, {id}) => RouteMasterFormScreen(routeId: id),
       trailingExtra: (route) => IconButton(
         icon: const Icon(Icons.visibility_outlined),
-        tooltip: 'View shops on this route',
+        tooltip: 'View customers on this route',
         onPressed: () => showRouteShopsDialog(context, route: route, shopService: shopService),
       ),
     );

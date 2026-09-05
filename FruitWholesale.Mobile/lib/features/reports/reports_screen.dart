@@ -6,6 +6,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/api/lookup_service.dart';
 import '../../core/models/employee_option.dart';
+import '../employee_loan/employee_loan_service.dart';
 import 'report_service.dart';
 
 enum _ReportType {
@@ -17,7 +18,8 @@ enum _ReportType {
   outstanding('Outstanding', needsDateRange: false),
   profitSummary('Profit Summary', needsDateRange: true),
   expenseByCategory('Expense by Category', needsDateRange: true),
-  salaryByEmployee('Salary by Employee', needsDateRange: true);
+  salaryByEmployee('Salary by Employee', needsDateRange: true),
+  loans('Loans', needsDateRange: false);
 
   final String label;
   final bool needsDateRange;
@@ -34,6 +36,7 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   late final ReportService _service = ReportService(context.read<ApiClient>());
+  late final EmployeeLoanService _loanService = EmployeeLoanService(context.read<ApiClient>());
   late final LookupService _lookupService = LookupService(context.read<ApiClient>());
 
   _ReportType _type = _ReportType.dailySales;
@@ -184,6 +187,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 title: Text(r.employeeName),
                 subtitle: Text('${r.workDaysCount} work day${r.workDaysCount == 1 ? '' : 's'}'),
                 trailing: Text(currencyFormat.format(r.totalAmount), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+          ];
+        case _ReportType.loans:
+          final data = (await _loanService.getSummary()).where((r) => r.outstandingLoan > 0).toList();
+          rows = [
+            for (final r in data)
+              ListTile(
+                title: Text(r.employeeName),
+                subtitle: Text('${currencyFormat.format(r.salaryAmount)} / ${r.salaryType == 'Daily' ? 'day' : 'month'}'),
+                trailing: Text(
+                  currencyFormat.format(r.outstandingLoan),
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.red),
+                ),
               ),
           ];
       }

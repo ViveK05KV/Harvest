@@ -84,7 +84,7 @@ class _ShopReturnListScreenState extends State<ShopReturnListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: TextField(
               onChanged: _onSearchChanged,
-              decoration: const InputDecoration(labelText: 'Search', hintText: 'Reference no / shop', prefixIcon: Icon(Icons.search)),
+              decoration: const InputDecoration(labelText: 'Search', hintText: 'Reference no / customer', prefixIcon: Icon(Icons.search)),
             ),
           ),
           Padding(
@@ -94,7 +94,7 @@ class _ShopReturnListScreenState extends State<ShopReturnListScreen> {
               optionsBuilder: (value) {
                 final query = value.text.trim().toLowerCase();
                 final all = [
-                  const _ShopFilterOption(null, 'All Shops'),
+                  const _ShopFilterOption(null, 'All Customers'),
                   ..._shops.map((s) => _ShopFilterOption(s.shopId, s.shopName)),
                 ];
                 if (query.isEmpty) return all;
@@ -107,7 +107,7 @@ class _ShopReturnListScreenState extends State<ShopReturnListScreen> {
               fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
                 controller: controller,
                 focusNode: focusNode,
-                decoration: const InputDecoration(labelText: 'Filter by Shop', isDense: true),
+                decoration: const InputDecoration(labelText: 'Filter by Customer', isDense: true),
               ),
             ),
           ),

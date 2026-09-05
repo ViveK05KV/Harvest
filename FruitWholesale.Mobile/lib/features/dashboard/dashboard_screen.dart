@@ -402,7 +402,7 @@ class _CustomerOutstandingCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(currency.format(summary.customerOutstanding), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _kHeroValueDark)),
             const SizedBox(height: 2),
-            Text('$shopsWithBalanceCount ${shopsWithBalanceCount == 1 ? 'shop' : 'shops'} with a balance', style: const TextStyle(color: _kHeroSub, fontSize: 12)),
+            Text('$shopsWithBalanceCount ${shopsWithBalanceCount == 1 ? 'customer' : 'customers'} with a balance', style: const TextStyle(color: _kHeroSub, fontSize: 12)),
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -421,7 +421,7 @@ class _CustomerOutstandingCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      '${currency.format(overLimitAmount)} over credit limit · $overLimitShopCount ${overLimitShopCount == 1 ? 'shop' : 'shops'}',
+                      '${currency.format(overLimitAmount)} over credit limit · $overLimitShopCount ${overLimitShopCount == 1 ? 'customer' : 'customers'}',
                       style: const TextStyle(color: _kAlertRed, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),

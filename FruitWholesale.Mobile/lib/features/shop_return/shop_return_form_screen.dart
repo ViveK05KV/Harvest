@@ -179,7 +179,7 @@ class _ShopReturnFormScreenState extends State<ShopReturnFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedShopId == null) {
-      setState(() => _error = 'Select a shop.');
+      setState(() => _error = 'Select a customer.');
       return;
     }
     final validItems = _items.where((i) => i.fruitId != null && i.quantity > 0).toList();
@@ -275,7 +275,7 @@ class _ShopReturnFormScreenState extends State<ShopReturnFormScreen> {
               return TextFormField(
                 controller: controller,
                 focusNode: focusNode,
-                decoration: const InputDecoration(labelText: 'Shop'),
+                decoration: const InputDecoration(labelText: 'Customer'),
               );
             },
           ),

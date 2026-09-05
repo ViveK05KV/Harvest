@@ -79,7 +79,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Shop Ledger')),
+      appBar: AppBar(title: const Text('Customer Ledger')),
       body: Column(
         children: [
           Padding(
@@ -93,7 +93,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
                     optionsBuilder: (value) {
                       final query = value.text.trim().toLowerCase();
                       final all = [
-                        const _FilterOption(null, 'All Shops'),
+                        const _FilterOption(null, 'All Customers'),
                         ..._shops.map((s) => _FilterOption(s.shopId, s.shopName)),
                       ];
                       if (query.isEmpty) return all;
@@ -106,7 +106,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
                     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
                       controller: controller,
                       focusNode: focusNode,
-                      decoration: const InputDecoration(labelText: 'Select Shop'),
+                      decoration: const InputDecoration(labelText: 'Select Customer'),
                     ),
                   ),
           ),
@@ -126,7 +126,7 @@ class _ShopLedgerScreenState extends State<ShopLedgerScreen> {
               child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           if (_selectedShopId == null)
-            const Expanded(child: Center(child: Text('Select a shop to view its ledger')))
+            const Expanded(child: Center(child: Text('Select a customer to view its ledger')))
           else
             Expanded(
               child: PaginatedListView<LedgerEntry>(

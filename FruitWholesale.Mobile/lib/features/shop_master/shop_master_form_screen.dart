@@ -145,7 +145,7 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isEditing ? 'Edit Shop' : 'New Shop')),
+      appBar: AppBar(title: Text(widget.isEditing ? 'Edit Customer' : 'New Customer')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(
@@ -159,8 +159,8 @@ class _ShopMasterFormScreenState extends State<ShopMasterFormScreen> {
                   ],
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Shop Name'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Shop name is required' : null,
+                    decoration: const InputDecoration(labelText: 'Customer Name'),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

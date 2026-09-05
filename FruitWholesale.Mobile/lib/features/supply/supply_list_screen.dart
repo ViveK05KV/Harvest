@@ -67,7 +67,7 @@ class _SupplyListScreenState extends State<SupplyListScreen> {
               optionsBuilder: (value) {
                 final query = value.text.trim().toLowerCase();
                 final all = [
-                  const _ShopFilterOption(null, 'All Shops'),
+                  const _ShopFilterOption(null, 'All Customers'),
                   ..._shops.map((s) => _ShopFilterOption(s.shopId, s.shopName)),
                 ];
                 if (query.isEmpty) return all;
@@ -80,7 +80,7 @@ class _SupplyListScreenState extends State<SupplyListScreen> {
               fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
                 controller: controller,
                 focusNode: focusNode,
-                decoration: const InputDecoration(labelText: 'Filter by Shop', isDense: true),
+                decoration: const InputDecoration(labelText: 'Filter by Customer', isDense: true),
               ),
             ),
           ),

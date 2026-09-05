@@ -179,7 +179,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedShopId == null) {
-      setState(() => _error = 'Select a customer (shop).');
+      setState(() => _error = 'Select a customer.');
       return;
     }
     final validItems = _items.where((i) => i.fruitId != null && i.quantity > 0).toList();
@@ -275,7 +275,7 @@ class _SupplyFormScreenState extends State<SupplyFormScreen> {
               return TextFormField(
                 controller: controller,
                 focusNode: focusNode,
-                decoration: const InputDecoration(labelText: 'Customer (Shop)'),
+                decoration: const InputDecoration(labelText: 'Customer'),
               );
             },
           ),
