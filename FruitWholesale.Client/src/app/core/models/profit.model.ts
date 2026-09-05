@@ -43,5 +43,7 @@ export interface BusinessProfitTotal {
   revenue: number;
   cost: number;
   profit: number;
+  expenses: number;
+  netProfit: number;
   marginPercent: number;
 }

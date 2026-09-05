@@ -99,12 +99,24 @@ public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitR
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT COALESCE(SUM(si.TotalAmount), 0) AS Revenue,
-                   COALESCE(SUM(si.Quantity * si.CostBasis), 0) AS Cost,
-                   COALESCE(SUM(si.TotalAmount - si.Quantity * si.CostBasis), 0) AS Profit
-            FROM SupplyItems si
-            INNER JOIN Supply s ON s.SupplyID = si.SupplyID
-            WHERE s.SupplyDate >= @FromDate;
+            SELECT COALESCE(sales.Revenue, 0) AS Revenue,
+                   COALESCE(sales.Cost, 0) AS Cost,
+                   COALESCE(sales.Profit, 0) AS Profit,
+                   COALESCE(expenses.Total, 0) AS Expenses,
+                   COALESCE(sales.Profit, 0) - COALESCE(expenses.Total, 0) AS NetProfit
+            FROM (
+                SELECT SUM(si.TotalAmount) AS Revenue,
+                       SUM(si.Quantity * si.CostBasis) AS Cost,
+                       SUM(si.TotalAmount - si.Quantity * si.CostBasis) AS Profit
+                FROM SupplyItems si
+                INNER JOIN Supply s ON s.SupplyID = si.SupplyID
+                WHERE s.SupplyDate >= @FromDate
+            ) sales
+            CROSS JOIN (
+                SELECT SUM(Amount) AS Total
+                FROM DailyExpense
+                WHERE ExpenseDate >= @FromDate
+            ) expenses;
             """;
         var total = await connection.QuerySingleAsync<BusinessProfitTotal>(sql, new { FromDate = ProfitConstants.TrackingStartDate });
         total.MarginPercent = ComputeMargin(total.Revenue, total.Profit);

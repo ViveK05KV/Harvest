@@ -50,5 +50,7 @@ public class BusinessProfitTotal
     public decimal Revenue { get; set; }
     public decimal Cost { get; set; }
     public decimal Profit { get; set; }
+    public decimal Expenses { get; set; }
+    public decimal NetProfit { get; set; }
     public decimal MarginPercent { get; set; }
 }
