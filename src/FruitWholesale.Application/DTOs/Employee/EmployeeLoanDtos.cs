@@ -22,8 +22,18 @@ public class EmployeeLoanHistoryRowDto
     public decimal Debit { get; set; }
     public decimal Credit { get; set; }
     public decimal RunningBalance { get; set; }
-    /// <summary>Set only for repayment rows - lets the UI offer edit/delete on that row.</summary>
+    /// <summary>Set only for repayment rows - lets the UI offer delete on that row.</summary>
     public int? EmployeeLoanRepaymentID { get; set; }
+    /// <summary>Set only for manual adjustment rows - lets the UI offer delete on that row.</summary>
+    public int? EmployeeLoanAdjustmentID { get; set; }
+}
+
+/// <summary>Posts a manual correction to an employee's outstanding loan (mirrors ShopBalanceAdjustment). No cash moves - pure bookkeeping.</summary>
+public class EmployeeLoanAdjustmentDto
+{
+    public decimal Amount { get; set; }
+    public bool IsIncrease { get; set; }
+    public string Narration { get; set; } = string.Empty;
 }
 
 public class EmployeeLoanRepaymentDto

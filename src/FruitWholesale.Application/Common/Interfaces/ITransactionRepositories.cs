@@ -91,7 +91,7 @@ public interface IEmployeeWorkLogRepository
 
 public interface IEmployeeLoanRepository
 {
-    /// <summary>Completed calendar months (current month excluded) that have at least one EmployeeWorkLog entry, oldest first.</summary>
+    /// <summary>Every calendar month (including the current, still-in-progress one) that has at least one EmployeeWorkLog entry, oldest first.</summary>
     Task<List<EmployeeMonthlyPayTotal>> GetMonthlyPayTotalsAsync(int employeeId);
     /// <summary>Same as <see cref="GetMonthlyPayTotalsAsync"/> but batched for every active employee at once, keyed by EmployeeID.</summary>
     Task<Dictionary<int, List<EmployeeMonthlyPayTotal>>> GetMonthlyPayTotalsBatchAsync();
@@ -102,4 +102,11 @@ public interface IEmployeeLoanRepository
     Task<int> CreateRepaymentAsync(EmployeeLoanRepayment repayment);
     Task UpdateRepaymentAsync(EmployeeLoanRepayment repayment);
     Task DeleteRepaymentAsync(int employeeLoanRepaymentId);
+
+    Task<List<EmployeeLoanAdjustment>> GetAdjustmentsAsync(int employeeId);
+    /// <summary>Net signed adjustment total per employee (increases minus decreases), keyed by EmployeeID. Employees with no adjustments are absent from the result.</summary>
+    Task<Dictionary<int, decimal>> GetAdjustmentTotalsBatchAsync();
+    Task<EmployeeLoanAdjustment?> GetAdjustmentByIdAsync(int employeeLoanAdjustmentId);
+    Task<int> CreateAdjustmentAsync(EmployeeLoanAdjustment adjustment);
+    Task DeleteAdjustmentAsync(int employeeLoanAdjustmentId);
 }

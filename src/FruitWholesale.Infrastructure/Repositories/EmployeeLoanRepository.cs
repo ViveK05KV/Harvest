@@ -147,4 +147,55 @@ public class EmployeeLoanRepository(IDbConnectionFactory connectionFactory, ILed
             throw;
         }
     }
+
+    public async Task<List<EmployeeLoanAdjustment>> GetAdjustmentsAsync(int employeeId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT * FROM EmployeeLoanAdjustment
+            WHERE EmployeeID = @EmployeeID
+            ORDER BY AdjustmentDate, EmployeeLoanAdjustmentID;
+            """;
+        var result = await connection.QueryAsync<EmployeeLoanAdjustment>(sql, new { EmployeeID = employeeId });
+        return result.ToList();
+    }
+
+    public async Task<Dictionary<int, decimal>> GetAdjustmentTotalsBatchAsync()
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            SELECT EmployeeID, SUM(CASE WHEN IsIncrease THEN Amount ELSE -Amount END) AS Total
+            FROM EmployeeLoanAdjustment
+            GROUP BY EmployeeID;
+            """;
+        var rows = await connection.QueryAsync<(int EmployeeID, decimal Total)>(sql);
+        return rows.ToDictionary(r => r.EmployeeID, r => r.Total);
+    }
+
+    public async Task<EmployeeLoanAdjustment?> GetAdjustmentByIdAsync(int employeeLoanAdjustmentId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        return await connection.QueryFirstOrDefaultAsync<EmployeeLoanAdjustment>(
+            "SELECT * FROM EmployeeLoanAdjustment WHERE EmployeeLoanAdjustmentID = @EmployeeLoanAdjustmentID",
+            new { EmployeeLoanAdjustmentID = employeeLoanAdjustmentId });
+    }
+
+    public async Task<int> CreateAdjustmentAsync(EmployeeLoanAdjustment adjustment)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            INSERT INTO EmployeeLoanAdjustment (EmployeeID, AdjustmentDate, Amount, IsIncrease, Narration, CreatedBy)
+            VALUES (@EmployeeID, @AdjustmentDate, @Amount, @IsIncrease, @Narration, @CreatedBy)
+            RETURNING EmployeeLoanAdjustmentID;
+            """;
+        return await connection.QuerySingleAsync<int>(sql, adjustment);
+    }
+
+    public async Task DeleteAdjustmentAsync(int employeeLoanAdjustmentId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            "DELETE FROM EmployeeLoanAdjustment WHERE EmployeeLoanAdjustmentID = @EmployeeLoanAdjustmentID",
+            new { EmployeeLoanAdjustmentID = employeeLoanAdjustmentId });
+    }
 }

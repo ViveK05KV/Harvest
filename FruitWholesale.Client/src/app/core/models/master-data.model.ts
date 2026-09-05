@@ -222,6 +222,7 @@ export interface EmployeeLoanHistoryRow {
   credit: number;
   runningBalance: number;
   employeeLoanRepaymentID?: number | null;
+  employeeLoanAdjustmentID?: number | null;
 }
 
 export interface EmployeeLoanRepayment {
@@ -241,4 +242,10 @@ export interface SaveEmployeeLoanRepayment {
   amount: number;
   paymentMode: string;
   remarks?: string;
+}
+
+export interface EmployeeLoanAdjustment {
+  amount: number;
+  isIncrease: boolean;
+  narration: string;
 }

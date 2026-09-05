@@ -7,6 +7,7 @@ import { EmployeeWorkLogService } from './employee-work-log.service';
 import { EmployeeWorkLogFormComponent } from './employee-work-log-form.component';
 import { EmployeeLoanService } from './employee-loan.service';
 import { EmployeeLoanRepaymentFormComponent } from './employee-loan-repayment-form.component';
+import { EmployeeLoanAdjustmentFormComponent } from './employee-loan-adjustment-form.component';
 import { EmployeeService } from '../employee/employee.service';
 import { Employee, EmployeeLoanHistoryRow, EmployeeLoanSummaryRow, EmployeeWorkLog } from '../../core/models/master-data.model';
 import { PaginationRequest } from '../../core/models/common.model';
@@ -59,8 +60,14 @@ export class EmployeeWorkLogListComponent implements OnInit {
   readonly loanHistoryLoading = signal(false);
   selectedLoanEmployeeId: number | null = null;
 
+  // Every active employee's summary, unfiltered - lets an employee with no
+  // active loan yet still be picked from the dropdown (e.g. to start one via
+  // Adjust Loan). The overview grid below only ever renders loanSummary().
+  private loanSummaryById = new Map<number, EmployeeLoanSummaryRow>();
+
   selectedLoanEmployee(): EmployeeLoanSummaryRow | undefined {
-    return this.loanSummary().find((r) => r.employeeID === this.selectedLoanEmployeeId);
+    if (this.selectedLoanEmployeeId === null) return undefined;
+    return this.loanSummaryById.get(this.selectedLoanEmployeeId);
   }
 
   ngOnInit(): void {
@@ -77,6 +84,7 @@ export class EmployeeWorkLogListComponent implements OnInit {
     this.loanLoading.set(true);
     this.loanService.getSummary().subscribe({
       next: (rows) => {
+        this.loanSummaryById = new Map(rows.map((r) => [r.employeeID, r]));
         const active = rows.filter((r) => r.outstandingLoan > 0);
         this.loanSummary.set(active);
         this.loanLoading.set(false);
@@ -84,6 +92,11 @@ export class EmployeeWorkLogListComponent implements OnInit {
       },
       error: () => this.loanLoading.set(false)
     });
+  }
+
+  onLoanEmployeeChange(value: string): void {
+    if (!value) return;
+    this.selectLoanEmployee(Number(value));
   }
 
   selectLoanEmployee(employeeId: number): void {
@@ -141,6 +154,51 @@ export class EmployeeWorkLogListComponent implements OnInit {
         this.loanService.deleteRepayment(repaymentId).subscribe({
           next: () => {
             this.notification.success('Repayment deleted and cash ledger updated.');
+            this.loadLoanSummary();
+            this.loadLoanHistory();
+          }
+        });
+      });
+  }
+
+  openAdjustLoan(): void {
+    const employee = this.selectedLoanEmployee();
+    if (!employee) return;
+    this.dialog
+      .open(EmployeeLoanAdjustmentFormComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        data: { employeeId: employee.employeeID, employeeName: employee.employeeName },
+        autoFocus: 'dialog'
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.loanService.applyAdjustment(employee.employeeID, result).subscribe({
+          next: () => {
+            this.notification.success('Loan adjustment applied.');
+            this.loadLoanSummary();
+            this.loadLoanHistory();
+          }
+        });
+      });
+  }
+
+  deleteAdjustment(row: EmployeeLoanHistoryRow): void {
+    if (!row.employeeLoanAdjustmentID) return;
+    const adjustmentId = row.employeeLoanAdjustmentID;
+    this.confirmDialog
+      .confirm({
+        title: 'Delete Adjustment',
+        message: 'Delete this loan adjustment?',
+        destructive: true,
+        confirmLabel: 'Delete'
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.loanService.deleteAdjustment(adjustmentId).subscribe({
+          next: () => {
+            this.notification.success('Adjustment deleted.');
             this.loadLoanSummary();
             this.loadLoanHistory();
           }

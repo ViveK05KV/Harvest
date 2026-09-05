@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { EmployeeLoanHistoryRow, EmployeeLoanRepayment, EmployeeLoanSummaryRow, SaveEmployeeLoanRepayment } from '../../core/models/master-data.model';
+import { EmployeeLoanAdjustment, EmployeeLoanHistoryRow, EmployeeLoanRepayment, EmployeeLoanSummaryRow, SaveEmployeeLoanRepayment } from '../../core/models/master-data.model';
 
 @Injectable({ providedIn: 'root' })
 export class EmployeeLoanService {
@@ -28,5 +28,13 @@ export class EmployeeLoanService {
 
   deleteRepayment(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/repayments/${id}`);
+  }
+
+  applyAdjustment(employeeId: number, dto: EmployeeLoanAdjustment): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${employeeId}/adjustments`, dto);
+  }
+
+  deleteAdjustment(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/adjustments/${id}`);
   }
 }

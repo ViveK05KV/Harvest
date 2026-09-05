@@ -120,19 +120,34 @@
       </div>
     </div>
 
-    @if (selectedLoanEmployee(); as employee) {
-      <div class="section-heading">{{ employee.employeeName }}'s Loan History</div>
-      <div class="filter-bar filter-bar--card">
+    <div class="section-heading">Employee Loan Detail</div>
+    <div class="filter-bar filter-bar--card">
+      <label class="field" style="min-width: 190px">
+        <span class="field-label">Employee</span>
+        <select [value]="selectedLoanEmployeeId ?? ''" (change)="onLoanEmployeeChange($any($event.target).value)">
+          <option value="" disabled>Select an employee</option>
+          @for (employee of employees(); track employee.employeeID) {
+            <option [value]="employee.employeeID">{{ employee.fullName }}</option>
+          }
+        </select>
+      </label>
+      @if (selectedLoanEmployee(); as employee) {
         <div class="balance-chip" [class.balance-chip--positive]="employee.outstandingLoan <= 0" [class.balance-chip--negative]="employee.outstandingLoan > 0">
           Outstanding Loan: {{ employee.outstandingLoan | currency: 'INR' : 'symbol' : '1.2-2' }}
         </div>
-        <span class="spacer"></span>
+      }
+      <span class="spacer"></span>
+      @if (selectedLoanEmployee()) {
+        <button type="button" class="btn-ghost" (click)="openAdjustLoan()">
+          <mat-icon>tune</mat-icon>Adjust Loan
+        </button>
         <button type="button" class="btn-primary" (click)="openRecordRepayment()">
           <mat-icon>add</mat-icon>Record Repayment
         </button>
-      </div>
+      }
+    </div>
 
-      <div class="list-card">
+    <div class="list-card">
         @if (loanHistoryLoading()) {
           <mat-progress-bar mode="indeterminate" />
         }
@@ -151,6 +166,9 @@
                     @if (row.employeeLoanRepaymentID) {
                       <button type="button" class="row-icon-btn" title="Delete repayment" (click)="deleteRepayment(row)"><mat-icon>delete</mat-icon></button>
                     }
+                    @if (row.employeeLoanAdjustmentID) {
+                      <button type="button" class="row-icon-btn" title="Delete adjustment" (click)="deleteAdjustment(row)"><mat-icon>delete</mat-icon></button>
+                    }
                   </td>
                 </tr>
               }
@@ -164,6 +182,5 @@
           }
         </div>
       </div>
-    }
   }
 }

@@ -1,0 +1,41 @@
+<div class="modal-header">
+  <div>
+    <h2>Adjust Loan</h2>
+    <p>{{ data.employeeName }}</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <p class="field-hint">
+    Posts a manual correction to this employee's loan - no cash moves. Use this only for corrections
+    (e.g. transferring a balance in from elsewhere); every other loan movement (salary excess, repayments) is automatic.
+  </p>
+
+  <label class="field">
+    <span class="field-label">Direction</span>
+    <div class="mode-row">
+      <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.isIncrease === true" (click)="setDirection(true)">Increase loan</button>
+      <button type="button" class="mode-btn" [class.mode-btn--active]="form.value.isIncrease === false" (click)="setDirection(false)">Decrease loan</button>
+    </div>
+  </label>
+
+  <label class="field">
+    <span class="field-label">Amount</span>
+    <input class="field-input" type="number" formControlName="amount" min="0.01" step="0.01" />
+  </label>
+
+  <label class="field">
+    <span class="field-label">Narration / Reason</span>
+    <textarea class="field-input" formControlName="narration" rows="2"></textarea>
+    @if (form.controls.narration.touched && form.controls.narration.hasError('required')) {
+      <span class="field-error">Narration is required</span>
+    }
+  </label>
+
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Apply Adjustment</button>
+  </div>
+</form>

@@ -33,4 +33,11 @@ public class EmployeeLoanController(IEmployeeLoanService service, ICurrentUserSe
         await service.DeleteRepaymentAsync(id);
         return NoContent();
     }
+
+    [HttpPost("{employeeId:int}/adjustments")]
+    public async Task<ActionResult> ApplyAdjustment(int employeeId, EmployeeLoanAdjustmentDto dto) =>
+        FromResult(await service.ApplyAdjustmentAsync(employeeId, dto, currentUserService.UserId));
+
+    [HttpDelete("adjustments/{id:int}")]
+    public async Task<ActionResult> DeleteAdjustment(int id) => FromResult(await service.DeleteAdjustmentAsync(id));
 }

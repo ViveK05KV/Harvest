@@ -39,3 +39,4 @@
 29_AddDashboardSalaryTracking.sql
 30_SwitchToFifoCostBasis.sql
 31_AddEmployeeLoan.sql
+32_AddEmployeeLoanAdjustment.sql

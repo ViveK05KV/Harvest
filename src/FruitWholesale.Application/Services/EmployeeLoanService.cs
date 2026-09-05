@@ -15,6 +15,8 @@ public interface IEmployeeLoanService
     Task<Result<EmployeeLoanRepaymentDto>> CreateRepaymentAsync(SaveEmployeeLoanRepaymentDto dto, int? userId);
     Task<Result<EmployeeLoanRepaymentDto>> UpdateRepaymentAsync(SaveEmployeeLoanRepaymentDto dto);
     Task DeleteRepaymentAsync(int employeeLoanRepaymentId);
+    Task<Result> ApplyAdjustmentAsync(int employeeId, EmployeeLoanAdjustmentDto dto, int? userId);
+    Task<Result> DeleteAdjustmentAsync(int employeeLoanAdjustmentId);
 }
 
 public class EmployeeLoanService(IEmployeeLoanRepository repository, IEmployeeRepository employeeRepository, IMapper mapper) : IEmployeeLoanService
@@ -24,19 +26,21 @@ public class EmployeeLoanService(IEmployeeLoanRepository repository, IEmployeeRe
         var employees = await employeeRepository.GetAllActiveAsync();
         var monthlyTotals = await repository.GetMonthlyPayTotalsBatchAsync();
         var repaymentTotals = await repository.GetRepaymentTotalsBatchAsync();
+        var adjustmentTotals = await repository.GetAdjustmentTotalsBatchAsync();
 
         return employees.Select(e =>
         {
             var months = monthlyTotals.GetValueOrDefault(e.EmployeeID, []);
             var excessTotal = months.Sum(m => CalculateExcess(e, m));
             var repaid = repaymentTotals.GetValueOrDefault(e.EmployeeID, 0);
+            var netAdjustment = adjustmentTotals.GetValueOrDefault(e.EmployeeID, 0);
             return new EmployeeLoanSummaryDto
             {
                 EmployeeID = e.EmployeeID,
                 EmployeeName = e.FullName,
                 SalaryType = e.SalaryType,
                 SalaryAmount = e.SalaryAmount,
-                OutstandingLoan = Math.Max(0, excessTotal - repaid)
+                OutstandingLoan = Math.Max(0, excessTotal - repaid + netAdjustment)
             };
         }).ToList();
     }
@@ -46,6 +50,7 @@ public class EmployeeLoanService(IEmployeeLoanRepository repository, IEmployeeRe
         var employee = await employeeRepository.GetByIdAsync(employeeId) ?? throw new NotFoundException(nameof(Employee), employeeId);
         var months = await repository.GetMonthlyPayTotalsAsync(employeeId);
         var repayments = await repository.GetRepaymentsAsync(employeeId);
+        var adjustments = await repository.GetAdjustmentsAsync(employeeId);
 
         var rows = new List<EmployeeLoanHistoryRowDto>();
 
@@ -76,6 +81,18 @@ public class EmployeeLoanService(IEmployeeLoanRepository repository, IEmployeeRe
                 Debit = 0,
                 Credit = repayment.Amount,
                 EmployeeLoanRepaymentID = repayment.EmployeeLoanRepaymentID
+            });
+        }
+
+        foreach (var adjustment in adjustments)
+        {
+            rows.Add(new EmployeeLoanHistoryRowDto
+            {
+                TransactionDate = adjustment.AdjustmentDate,
+                Particulars = $"Adjustment{(adjustment.Narration.Length > 0 ? $" - {adjustment.Narration}" : "")}",
+                Debit = adjustment.IsIncrease ? adjustment.Amount : 0,
+                Credit = adjustment.IsIncrease ? 0 : adjustment.Amount,
+                EmployeeLoanAdjustmentID = adjustment.EmployeeLoanAdjustmentID
             });
         }
 
@@ -137,6 +154,32 @@ public class EmployeeLoanService(IEmployeeLoanRepository repository, IEmployeeRe
     {
         _ = await repository.GetRepaymentByIdAsync(employeeLoanRepaymentId) ?? throw new NotFoundException(nameof(EmployeeLoanRepayment), employeeLoanRepaymentId);
         await repository.DeleteRepaymentAsync(employeeLoanRepaymentId);
+    }
+
+    public async Task<Result> ApplyAdjustmentAsync(int employeeId, EmployeeLoanAdjustmentDto dto, int? userId)
+    {
+        if (dto.Amount <= 0) return Result.Failure("Adjustment amount must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(dto.Narration)) return Result.Failure("Narration is required.");
+
+        _ = await employeeRepository.GetByIdAsync(employeeId) ?? throw new NotFoundException(nameof(Employee), employeeId);
+
+        await repository.CreateAdjustmentAsync(new EmployeeLoanAdjustment
+        {
+            EmployeeID = employeeId,
+            AdjustmentDate = DateTime.UtcNow.Date,
+            Amount = dto.Amount,
+            IsIncrease = dto.IsIncrease,
+            Narration = dto.Narration,
+            CreatedBy = userId
+        });
+        return Result.Success();
+    }
+
+    public async Task<Result> DeleteAdjustmentAsync(int employeeLoanAdjustmentId)
+    {
+        _ = await repository.GetAdjustmentByIdAsync(employeeLoanAdjustmentId) ?? throw new NotFoundException(nameof(EmployeeLoanAdjustment), employeeLoanAdjustmentId);
+        await repository.DeleteAdjustmentAsync(employeeLoanAdjustmentId);
+        return Result.Success();
     }
 
     private static decimal CalculateExcess(Employee employee, EmployeeMonthlyPayTotal month)
