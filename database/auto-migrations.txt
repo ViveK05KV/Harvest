@@ -40,3 +40,4 @@
 30_SwitchToFifoCostBasis.sql
 31_AddEmployeeLoan.sql
 32_AddEmployeeLoanAdjustment.sql
+33_BackfillEmployeeWagesNarration.sql

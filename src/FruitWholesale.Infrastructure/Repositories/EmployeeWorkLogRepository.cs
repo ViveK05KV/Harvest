@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using FruitWholesale.Application.Common.Interfaces;
 using FruitWholesale.Domain.Entities;
@@ -74,7 +75,7 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
             {
                 await ledgerService.AddCashLedgerEntryAsync(connection, transaction, workLog.WorkDate,
                     LedgerTransactionTypes.EmployeeWorkLog, ReferenceTables.EmployeeWorkLog, workLogId, workLog.PaymentMode,
-                    0, workLog.Amount, $"Salary ({workLog.JobType})");
+                    0, workLog.Amount, await WageNarrationAsync(connection, transaction, workLog));
                 await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
             }
 
@@ -108,7 +109,7 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
             {
                 await ledgerService.AddCashLedgerEntryAsync(connection, transaction, workLog.WorkDate,
                     LedgerTransactionTypes.EmployeeWorkLog, ReferenceTables.EmployeeWorkLog, workLog.EmployeeWorkLogID, workLog.PaymentMode,
-                    0, workLog.Amount, $"Salary ({workLog.JobType})");
+                    0, workLog.Amount, await WageNarrationAsync(connection, transaction, workLog));
             }
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
@@ -139,5 +140,15 @@ public class EmployeeWorkLogRepository(IDbConnectionFactory connectionFactory, I
             transaction.Rollback();
             throw;
         }
+    }
+
+    private static async Task<string> WageNarrationAsync(IDbConnection connection, IDbTransaction transaction, EmployeeWorkLog workLog)
+    {
+        var employeeName = await connection.QueryFirstOrDefaultAsync<string>(
+            "SELECT FullName FROM EmployeeMaster WHERE EmployeeID = @EmployeeID",
+            new { workLog.EmployeeID }, transaction);
+        return string.IsNullOrWhiteSpace(employeeName)
+            ? $"Salary ({workLog.JobType})"
+            : $"Salary - {employeeName} ({workLog.JobType})";
     }
 }
