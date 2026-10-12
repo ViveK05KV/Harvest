@@ -247,6 +247,33 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         return rows.ToDictionary(r => r.SupplierID, r => r.RunningBalance);
     }
 
+    // LinkedShopSale is mirrored into SupplierLedger as a credit. It must be removed
+    // once when combining the independently maintained shop and supplier balances.
+    public async Task<decimal> GetLinkedShopSalesAsync(int supplierId)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        return await connection.ExecuteScalarAsync<decimal>("""
+            SELECT COALESCE(SUM(Credit - Debit), 0)
+            FROM SupplierLedger
+            WHERE SupplierID = @SupplierID AND TransactionType = @TransactionType;
+            """, new { SupplierID = supplierId, TransactionType = LedgerTransactionTypes.LinkedShopSale });
+    }
+
+    public async Task<Dictionary<int, decimal>> GetLinkedShopSalesBatchAsync(IEnumerable<int> supplierIds)
+    {
+        var ids = supplierIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        using var connection = connectionFactory.CreateConnection();
+        var rows = await connection.QueryAsync<(int SupplierID, decimal Amount)>("""
+            SELECT SupplierID, COALESCE(SUM(Credit - Debit), 0) AS Amount
+            FROM SupplierLedger
+            WHERE SupplierID = ANY(@SupplierIDs) AND TransactionType = @TransactionType
+            GROUP BY SupplierID;
+            """, new { SupplierIDs = ids, TransactionType = LedgerTransactionTypes.LinkedShopSale });
+        return rows.ToDictionary(r => r.SupplierID, r => r.Amount);
+    }
+
 
     public async Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize)
     {

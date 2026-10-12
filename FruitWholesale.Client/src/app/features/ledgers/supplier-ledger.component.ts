@@ -151,8 +151,8 @@ export class SupplierLedgerComponent implements OnInit {
         { header: 'Date', field: 'transactionDate' },
         { header: 'Particulars', field: 'transactionType' },
         { header: 'Narration', field: 'narration' },
-        { header: 'Purchase', field: 'debit' },
-        { header: 'Payment', field: 'credit' },
+        { header: 'Debit', field: 'debit' },
+        { header: 'Credit', field: 'credit' },
         { header: 'Balance', field: 'runningBalance' }
       ],
       'supplier-ledger'

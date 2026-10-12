@@ -31,6 +31,7 @@ const LEDGER_PARTICULARS: Record<string, string> = {
   Purchase: 'Purchase',
   SupplierPayment: 'Payment',
   SupplierReturn: 'Return',
+  LinkedShopSale: 'Sale to linked shop',
   Adjustment: 'Adjustment'
 };
 

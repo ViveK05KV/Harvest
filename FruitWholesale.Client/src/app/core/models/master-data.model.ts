@@ -54,7 +54,7 @@ export interface ShopMaster {
   /** Optional link to a SupplierMaster row for a party that is both a shop and a supplier. */
   linkedSupplierID?: number | null;
   linkedSupplierName?: string;
-  /** currentOutstanding minus the linked supplier's outstanding; equals currentOutstanding when not linked. */
+  /** Combined party position, positive for receivable and negative for payable. */
   netBalance: number;
 }
 
@@ -89,7 +89,7 @@ export interface SupplierMaster {
   /** Reverse of ShopMaster.linkedSupplierID — the shop (if any) linked to this supplier. */
   linkedShopID?: number | null;
   linkedShopName?: string;
-  /** Linked shop's outstanding minus this supplier's own outstanding; meaningless when not linked. */
+  /** Combined party position, positive for receivable and negative for payable. */
   netBalance: number;
 }
 

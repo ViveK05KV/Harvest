@@ -47,10 +47,11 @@ public class SupplierMasterService(
 
         var outstandingTask = ledgerService.GetSupplierOutstandingAsync(supplierId);
         var linkedOutstandingTask = GetLinkedShopOutstandingAsync(supplier.LinkedShopID);
-        await Task.WhenAll(outstandingTask, linkedOutstandingTask);
+        var linkedSalesTask = GetLinkedSupplierSalesAsync(supplierId);
+        await Task.WhenAll(outstandingTask, linkedOutstandingTask, linkedSalesTask);
 
         dto.CurrentOutstanding = await outstandingTask;
-        dto.NetBalance = await linkedOutstandingTask - dto.CurrentOutstanding;
+        dto.NetBalance = await linkedOutstandingTask - dto.CurrentOutstanding - await linkedSalesTask;
         return dto;
     }
 
@@ -67,7 +68,8 @@ public class SupplierMasterService(
         supplier.SupplierID = await repository.CreateAsync(supplier);
         var result = mapper.Map<SupplierMasterDto>(supplier);
         result.CurrentOutstanding = supplier.OpeningBalance;
-        result.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - result.CurrentOutstanding;
+        result.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - result.CurrentOutstanding
+            - await GetLinkedSupplierSalesAsync(supplier.SupplierID);
         return Result.Success(result);
     }
 
@@ -81,7 +83,8 @@ public class SupplierMasterService(
 
         var result = mapper.Map<SupplierMasterDto>(supplier);
         result.CurrentOutstanding = await ledgerService.GetSupplierOutstandingAsync(supplier.SupplierID);
-        result.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - result.CurrentOutstanding;
+        result.NetBalance = await GetLinkedShopOutstandingAsync(supplier.LinkedShopID) - result.CurrentOutstanding
+            - await GetLinkedSupplierSalesAsync(supplier.SupplierID);
         return Result.Success(result);
     }
 
@@ -153,6 +156,9 @@ public class SupplierMasterService(
     private async Task<decimal> GetLinkedShopOutstandingAsync(int? linkedShopId) =>
         linkedShopId is null ? 0m : await ledgerService.GetShopOutstandingAsync(linkedShopId.Value);
 
+    private async Task<decimal> GetLinkedSupplierSalesAsync(int supplierId) =>
+        await ledgerService.GetLinkedShopSalesAsync(supplierId);
+
     private async Task<List<SupplierMasterDto>> EnrichWithOutstandingAsync(IEnumerable<SupplierMaster> suppliers)
     {
         var supplierList = suppliers.ToList();
@@ -161,6 +167,7 @@ public class SupplierMasterService(
         var linkedShopOutstanding = linkedShopIds.Count == 0
             ? []
             : await ledgerService.GetShopOutstandingBatchAsync(linkedShopIds);
+        var linkedSupplierSales = await ledgerService.GetLinkedShopSalesBatchAsync(supplierList.Select(s => s.SupplierID));
 
         return supplierList.Select(supplier =>
         {
@@ -169,7 +176,8 @@ public class SupplierMasterService(
             var linkedOutstanding = supplier.LinkedShopID.HasValue
                 ? linkedShopOutstanding.GetValueOrDefault(supplier.LinkedShopID.Value)
                 : 0m;
-            dto.NetBalance = linkedOutstanding - dto.CurrentOutstanding;
+            var mirroredSales = linkedSupplierSales.GetValueOrDefault(supplier.SupplierID);
+            dto.NetBalance = linkedOutstanding - dto.CurrentOutstanding - mirroredSales;
             return dto;
         }).ToList();
     }

@@ -46,6 +46,8 @@ public interface ILedgerService
     Task<decimal> GetSupplierOutstandingAsync(int supplierId);
 
     Task<Dictionary<int, decimal>> GetSupplierOutstandingBatchAsync(IEnumerable<int> supplierIds);
+    Task<decimal> GetLinkedShopSalesAsync(int supplierId);
+    Task<Dictionary<int, decimal>> GetLinkedShopSalesBatchAsync(IEnumerable<int> supplierIds);
 
     Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
 
