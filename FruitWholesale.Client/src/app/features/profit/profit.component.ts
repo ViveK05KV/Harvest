@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -51,6 +51,17 @@ export class ProfitComponent implements OnInit {
   readonly fruitSummary = signal<FruitProfitSummaryRow[]>([]);
   readonly shopFruit = signal<ShopFruitProfitRow[]>([]);
   readonly businessDaily = signal<BusinessDailyProfitRow[]>([]);
+  readonly profitSort = signal<{ key: keyof BusinessDailyProfitRow; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  readonly sortedBusinessDaily = computed(() => {
+    const { key, direction } = this.profitSort();
+    const multiplier = direction === 'asc' ? 1 : -1;
+    return [...this.businessDaily()].sort((a, b) => {
+      const difference = key === 'date'
+        ? new Date(a.date).getTime() - new Date(b.date).getTime()
+        : Number(a[key]) - Number(b[key]);
+      return difference * multiplier;
+    });
+  });
 
   private loadRequestId = 0;
 
@@ -87,6 +98,11 @@ export class ProfitComponent implements OnInit {
       this.toDate = toIso(today);
     }
     this.loadActiveTab();
+  }
+
+  sortProfitBy(key: keyof BusinessDailyProfitRow): void {
+    const current = this.profitSort();
+    this.profitSort.set({ key, direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc' });
   }
 
   onFilterChange(): void {

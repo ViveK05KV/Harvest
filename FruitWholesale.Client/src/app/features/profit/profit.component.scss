@@ -229,6 +229,29 @@
   }
 }
 
+.sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: #1c6b45;
+  }
+}
+
+.mock-table th.amount-column .sort-header {
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .mock-table td.muted-cell {
   color: #78837c;
 }

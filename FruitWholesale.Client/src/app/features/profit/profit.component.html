@@ -218,9 +218,16 @@
     <div class="list-card">
       <div class="table-scroll">
         <table class="mock-table">
-          <thead><tr><th>Date</th><th class="amount-column">Revenue</th><th class="amount-column">Cost</th><th class="amount-column">Profit</th><th class="amount-column">Expenses</th><th class="amount-column">Net Profit</th></tr></thead>
+          <thead><tr>
+            <th [attr.aria-sort]="profitSort().key === 'date' ? (profitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortProfitBy('date')">Date @if (profitSort().key === 'date') { <span>{{ profitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column" [attr.aria-sort]="profitSort().key === 'revenue' ? (profitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortProfitBy('revenue')">Revenue @if (profitSort().key === 'revenue') { <span>{{ profitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column" [attr.aria-sort]="profitSort().key === 'cost' ? (profitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortProfitBy('cost')">Cost @if (profitSort().key === 'cost') { <span>{{ profitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column" [attr.aria-sort]="profitSort().key === 'profit' ? (profitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortProfitBy('profit')">Profit @if (profitSort().key === 'profit') { <span>{{ profitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column" [attr.aria-sort]="profitSort().key === 'expenses' ? (profitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortProfitBy('expenses')">Expenses @if (profitSort().key === 'expenses') { <span>{{ profitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column" [attr.aria-sort]="profitSort().key === 'netProfit' ? (profitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortProfitBy('netProfit')">Net Profit @if (profitSort().key === 'netProfit') { <span>{{ profitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+          </tr></thead>
           <tbody>
-            @for (row of businessDaily(); track row.date) {
+            @for (row of sortedBusinessDaily(); track row.date) {
               <tr>
                 <td class="mono-cell muted-cell">{{ row.date | date: 'dd MMM yyyy' }}</td>
                 <td class="mono-cell amount-column">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
