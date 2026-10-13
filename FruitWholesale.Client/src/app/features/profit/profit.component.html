@@ -1,6 +1,29 @@
 <div class="page-heading"><h1>Profit Calculator</h1></div>
 
-@if (activeTab() !== 0) {
+@if (activeTab() === 4) {
+  <div class="filter-bar filter-bar--card profit-range-bar">
+    <label class="field">
+      <span class="field-label">Period</span>
+      <div class="mode-row">
+        <button type="button" class="mode-btn" [class.mode-btn--active]="profitRange() === 'week'" (click)="setProfitRange('week')">Last week</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="profitRange() === 'month'" (click)="setProfitRange('month')">Last month</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="profitRange() === 'year'" (click)="setProfitRange('year')">Last year</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="profitRange() === 'custom'" (click)="setProfitRange('custom')">Custom</button>
+      </div>
+    </label>
+    @if (profitRange() === 'custom') {
+      <label class="field">
+        <span class="field-label">From</span>
+        <input type="date" [value]="fromDate" [min]="minProfitDateStr" [max]="toDate" (change)="fromDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+      </label>
+      <label class="field">
+        <span class="field-label">To</span>
+        <input type="date" [value]="toDate" [min]="fromDate" (change)="toDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+      </label>
+    }
+    <span class="spacer"></span>
+  </div>
+} @else if (activeTab() !== 0) {
   <div class="filter-bar filter-bar--card">
     <label class="field">
       <span class="field-label">From</span>
@@ -56,6 +79,7 @@
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 1" (click)="onTabChange(1)">By Customer</button>
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 2" (click)="onTabChange(2)">By Fruit</button>
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 3" (click)="onTabChange(3)">By Customer &amp; Fruit</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 4" (click)="onTabChange(4)">Profit</button>
 </div>
 
 @if (loading()) {
@@ -187,6 +211,28 @@
           </tbody>
         </table>
         @if (!loading() && shopFruit().length === 0) { <div class="empty-state"><p>No customer &amp; fruit profit data for this range.</p></div> }
+      </div>
+    </div>
+  }
+  @case (4) {
+    <div class="list-card">
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead><tr><th>Date</th><th class="amount-column">Revenue</th><th class="amount-column">Cost</th><th class="amount-column">Profit</th><th class="amount-column">Expenses</th><th class="amount-column">Net Profit</th></tr></thead>
+          <tbody>
+            @for (row of businessDaily(); track row.date) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.date | date: 'dd MMM yyyy' }}</td>
+                <td class="mono-cell amount-column">{{ row.revenue | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.cost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.profit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.expenses | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.netProfit >= 0" [class.negative-cell]="row.netProfit < 0">{{ row.netProfit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && businessDaily().length === 0) { <div class="empty-state"><p>No profit data for this date range.</p></div> }
       </div>
     </div>
   }

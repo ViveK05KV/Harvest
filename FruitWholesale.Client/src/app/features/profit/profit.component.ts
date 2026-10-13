@@ -14,6 +14,7 @@ import { toIso } from '../../core/utils/date.util';
 // onward everywhere (matches ProfitConstants.TrackingStartDate on the backend).
 const PROFIT_TRACKING_START_DATE = new Date(2026, 7, 1);
 import {
+  BusinessDailyProfitRow,
   BusinessProfitTotal,
   FruitProfitSummaryRow,
   ShopDailyProfitRow,
@@ -38,6 +39,7 @@ export class ProfitComponent implements OnInit {
   readonly minProfitDateStr = toIso(PROFIT_TRACKING_START_DATE);
   readonly loading = signal(false);
   readonly activeTab = signal(0);
+  readonly profitRange = signal<'week' | 'month' | 'year' | 'custom'>('month');
   readonly shops = signal<ShopMaster[]>([]);
   tillToday = false;
   selectedShopId: number | null = null;
@@ -48,6 +50,7 @@ export class ProfitComponent implements OnInit {
   readonly shopDaily = signal<ShopDailyProfitRow[]>([]);
   readonly fruitSummary = signal<FruitProfitSummaryRow[]>([]);
   readonly shopFruit = signal<ShopFruitProfitRow[]>([]);
+  readonly businessDaily = signal<BusinessDailyProfitRow[]>([]);
 
   private loadRequestId = 0;
 
@@ -58,6 +61,31 @@ export class ProfitComponent implements OnInit {
 
   onTabChange(index: number): void {
     this.activeTab.set(index);
+    if (index === 4) this.setProfitRange(this.profitRange());
+    else this.loadActiveTab();
+  }
+
+  setProfitRange(range: 'week' | 'month' | 'year' | 'custom'): void {
+    this.profitRange.set(range);
+    if (range !== 'custom') {
+      const today = new Date();
+      const from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (range === 'week') {
+        from.setDate(from.getDate() - 6);
+      } else if (range === 'month') {
+        const day = from.getDate();
+        from.setDate(1);
+        from.setMonth(from.getMonth() - 1);
+        from.setDate(Math.min(day, new Date(from.getFullYear(), from.getMonth() + 1, 0).getDate()));
+      } else {
+        const day = from.getDate();
+        from.setDate(1);
+        from.setFullYear(from.getFullYear() - 1);
+        from.setDate(Math.min(day, new Date(from.getFullYear(), from.getMonth() + 1, 0).getDate()));
+      }
+      this.fromDate = toIso(from < PROFIT_TRACKING_START_DATE ? PROFIT_TRACKING_START_DATE : from);
+      this.toDate = toIso(today);
+    }
     this.loadActiveTab();
   }
 
@@ -131,6 +159,16 @@ export class ProfitComponent implements OnInit {
           next: (r) => {
             if (isStale()) return;
             this.shopFruit.set(r);
+            finish();
+          },
+          error: finish
+        });
+        break;
+      case 4:
+        this.profitService.getBusinessDailyProfit(this.fromDate, this.toDate).subscribe({
+          next: (rows) => {
+            if (isStale()) return;
+            this.businessDaily.set(rows);
             finish();
           },
           error: finish

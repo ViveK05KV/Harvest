@@ -6,6 +6,16 @@ export interface ShopDailyProfitRow {
   marginPercent: number;
 }
 
+export interface BusinessDailyProfitRow {
+  date: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  expenses: number;
+  netProfit: number;
+  marginPercent: number;
+}
+
 export interface ShopProfitSummaryRow {
   shopID: number;
   shopName: string;

@@ -5,6 +5,7 @@ namespace FruitWholesale.Application.Services;
 
 public interface IProfitService
 {
+    Task<List<BusinessDailyProfitRow>> GetBusinessDailyProfitAsync(DateTime? fromDate, DateTime? toDate);
     Task<List<ShopDailyProfitRow>> GetShopDailyProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate);
     Task<List<ShopProfitSummaryRow>> GetShopProfitSummaryAsync(DateTime? fromDate, DateTime? toDate);
     Task<List<FruitProfitSummaryRow>> GetFruitProfitSummaryAsync(DateTime? fromDate, DateTime? toDate);
@@ -14,6 +15,9 @@ public interface IProfitService
 
 public class ProfitService(IProfitRepository repository) : IProfitService
 {
+    public Task<List<BusinessDailyProfitRow>> GetBusinessDailyProfitAsync(DateTime? fromDate, DateTime? toDate) =>
+        repository.GetBusinessDailyProfitAsync(fromDate, toDate);
+
     public Task<List<ShopDailyProfitRow>> GetShopDailyProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate) =>
         repository.GetShopDailyProfitAsync(shopId, fromDate, toDate);
 

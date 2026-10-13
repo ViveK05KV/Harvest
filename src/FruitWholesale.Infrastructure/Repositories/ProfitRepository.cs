@@ -7,6 +7,55 @@ namespace FruitWholesale.Infrastructure.Repositories;
 
 public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitRepository
 {
+    public async Task<List<BusinessDailyProfitRow>> GetBusinessDailyProfitAsync(DateTime? fromDate, DateTime? toDate)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            WITH date_range AS (
+                SELECT GREATEST(COALESCE(@FromDate::date, @TrackingStartDate::date), @TrackingStartDate::date) AS from_date,
+                       COALESCE(@ToDate::date, CURRENT_DATE) AS to_date
+            ), days AS (
+                SELECT generate_series(from_date, to_date, INTERVAL '1 day')::date AS date
+                FROM date_range
+                WHERE from_date <= to_date
+            ), sales AS (
+                SELECT s.SupplyDate AS date,
+                       SUM(si.TotalAmount) AS revenue,
+                       SUM(si.Quantity * si.CostBasis) AS cost,
+                       SUM(si.TotalAmount - si.Quantity * si.CostBasis) AS profit
+                FROM SupplyItems si
+                INNER JOIN Supply s ON s.SupplyID = si.SupplyID
+                CROSS JOIN date_range r
+                WHERE s.SupplyDate BETWEEN r.from_date AND r.to_date
+                GROUP BY s.SupplyDate
+            ), expenses AS (
+                SELECT de.ExpenseDate AS date, SUM(de.Amount) AS total
+                FROM DailyExpense de
+                CROSS JOIN date_range r
+                WHERE de.ExpenseDate BETWEEN r.from_date AND r.to_date
+                GROUP BY de.ExpenseDate
+            )
+            SELECT d.date AS Date,
+                   COALESCE(s.revenue, 0) AS Revenue,
+                   COALESCE(s.cost, 0) AS Cost,
+                   COALESCE(s.profit, 0) AS Profit,
+                   COALESCE(e.total, 0) AS Expenses,
+                   COALESCE(s.profit, 0) - COALESCE(e.total, 0) AS NetProfit
+            FROM days d
+            LEFT JOIN sales s ON s.date = d.date
+            LEFT JOIN expenses e ON e.date = d.date
+            ORDER BY d.date;
+            """;
+        var rows = (await connection.QueryAsync<BusinessDailyProfitRow>(sql, new
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            TrackingStartDate = ProfitConstants.TrackingStartDate
+        })).ToList();
+        foreach (var row in rows) row.MarginPercent = ComputeMargin(row.Revenue, row.Profit);
+        return rows;
+    }
+
     public async Task<List<ShopDailyProfitRow>> GetShopDailyProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate)
     {
         using var connection = connectionFactory.CreateConnection();

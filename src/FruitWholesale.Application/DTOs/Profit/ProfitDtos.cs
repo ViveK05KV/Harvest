@@ -1,5 +1,16 @@
 namespace FruitWholesale.Application.DTOs.Profit;
 
+public class BusinessDailyProfitRow
+{
+    public DateTime Date { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal Cost { get; set; }
+    public decimal Profit { get; set; }
+    public decimal Expenses { get; set; }
+    public decimal NetProfit { get; set; }
+    public decimal MarginPercent { get; set; }
+}
+
 public class ShopDailyProfitRow
 {
     public DateTime Date { get; set; }
