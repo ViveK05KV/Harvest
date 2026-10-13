@@ -38,6 +38,7 @@ export class ShopLedgerComponent implements OnInit {
   shopId: number | null = null;
   fromDate: string | null = null;
   toDate: string | null = null;
+  newestFirst = true;
 
   private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
 
@@ -84,6 +85,11 @@ export class ShopLedgerComponent implements OnInit {
     this.onFilterChange();
   }
 
+  onOrderChange(value: string): void {
+    this.newestFirst = value === '1';
+    this.onFilterChange();
+  }
+
   onFilterChange(): void {
     if (!this.shopId) return;
     this.request.pageNumber = 1;
@@ -114,7 +120,7 @@ export class ShopLedgerComponent implements OnInit {
   load(): void {
     if (!this.shopId) return;
     this.loading.set(true);
-    this.ledgerService.getShopLedger(this.shopId, this.request, this.fromDate, this.toDate).subscribe({
+    this.ledgerService.getShopLedger(this.shopId, this.request, this.fromDate, this.toDate, this.newestFirst).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);

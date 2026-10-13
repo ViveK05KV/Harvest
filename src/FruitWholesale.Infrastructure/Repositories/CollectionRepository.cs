@@ -78,6 +78,14 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
                     LedgerTransactionTypes.Collection, collectionId, 0, collection.AmountReceived + collection.DiscountAmount,
                     CollectionNarration(collection));
                 await ledgerService.RecalculateShopLedgerAsync(connection, transaction, collection.ShopID);
+
+                var linkedSupplierId = await LinkedSupplierIdAsync(connection, transaction, collection.ShopID);
+                if (linkedSupplierId is not null)
+                {
+                    await AddLinkedShopCollectionAsync(connection, transaction, linkedSupplierId.Value, collection,
+                        collection.CollectionDate, collection.AmountReceived + collection.DiscountAmount, collectionId, "Collection");
+                    await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, linkedSupplierId.Value);
+                }
             }
 
             var cashNarration = isTemporary
@@ -119,6 +127,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             }
 
             var oldShopId = existing.ShopID;
+            var oldLinkedSupplierId = await LinkedSupplierIdAsync(connection, transaction, oldShopId);
             var oldCollectionType = existing.CollectionType;
             var isTemporary = collection.CollectionType == CollectionTypes.Temporary;
             var hadShopLedger = oldCollectionType != CollectionTypes.Temporary;
@@ -139,11 +148,22 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
                 await ledgerService.RemoveShopLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.Collection, collection.CollectionID);
             }
 
+            await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(
+                connection, transaction, LedgerTransactionTypes.LinkedShopCollection, collection.CollectionID);
+
             if (shouldHaveShopLedger)
             {
                 await ledgerService.AddShopLedgerEntryAsync(connection, transaction, collection.ShopID, collection.CollectionDate,
                     LedgerTransactionTypes.Collection, collection.CollectionID, 0, collection.AmountReceived + collection.DiscountAmount,
                     CollectionNarration(collection));
+
+                var newLinkedSupplierId = await LinkedSupplierIdAsync(connection, transaction, collection.ShopID);
+                if (newLinkedSupplierId is not null)
+                {
+                    await AddLinkedShopCollectionAsync(connection, transaction, newLinkedSupplierId.Value, collection,
+                        collection.CollectionDate, collection.AmountReceived + collection.DiscountAmount,
+                        collection.CollectionID, "Collection");
+                }
             }
 
             if (hadShopLedger || shouldHaveShopLedger)
@@ -153,6 +173,15 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             if (hadShopLedger && oldShopId != collection.ShopID)
             {
                 await ledgerService.RecalculateShopLedgerAsync(connection, transaction, oldShopId);
+            }
+
+            var finalLinkedSupplierId = shouldHaveShopLedger
+                ? await LinkedSupplierIdAsync(connection, transaction, collection.ShopID)
+                : null;
+            foreach (var supplierId in new[] { oldLinkedSupplierId, finalLinkedSupplierId }
+                         .Where(id => id is not null).Select(id => id!.Value).Distinct())
+            {
+                await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, supplierId);
             }
 
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Collections, collection.CollectionID);
@@ -194,10 +223,15 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             }
 
             var shopId = existing.ShopID;
+            var linkedSupplierId = existing.CollectionType != CollectionTypes.Temporary
+                ? await LinkedSupplierIdAsync(connection, transaction, shopId)
+                : null;
             if (existing.CollectionType != CollectionTypes.Temporary)
             {
                 await ledgerService.RemoveShopLedgerEntriesForReferenceAsync(connection, transaction, LedgerTransactionTypes.Collection, collectionId);
             }
+            await ledgerService.RemoveSupplierLedgerEntriesForReferenceAsync(
+                connection, transaction, LedgerTransactionTypes.LinkedShopCollection, collectionId);
 
             await ledgerService.RemoveCashLedgerEntriesForReferenceAsync(connection, transaction, ReferenceTables.Collections, collectionId);
             await connection.ExecuteAsync("DELETE FROM Collections WHERE CollectionID = @CollectionID", new { CollectionID = collectionId }, transaction);
@@ -205,6 +239,10 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
             if (existing.CollectionType != CollectionTypes.Temporary)
             {
                 await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
+            }
+            if (linkedSupplierId is not null)
+            {
+                await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, linkedSupplierId.Value);
             }
             await ledgerService.RecalculateCashLedgerAsync(connection, transaction);
 
@@ -242,7 +280,7 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         try
         {
             var pendingRows = (await connection.QueryAsync<Collection>("""
-                SELECT CollectionID, ShopID, AmountReceived, CollectionDate, CollectionType, TemporaryStatus
+                SELECT CollectionID, ShopID, AmountReceived, CollectionDate, CollectionType, TemporaryStatus, ReferenceNumber
                 FROM Collections
                 WHERE ShopID = @ShopID
                   AND CollectionType = 'Temporary'
@@ -267,6 +305,17 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
                 LedgerTransactionTypes.TemporaryCollectionSettlement, settlementId, 0, totalAmount,
                 $"Temporary collection settlement for {await ShopNameAsync(connection, transaction, shopId)}");
             await ledgerService.RecalculateShopLedgerAsync(connection, transaction, shopId);
+
+            var linkedSupplierId = await LinkedSupplierIdAsync(connection, transaction, shopId);
+            if (linkedSupplierId is not null)
+            {
+                foreach (var row in pendingRows)
+                {
+                    await AddLinkedShopCollectionAsync(connection, transaction, linkedSupplierId.Value, row,
+                        settlementDate, row.AmountReceived, row.CollectionID, "Temporary collection settlement");
+                }
+                await ledgerService.RecalculateSupplierLedgerAsync(connection, transaction, linkedSupplierId.Value);
+            }
 
             foreach (var row in pendingRows)
             {
@@ -296,4 +345,20 @@ public class CollectionRepository(IDbConnectionFactory connectionFactory, ILedge
         await connection.QueryFirstOrDefaultAsync<string>(
             "SELECT ShopName FROM ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction)
         ?? "Unknown Shop";
+
+    private static Task<int?> LinkedSupplierIdAsync(IDbConnection connection, IDbTransaction transaction, int shopId) =>
+        connection.ExecuteScalarAsync<int?>(
+            "SELECT LinkedSupplierID FROM ShopMaster WHERE ShopID = @ShopID", new { ShopID = shopId }, transaction);
+
+    private async Task AddLinkedShopCollectionAsync(IDbConnection connection, IDbTransaction transaction,
+        int supplierId, Collection collection, DateTime transactionDate, decimal amount, int referenceId, string eventDescription)
+    {
+        var shopName = await ShopNameAsync(connection, transaction, collection.ShopID);
+        var reference = string.IsNullOrWhiteSpace(collection.ReferenceNumber)
+            ? string.Empty
+            : $" (Reference #{collection.ReferenceNumber})";
+        await ledgerService.AddSupplierLedgerEntryAsync(connection, transaction, supplierId, transactionDate,
+            LedgerTransactionTypes.LinkedShopCollection, referenceId, amount, 0,
+            $"{eventDescription} from linked shop {shopName}{reference}");
+    }
 }

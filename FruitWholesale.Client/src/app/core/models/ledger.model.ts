@@ -28,10 +28,11 @@ const LEDGER_PARTICULARS: Record<string, string> = {
   Supply: 'Invoice',
   Collection: 'Payment',
   ShopReturn: 'Return',
-  Purchase: 'Purchase',
-  SupplierPayment: 'Payment',
-  SupplierReturn: 'Return',
+  Purchase: 'Purchase from supplier',
+  SupplierPayment: 'Payment to supplier',
+  SupplierReturn: 'Supplier return',
   LinkedShopSale: 'Sale to linked shop',
+  LinkedShopCollection: 'Collection from linked shop',
   Adjustment: 'Adjustment'
 };
 

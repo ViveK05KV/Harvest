@@ -20,6 +20,14 @@
     <input type="date" [value]="toDate ?? ''" (change)="toDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
   </label>
 
+  <label class="field" style="min-width: 140px">
+    <span class="field-label">Order</span>
+    <select [value]="newestFirst ? '1' : '0'" (change)="onOrderChange($any($event.target).value)">
+      <option value="0">Oldest first</option>
+      <option value="1">Newest first</option>
+    </select>
+  </label>
+
   <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
 
   <span class="spacer"></span>

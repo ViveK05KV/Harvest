@@ -7,23 +7,23 @@ namespace FruitWholesale.Application.Services;
 
 public interface ILedgerAppService
 {
-    Task<PaginatedList<ShopLedgerDto>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, PaginationRequest request);
-    Task<PaginatedList<SupplierLedgerDto>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, PaginationRequest request);
+    Task<PaginatedList<ShopLedgerDto>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, PaginationRequest request, bool newestFirst = true);
+    Task<PaginatedList<SupplierLedgerDto>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, PaginationRequest request, bool newestFirst = true);
     Task<PaginatedList<CashLedgerDto>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, bool newestFirst, PaginationRequest request);
     Task<decimal> GetCurrentCashBalanceAsync();
 }
 
 public class LedgerAppService(ILedgerService ledgerService, IMapper mapper) : ILedgerAppService
 {
-    public async Task<PaginatedList<ShopLedgerDto>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, PaginationRequest request)
+    public async Task<PaginatedList<ShopLedgerDto>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, PaginationRequest request, bool newestFirst = true)
     {
-        var result = await ledgerService.GetShopLedgerAsync(shopId, fromDate, toDate, request.PageNumber, request.PageSize);
+        var result = await ledgerService.GetShopLedgerAsync(shopId, fromDate, toDate, newestFirst, request.PageNumber, request.PageSize);
         return new PaginatedList<ShopLedgerDto>(mapper.Map<List<ShopLedgerDto>>(result.Items), result.TotalCount, request.PageNumber, request.PageSize);
     }
 
-    public async Task<PaginatedList<SupplierLedgerDto>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, PaginationRequest request)
+    public async Task<PaginatedList<SupplierLedgerDto>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, PaginationRequest request, bool newestFirst = true)
     {
-        var result = await ledgerService.GetSupplierLedgerAsync(supplierId, fromDate, toDate, request.PageNumber, request.PageSize);
+        var result = await ledgerService.GetSupplierLedgerAsync(supplierId, fromDate, toDate, newestFirst, request.PageNumber, request.PageSize);
         return new PaginatedList<SupplierLedgerDto>(mapper.Map<List<SupplierLedgerDto>>(result.Items), result.TotalCount, request.PageNumber, request.PageSize);
     }
 

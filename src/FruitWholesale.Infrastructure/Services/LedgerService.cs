@@ -247,19 +247,25 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         return rows.ToDictionary(r => r.SupplierID, r => r.RunningBalance);
     }
 
-    // LinkedShopSale is mirrored into SupplierLedger as a credit. It must be removed
-    // once when combining the independently maintained shop and supplier balances.
-    public async Task<decimal> GetLinkedShopSalesAsync(int supplierId)
+    // Linked shop sales are mirrored as supplier credits; collections are mirrored as
+    // supplier debits. Remove the net mirrored contribution when combining both ledgers.
+    public async Task<decimal> GetLinkedShopActivityAsync(int supplierId)
     {
         using var connection = connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<decimal>("""
             SELECT COALESCE(SUM(Credit - Debit), 0)
             FROM SupplierLedger
-            WHERE SupplierID = @SupplierID AND TransactionType = @TransactionType;
-            """, new { SupplierID = supplierId, TransactionType = LedgerTransactionTypes.LinkedShopSale });
+            WHERE SupplierID = @SupplierID
+              AND TransactionType IN (@SaleType, @CollectionType);
+            """, new
+        {
+            SupplierID = supplierId,
+            SaleType = LedgerTransactionTypes.LinkedShopSale,
+            CollectionType = LedgerTransactionTypes.LinkedShopCollection
+        });
     }
 
-    public async Task<Dictionary<int, decimal>> GetLinkedShopSalesBatchAsync(IEnumerable<int> supplierIds)
+    public async Task<Dictionary<int, decimal>> GetLinkedShopActivityBatchAsync(IEnumerable<int> supplierIds)
     {
         var ids = supplierIds.Distinct().ToList();
         if (ids.Count == 0) return [];
@@ -268,14 +274,21 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         var rows = await connection.QueryAsync<(int SupplierID, decimal Amount)>("""
             SELECT SupplierID, COALESCE(SUM(Credit - Debit), 0) AS Amount
             FROM SupplierLedger
-            WHERE SupplierID = ANY(@SupplierIDs) AND TransactionType = @TransactionType
+            WHERE SupplierID = ANY(@SupplierIDs)
+              AND TransactionType IN (@SaleType, @CollectionType)
             GROUP BY SupplierID;
-            """, new { SupplierIDs = ids, TransactionType = LedgerTransactionTypes.LinkedShopSale });
+            """, new
+        {
+            SupplierIDs = ids,
+            SaleType = LedgerTransactionTypes.LinkedShopSale,
+            CollectionType = LedgerTransactionTypes.LinkedShopCollection
+        });
         return rows.ToDictionary(r => r.SupplierID, r => r.Amount);
     }
 
 
-    public async Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize)
+    public async Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate,
+        bool newestFirst, int pageNumber, int pageSize)
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
@@ -288,7 +301,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             WHERE ShopID = @ShopID
               AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
               AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
-            ORDER BY TransactionDate ASC, LedgerID ASC
+            ORDER BY
+                CASE
+                    WHEN LedgerID = (SELECT MIN(LedgerID) FROM ShopLedger WHERE ShopID = @ShopID)
+                      AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END,
+                CASE WHEN NOT @NewestFirst THEN TransactionDate END ASC,
+                CASE WHEN @NewestFirst THEN TransactionDate END DESC,
+                CASE WHEN NOT @NewestFirst THEN LedgerID END ASC,
+                CASE WHEN @NewestFirst THEN LedgerID END DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
@@ -296,6 +318,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             ShopID = shopId,
             FromDate = fromDate,
             ToDate = toDate,
+            NewestFirst = newestFirst,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         });
@@ -304,7 +327,8 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
         return new PaginatedLedger<ShopLedger> { Items = items, TotalCount = total };
     }
 
-    public async Task<PaginatedLedger<SupplierLedger>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize)
+    public async Task<PaginatedLedger<SupplierLedger>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate,
+        bool newestFirst, int pageNumber, int pageSize)
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
@@ -317,7 +341,16 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             WHERE SupplierID = @SupplierID
               AND (@FromDate::timestamp IS NULL OR TransactionDate >= @FromDate)
               AND (@ToDate::timestamp IS NULL OR TransactionDate < @ToDate + INTERVAL '1 day')
-            ORDER BY TransactionDate ASC, LedgerID ASC
+            ORDER BY
+                CASE
+                    WHEN LedgerID = (SELECT MIN(LedgerID) FROM SupplierLedger WHERE SupplierID = @SupplierID)
+                      AND TransactionType IN ('OpeningBalance', 'Adjustment') THEN 0
+                    ELSE 1
+                END,
+                CASE WHEN NOT @NewestFirst THEN TransactionDate END ASC,
+                CASE WHEN @NewestFirst THEN TransactionDate END DESC,
+                CASE WHEN NOT @NewestFirst THEN LedgerID END ASC,
+                CASE WHEN @NewestFirst THEN LedgerID END DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
         using var multi = await connection.QueryMultipleAsync(sql, new
@@ -325,6 +358,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
             SupplierID = supplierId,
             FromDate = fromDate,
             ToDate = toDate,
+            NewestFirst = newestFirst,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         });

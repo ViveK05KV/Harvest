@@ -13,13 +13,15 @@ public class LedgerController(ILedgerAppService service) : ApiControllerBase
 {
     [HttpGet("shop/{shopId:int}")]
     public async Task<ActionResult<PaginatedList<ShopLedgerDto>>> GetShopLedger(
-        int shopId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] PaginationRequest request) =>
-        Ok(await service.GetShopLedgerAsync(shopId, fromDate, toDate, request));
+        int shopId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate,
+        [FromQuery] PaginationRequest request, [FromQuery] bool newestFirst = true) =>
+        Ok(await service.GetShopLedgerAsync(shopId, fromDate, toDate, request, newestFirst));
 
     [HttpGet("supplier/{supplierId:int}")]
     public async Task<ActionResult<PaginatedList<SupplierLedgerDto>>> GetSupplierLedger(
-        int supplierId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] PaginationRequest request) =>
-        Ok(await service.GetSupplierLedgerAsync(supplierId, fromDate, toDate, request));
+        int supplierId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate,
+        [FromQuery] PaginationRequest request, [FromQuery] bool newestFirst = true) =>
+        Ok(await service.GetSupplierLedgerAsync(supplierId, fromDate, toDate, request, newestFirst));
 
     [HttpGet("cash")]
     public async Task<ActionResult<PaginatedList<CashLedgerDto>>> GetCashLedger(

@@ -20,6 +20,14 @@
     <input type="date" [value]="toDate ?? ''" (change)="toDate = $any($event.target).value || null; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
   </label>
 
+  <label class="field" style="min-width: 140px">
+    <span class="field-label">Order</span>
+    <select [value]="newestFirst ? '1' : '0'" (change)="onOrderChange($any($event.target).value)">
+      <option value="0">Oldest first</option>
+      <option value="1">Newest first</option>
+    </select>
+  </label>
+
   <button type="button" class="btn-ghost" (click)="clearFilters()">Clear</button>
 
   <span class="spacer"></span>
@@ -46,8 +54,11 @@
         <tr>
           <th>Date</th>
           <th>Particulars</th>
-          <th class="amount-column">Debit</th>
-          <th class="amount-column">Credit</th>
+          <th class="amount-column">Purchase</th>
+          <th class="amount-column">Sale to linked shop</th>
+          <th class="amount-column">Payment</th>
+          <th class="amount-column">Collection from linked shop</th>
+          <th class="amount-column">Other (debit − credit)</th>
           <th class="amount-column">Balance</th>
           <th></th>
         </tr>
@@ -62,8 +73,11 @@
                 <span class="row-narration">{{ row.narration }}</span>
               }
             </td>
-            <td class="mono-cell amount-column negative-cell">{{ row.debit ? (row.debit | currency: 'INR' : 'symbol' : '1.2-2') : '—' }}</td>
-            <td class="mono-cell amount-column positive-cell">{{ row.credit ? (row.credit | currency: 'INR' : 'symbol' : '1.2-2') : '—' }}</td>
+            <td class="mono-cell amount-column negative-cell">{{ amountFor(row, 'purchase') === null ? '—' : (amountFor(row, 'purchase') | currency: 'INR' : 'symbol' : '1.2-2') }}</td>
+            <td class="mono-cell amount-column positive-cell">{{ amountFor(row, 'linkedShopSale') === null ? '—' : (amountFor(row, 'linkedShopSale') | currency: 'INR' : 'symbol' : '1.2-2') }}</td>
+            <td class="mono-cell amount-column positive-cell">{{ amountFor(row, 'supplierPayment') === null ? '—' : (amountFor(row, 'supplierPayment') | currency: 'INR' : 'symbol' : '1.2-2') }}</td>
+            <td class="mono-cell amount-column negative-cell">{{ amountFor(row, 'linkedShopCollection') === null ? '—' : (amountFor(row, 'linkedShopCollection') | currency: 'INR' : 'symbol' : '1.2-2') }}</td>
+            <td class="mono-cell amount-column" [class.negative-cell]="(amountFor(row, 'other') ?? 0) > 0" [class.positive-cell]="(amountFor(row, 'other') ?? 0) < 0">{{ amountFor(row, 'other') === null ? '—' : (amountFor(row, 'other') | currency: 'INR' : 'symbol' : '1.2-2') }}</td>
             <td class="mono-cell amount-column strong-cell">{{ row.runningBalance | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
             <td class="row-actions">
               @if (row.transactionType === 'Adjustment') {

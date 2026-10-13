@@ -11,6 +11,8 @@ import { ExportService } from '../../core/services/export.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
+type SupplierLedgerAmountColumn = 'purchase' | 'linkedShopSale' | 'supplierPayment' | 'linkedShopCollection' | 'other';
+
 @Component({
   selector: 'app-supplier-ledger',
   standalone: true,
@@ -37,6 +39,7 @@ export class SupplierLedgerComponent implements OnInit {
   supplierId: number | null = null;
   fromDate: string | null = null;
   toDate: string | null = null;
+  newestFirst = true;
 
   private readonly request: PaginationRequest = { pageNumber: 1, pageSize: this.pageSize };
 
@@ -78,8 +81,35 @@ export class SupplierLedgerComponent implements OnInit {
       : `Outstanding balance owed to ${supplier.supplierName}`;
   }
 
+  amountFor(row: SupplierLedgerEntry, column: SupplierLedgerAmountColumn): number | null {
+    switch (column) {
+      case 'purchase':
+        return row.transactionType === 'Purchase' && row.debit !== 0 ? row.debit : null;
+      case 'linkedShopSale':
+        return row.transactionType === 'LinkedShopSale' && row.credit !== 0 ? row.credit : null;
+      case 'supplierPayment':
+        return row.transactionType === 'SupplierPayment' && row.credit !== 0 ? row.credit : null;
+      case 'linkedShopCollection':
+        return row.transactionType === 'LinkedShopCollection' && row.debit !== 0 ? row.debit : null;
+      case 'other': {
+        const representedBalanceChange = row.transactionType === 'Purchase' || row.transactionType === 'LinkedShopCollection'
+          ? row.debit
+          : row.transactionType === 'LinkedShopSale' || row.transactionType === 'SupplierPayment'
+            ? -row.credit
+            : 0;
+        const otherBalanceChange = row.debit - row.credit - representedBalanceChange;
+        return otherBalanceChange === 0 ? null : otherBalanceChange;
+      }
+    }
+  }
+
   onSupplierChange(value: string): void {
     this.supplierId = value ? Number(value) : null;
+    this.onFilterChange();
+  }
+
+  onOrderChange(value: string): void {
+    this.newestFirst = value === '1';
     this.onFilterChange();
   }
 
@@ -113,7 +143,7 @@ export class SupplierLedgerComponent implements OnInit {
   load(): void {
     if (!this.supplierId) return;
     this.loading.set(true);
-    this.ledgerService.getSupplierLedger(this.supplierId, this.request, this.fromDate, this.toDate).subscribe({
+    this.ledgerService.getSupplierLedger(this.supplierId, this.request, this.fromDate, this.toDate, this.newestFirst).subscribe({
       next: (result) => {
         this.items.set(result.items);
         this.totalCount.set(result.totalCount);
@@ -145,14 +175,31 @@ export class SupplierLedgerComponent implements OnInit {
   }
 
   exportExcel(): void {
+    const rows = this.items().map((row) => ({
+      transactionDate: row.transactionDate,
+      particulars: this.particulars(row.transactionType),
+      transactionType: row.transactionType,
+      narration: row.narration,
+      purchase: this.amountFor(row, 'purchase'),
+      linkedShopSale: this.amountFor(row, 'linkedShopSale'),
+      supplierPayment: this.amountFor(row, 'supplierPayment'),
+      linkedShopCollection: this.amountFor(row, 'linkedShopCollection'),
+      other: this.amountFor(row, 'other'),
+      runningBalance: row.runningBalance
+    }));
+
     this.exportService.exportToExcel(
-      this.items(),
+      rows,
       [
         { header: 'Date', field: 'transactionDate' },
-        { header: 'Particulars', field: 'transactionType' },
+        { header: 'Particulars', field: 'particulars' },
+        { header: 'Transaction type', field: 'transactionType' },
         { header: 'Narration', field: 'narration' },
-        { header: 'Debit', field: 'debit' },
-        { header: 'Credit', field: 'credit' },
+        { header: 'Purchase', field: 'purchase' },
+        { header: 'Sale to linked shop', field: 'linkedShopSale' },
+        { header: 'Payment', field: 'supplierPayment' },
+        { header: 'Collection from linked shop', field: 'linkedShopCollection' },
+        { header: 'Other (Dr − Cr)', field: 'other' },
         { header: 'Balance', field: 'runningBalance' }
       ],
       'supplier-ledger'

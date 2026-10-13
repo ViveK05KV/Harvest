@@ -46,12 +46,12 @@ public interface ILedgerService
     Task<decimal> GetSupplierOutstandingAsync(int supplierId);
 
     Task<Dictionary<int, decimal>> GetSupplierOutstandingBatchAsync(IEnumerable<int> supplierIds);
-    Task<decimal> GetLinkedShopSalesAsync(int supplierId);
-    Task<Dictionary<int, decimal>> GetLinkedShopSalesBatchAsync(IEnumerable<int> supplierIds);
+    Task<decimal> GetLinkedShopActivityAsync(int supplierId);
+    Task<Dictionary<int, decimal>> GetLinkedShopActivityBatchAsync(IEnumerable<int> supplierIds);
 
-    Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
+    Task<PaginatedLedger<ShopLedger>> GetShopLedgerAsync(int shopId, DateTime? fromDate, DateTime? toDate, bool newestFirst, int pageNumber, int pageSize);
 
-    Task<PaginatedLedger<SupplierLedger>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize);
+    Task<PaginatedLedger<SupplierLedger>> GetSupplierLedgerAsync(int supplierId, DateTime? fromDate, DateTime? toDate, bool newestFirst, int pageNumber, int pageSize);
 
     Task<PaginatedLedger<CashLedger>> GetCashLedgerAsync(DateTime? fromDate, DateTime? toDate, string? transactionType, bool newestFirst, int pageNumber, int pageSize);
 

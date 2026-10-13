@@ -11,15 +11,15 @@ export class LedgerService {
 
   constructor(private readonly http: HttpClient) {}
 
-  getShopLedger(shopId: number, request: PaginationRequest, fromDate?: string | null, toDate?: string | null) {
+  getShopLedger(shopId: number, request: PaginationRequest, fromDate?: string | null, toDate?: string | null, newestFirst = true) {
     return this.http.get<PaginatedList<ShopLedgerEntry>>(`${this.baseUrl}/shop/${shopId}`, {
-      params: toHttpParams({ ...request, fromDate, toDate })
+      params: toHttpParams({ ...request, fromDate, toDate, newestFirst })
     });
   }
 
-  getSupplierLedger(supplierId: number, request: PaginationRequest, fromDate?: string | null, toDate?: string | null) {
+  getSupplierLedger(supplierId: number, request: PaginationRequest, fromDate?: string | null, toDate?: string | null, newestFirst = true) {
     return this.http.get<PaginatedList<SupplierLedgerEntry>>(`${this.baseUrl}/supplier/${supplierId}`, {
-      params: toHttpParams({ ...request, fromDate, toDate })
+      params: toHttpParams({ ...request, fromDate, toDate, newestFirst })
     });
   }
 

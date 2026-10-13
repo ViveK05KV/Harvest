@@ -34,6 +34,7 @@ public static class LedgerTransactionTypes
     public const string ShopReturn = "ShopReturn";
     public const string SupplierReturn = "SupplierReturn";
     public const string LinkedShopSale = "LinkedShopSale";
+    public const string LinkedShopCollection = "LinkedShopCollection";
     public const string LoanRepayment = "LoanRepayment";
 }
 
