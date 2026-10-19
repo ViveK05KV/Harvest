@@ -1,0 +1,31 @@
+<div class="modal-header">
+  <div>
+    <h2>Edit Inventory</h2>
+    <p>{{ data.fruitName }} · current {{ data.currentStock | number: '1.0-3' }} {{ quantityUnit }}</p>
+  </div>
+  <span class="spacer"></span>
+  <button type="button" class="close-btn" (click)="cancel()"><mat-icon>close</mat-icon></button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+  <label class="field">
+    <span class="field-label">New inventory ({{ quantityUnit }})</span>
+    <input class="field-input" type="number" formControlName="targetStock" min="0" step="0.001" />
+    @if (form.controls.targetStock.touched && form.controls.targetStock.invalid) {
+      <span class="field-error">Enter a valid quantity of zero or more</span>
+    }
+  </label>
+
+  <label class="field">
+    <span class="field-label">Narration / Reason</span>
+    <textarea class="field-input" formControlName="narration" rows="2" placeholder="Stock count correction, spoilage, etc."></textarea>
+    @if (form.controls.narration.touched && form.controls.narration.hasError('required')) {
+      <span class="field-error">Narration is required</span>
+    }
+  </label>
+
+  <div class="modal-actions">
+    <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="btn-primary"><mat-icon>check</mat-icon>Save Inventory</button>
+  </div>
+</form>

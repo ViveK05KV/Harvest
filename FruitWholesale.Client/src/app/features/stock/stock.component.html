@@ -38,6 +38,9 @@
             <td class="muted-cell">{{ row.unit }}</td>
             <td class="mono-cell muted-cell">{{ row.tracksByBox ? boxSummary(row) : '—' }}</td>
             <td class="row-actions">
+              @if (canAdjust) {
+                <button type="button" class="row-icon-btn" title="Edit Inventory" aria-label="Edit {{ row.fruitName }} inventory" (click)="editItem(row)"><mat-icon>edit</mat-icon></button>
+              }
               <button type="button" class="row-icon-btn" title="View Ledger" (click)="viewLedger(row)"><mat-icon>history</mat-icon></button>
             </td>
           </tr>

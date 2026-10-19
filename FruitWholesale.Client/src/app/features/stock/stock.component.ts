@@ -5,6 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { StockService } from './stock.service';
 import { StockAdjustmentFormComponent } from './stock-adjustment-form.component';
 import { StockLedgerDialogComponent } from './stock-ledger-dialog.component';
+import { StockItemEditComponent, StockItemEditResult } from './stock-item-edit.component';
 import { CurrentStock } from '../../core/models/stock.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -88,6 +89,33 @@ export class StockComponent implements OnInit {
         this.stockService.applyAdjustment(result).subscribe({
           next: () => {
             this.notification.success('Stock adjustment applied.');
+            this.load();
+          }
+        });
+      });
+  }
+
+  editItem(stock: CurrentStock): void {
+    this.dialog
+      .open(StockItemEditComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        autoFocus: 'dialog',
+        data: stock
+      })
+      .afterClosed()
+      .subscribe((result: StockItemEditResult | undefined) => {
+        if (!result) return;
+        const difference = result.targetStock - stock.currentStock;
+        if (difference === 0) return;
+        this.stockService.applyAdjustment({
+          fruitID: stock.fruitID,
+          quantity: Math.abs(difference),
+          isIncrease: difference > 0,
+          narration: result.narration
+        }).subscribe({
+          next: () => {
+            this.notification.success(`${stock.fruitName} inventory updated.`);
             this.load();
           }
         });
