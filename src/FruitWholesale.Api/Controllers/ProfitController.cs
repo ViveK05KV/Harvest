@@ -11,6 +11,9 @@ namespace FruitWholesale.Api.Controllers;
 [ServiceFilter(typeof(ProfitAccessFilter))]
 public class ProfitController(IProfitService service) : ApiControllerBase
 {
+    [HttpGet("actual")]
+    public async Task<ActionResult<List<ActualProfitRow>>> Actual([FromQuery] int? shopId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
+        Ok(await service.GetActualProfitAsync(shopId, fromDate, toDate));
     [HttpGet("business-daily")]
     public async Task<ActionResult<List<BusinessDailyProfitRow>>> BusinessDaily([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
         Ok(await service.GetBusinessDailyProfitAsync(fromDate, toDate));

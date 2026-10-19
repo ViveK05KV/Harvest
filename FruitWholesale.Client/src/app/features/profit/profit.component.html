@@ -1,6 +1,37 @@
 <div class="page-heading"><h1>Profit Calculator</h1></div>
 
-@if (activeTab() === 4) {
+@if (activeTab() === 5) {
+  <div class="filter-bar filter-bar--card profit-range-bar">
+    <label class="field">
+      <span class="field-label">Period</span>
+      <div class="mode-row">
+        <button type="button" class="mode-btn" [class.mode-btn--active]="actualRange() === 'today'" (click)="setActualRange('today')">Today</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="actualRange() === 'week'" (click)="setActualRange('week')">Last week</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="actualRange() === 'month'" (click)="setActualRange('month')">Last month</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="actualRange() === 'year'" (click)="setActualRange('year')">Last year</button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="actualRange() === 'custom'" (click)="setActualRange('custom')">Custom</button>
+      </div>
+    </label>
+    @if (actualRange() === 'custom') {
+      <label class="field">
+        <span class="field-label">From</span>
+        <input type="date" [value]="fromDate" [min]="minProfitDateStr" [max]="toDate" (change)="fromDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+      </label>
+      <label class="field">
+        <span class="field-label">To</span>
+        <input type="date" [value]="toDate" [min]="fromDate" (change)="toDate = $any($event.target).value; onFilterChange()" (click)="$any($event.target).showPicker?.()" />
+      </label>
+    }
+    <label class="field" style="min-width: 190px">
+      <span class="field-label">Customer</span>
+      <select [value]="selectedShopId ?? ''" (change)="onShopChange($any($event.target).value)">
+        <option value="">All customers</option>
+        @for (shop of shops(); track shop.shopID) { <option [value]="shop.shopID">{{ shop.shopName }}</option> }
+      </select>
+    </label>
+    <span class="spacer"></span>
+  </div>
+} @else if (activeTab() === 4) {
   <div class="filter-bar filter-bar--card profit-range-bar">
     <label class="field">
       <span class="field-label">Period</span>
@@ -80,6 +111,7 @@
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 2" (click)="onTabChange(2)">By Fruit</button>
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 3" (click)="onTabChange(3)">By Customer &amp; Fruit</button>
   <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 4" (click)="onTabChange(4)">Profit</button>
+  <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 5" (click)="onTabChange(5)">Actual Profit</button>
 </div>
 
 @if (loading()) {
@@ -240,6 +272,33 @@
           </tbody>
         </table>
         @if (!loading() && businessDaily().length === 0) { <div class="empty-state"><p>No profit data for this date range.</p></div> }
+      </div>
+    </div>
+  }
+  @case (5) {
+    <div class="list-card">
+      <div class="table-scroll">
+        <table class="mock-table">
+          <thead><tr>
+            <th [attr.aria-sort]="actualProfitSort().key === 'date' ? (actualProfitSort().direction === 'asc' ? 'ascending' : 'descending') : 'none'"><button type="button" class="sort-header" (click)="sortActualProfitBy('date')">Date @if (actualProfitSort().key === 'date') { <span>{{ actualProfitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th><button type="button" class="sort-header" (click)="sortActualProfitBy('customerName')">Customer @if (actualProfitSort().key === 'customerName') { <span>{{ actualProfitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column"><button type="button" class="sort-header" (click)="sortActualProfitBy('sales')">Sales @if (actualProfitSort().key === 'sales') { <span>{{ actualProfitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column"><button type="button" class="sort-header" (click)="sortActualProfitBy('purchaseCost')">Purchase Cost @if (actualProfitSort().key === 'purchaseCost') { <span>{{ actualProfitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+            <th class="amount-column"><button type="button" class="sort-header" (click)="sortActualProfitBy('actualProfit')">Actual Profit @if (actualProfitSort().key === 'actualProfit') { <span>{{ actualProfitSort().direction === 'asc' ? '↑' : '↓' }}</span> }</button></th>
+          </tr></thead>
+          <tbody>
+            @for (row of sortedActualProfit(); track row.date) {
+              <tr>
+                <td class="mono-cell muted-cell">{{ row.date | date: 'dd MMM yyyy' }}</td>
+                <td>{{ row.customerName || 'All customers' }}</td>
+                <td class="mono-cell amount-column">{{ row.sales | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column">{{ row.purchaseCost | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+                <td class="mono-cell amount-column strong-cell" [class.positive-cell]="row.actualProfit >= 0" [class.negative-cell]="row.actualProfit < 0">{{ row.actualProfit | currency: 'INR' : 'symbol' : '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!loading() && actualProfit().length === 0) { <div class="empty-state"><p>No sales or purchase data for this date range.</p></div> }
       </div>
     </div>
   }

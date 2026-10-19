@@ -1,5 +1,14 @@
 namespace FruitWholesale.Application.DTOs.Profit;
 
+public class ActualProfitRow
+{
+    public DateTime Date { get; set; }
+    public string? CustomerName { get; set; }
+    public decimal Sales { get; set; }
+    public decimal PurchaseCost { get; set; }
+    public decimal ActualProfit { get; set; }
+}
+
 public class BusinessDailyProfitRow
 {
     public DateTime Date { get; set; }

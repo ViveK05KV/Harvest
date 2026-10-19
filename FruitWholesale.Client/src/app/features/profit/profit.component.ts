@@ -15,6 +15,7 @@ import { toIso } from '../../core/utils/date.util';
 const PROFIT_TRACKING_START_DATE = new Date(2026, 7, 1);
 import {
   BusinessDailyProfitRow,
+  ActualProfitRow,
   BusinessProfitTotal,
   FruitProfitSummaryRow,
   ShopDailyProfitRow,
@@ -40,6 +41,7 @@ export class ProfitComponent implements OnInit {
   readonly loading = signal(false);
   readonly activeTab = signal(0);
   readonly profitRange = signal<'week' | 'month' | 'year' | 'custom'>('month');
+  readonly actualRange = signal<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   readonly shops = signal<ShopMaster[]>([]);
   tillToday = false;
   selectedShopId: number | null = null;
@@ -51,6 +53,22 @@ export class ProfitComponent implements OnInit {
   readonly fruitSummary = signal<FruitProfitSummaryRow[]>([]);
   readonly shopFruit = signal<ShopFruitProfitRow[]>([]);
   readonly businessDaily = signal<BusinessDailyProfitRow[]>([]);
+  readonly actualProfit = signal<ActualProfitRow[]>([]);
+  readonly actualProfitSort = signal<{ key: keyof ActualProfitRow; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  readonly sortedActualProfit = computed(() => {
+    const { key, direction } = this.actualProfitSort();
+    const multiplier = direction === 'asc' ? 1 : -1;
+    return [...this.actualProfit()].sort((a, b) => {
+      const left = a[key];
+      const right = b[key];
+      const difference = key === 'date'
+        ? new Date(String(left)).getTime() - new Date(String(right)).getTime()
+        : typeof left === 'string' || typeof right === 'string'
+          ? String(left ?? '').localeCompare(String(right ?? ''))
+          : Number(left) - Number(right);
+      return difference * multiplier;
+    });
+  });
   readonly profitSort = signal<{ key: keyof BusinessDailyProfitRow; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
   readonly sortedBusinessDaily = computed(() => {
     const { key, direction } = this.profitSort();
@@ -73,7 +91,28 @@ export class ProfitComponent implements OnInit {
   onTabChange(index: number): void {
     this.activeTab.set(index);
     if (index === 4) this.setProfitRange(this.profitRange());
+    else if (index === 5) this.setActualRange(this.actualRange());
     else this.loadActiveTab();
+  }
+
+  setActualRange(range: 'today' | 'week' | 'month' | 'year' | 'custom'): void {
+    this.actualRange.set(range);
+    if (range !== 'custom') {
+      const today = new Date();
+      const to = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const from = new Date(to);
+      if (range === 'week') from.setDate(from.getDate() - 6);
+      else if (range === 'month') from.setMonth(from.getMonth() - 1);
+      else if (range === 'year') from.setFullYear(from.getFullYear() - 1);
+      this.fromDate = toIso(from < PROFIT_TRACKING_START_DATE ? PROFIT_TRACKING_START_DATE : from);
+      this.toDate = toIso(to);
+    }
+    this.loadActiveTab();
+  }
+
+  sortActualProfitBy(key: keyof ActualProfitRow): void {
+    const current = this.actualProfitSort();
+    this.actualProfitSort.set({ key, direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc' });
   }
 
   setProfitRange(range: 'week' | 'month' | 'year' | 'custom'): void {
@@ -185,6 +224,16 @@ export class ProfitComponent implements OnInit {
           next: (rows) => {
             if (isStale()) return;
             this.businessDaily.set(rows);
+            finish();
+          },
+          error: finish
+        });
+        break;
+      case 5:
+        this.profitService.getActualProfit(this.selectedShopId, this.fromDate, this.toDate).subscribe({
+          next: (rows) => {
+            if (isStale()) return;
+            this.actualProfit.set(rows);
             finish();
           },
           error: finish

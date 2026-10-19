@@ -6,6 +6,14 @@ export interface ShopDailyProfitRow {
   marginPercent: number;
 }
 
+export interface ActualProfitRow {
+  date: string;
+  customerName: string | null;
+  sales: number;
+  purchaseCost: number;
+  actualProfit: number;
+}
+
 export interface BusinessDailyProfitRow {
   date: string;
   revenue: number;

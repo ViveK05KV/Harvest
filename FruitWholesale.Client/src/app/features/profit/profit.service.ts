@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import {
   BusinessDailyProfitRow,
+  ActualProfitRow,
   BusinessProfitTotal,
   FruitProfitSummaryRow,
   ShopDailyProfitRow,
@@ -16,6 +17,10 @@ export class ProfitService {
   private readonly baseUrl = `${environment.apiUrl}/profit`;
 
   constructor(private readonly http: HttpClient) {}
+
+  getActualProfit(shopId: number | null, fromDate?: string, toDate?: string) {
+    return this.http.get<ActualProfitRow[]>(`${this.baseUrl}/actual`, { params: toHttpParams({ shopId, fromDate, toDate }) });
+  }
 
   getBusinessDailyProfit(fromDate?: string, toDate?: string) {
     return this.http.get<BusinessDailyProfitRow[]>(`${this.baseUrl}/business-daily`, { params: toHttpParams({ fromDate, toDate }) });

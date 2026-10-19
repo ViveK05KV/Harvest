@@ -7,6 +7,46 @@ namespace FruitWholesale.Infrastructure.Repositories;
 
 public class ProfitRepository(IDbConnectionFactory connectionFactory) : IProfitRepository
 {
+    public async Task<List<ActualProfitRow>> GetActualProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        const string sql = """
+            WITH date_range AS (
+                SELECT GREATEST(COALESCE(@FromDate::date, @TrackingStartDate::date), @TrackingStartDate::date) AS from_date,
+                       COALESCE(@ToDate::date, CURRENT_DATE) AS to_date
+            ), days AS (
+                SELECT generate_series(from_date, to_date, INTERVAL '1 day')::date AS date
+                FROM date_range WHERE from_date <= to_date
+            ), sales AS (
+                SELECT s.SupplyDate AS date,
+                       CASE WHEN @ShopID::int IS NULL THEN NULL ELSE MAX(sh.ShopName) END AS customer_name,
+                       SUM(si.TotalAmount) AS revenue,
+                       SUM(si.Quantity * si.CostBasis) AS purchase_cost
+                FROM SupplyItems si
+                INNER JOIN Supply s ON s.SupplyID = si.SupplyID
+                INNER JOIN ShopMaster sh ON sh.ShopID = s.ShopID
+                CROSS JOIN date_range r
+                WHERE s.SupplyDate BETWEEN r.from_date AND r.to_date
+                  AND (@ShopID::int IS NULL OR s.ShopID = @ShopID)
+                GROUP BY s.SupplyDate
+            )
+            SELECT d.date AS Date, s.customer_name AS CustomerName,
+                   COALESCE(s.revenue, 0) AS Sales,
+                   COALESCE(s.purchase_cost, 0) AS PurchaseCost,
+                   COALESCE(s.revenue, 0) - COALESCE(s.purchase_cost, 0) AS ActualProfit
+            FROM days d
+            LEFT JOIN sales s ON s.date = d.date
+            ORDER BY d.date;
+            """;
+        return (await connection.QueryAsync<ActualProfitRow>(sql, new
+        {
+            ShopID = shopId,
+            FromDate = fromDate,
+            ToDate = toDate,
+            TrackingStartDate = ProfitConstants.TrackingStartDate
+        })).ToList();
+    }
+
     public async Task<List<BusinessDailyProfitRow>> GetBusinessDailyProfitAsync(DateTime? fromDate, DateTime? toDate)
     {
         using var connection = connectionFactory.CreateConnection();

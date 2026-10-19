@@ -34,6 +34,7 @@ public interface IReportRepository
 
 public interface IProfitRepository
 {
+    Task<List<ActualProfitRow>> GetActualProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate);
     Task<List<BusinessDailyProfitRow>> GetBusinessDailyProfitAsync(DateTime? fromDate, DateTime? toDate);
     Task<List<ShopDailyProfitRow>> GetShopDailyProfitAsync(int? shopId, DateTime? fromDate, DateTime? toDate);
     Task<List<ShopProfitSummaryRow>> GetShopProfitSummaryAsync(DateTime? fromDate, DateTime? toDate);
