@@ -74,12 +74,17 @@
               @for (item of itemsArray.controls; track item; let i = $index) {
                 <tr [formGroupName]="i">
                   <td>
-                    <select class="cell-input" formControlName="fruitID" (change)="onFruitChange(i)">
-                      <option [ngValue]="null">Select fruit</option>
-                      @for (fruit of fruits(); track fruit.fruitID) {
-                        <option [ngValue]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</option>
+                    <input class="cell-input" formControlName="fruitSearch" [matAutocomplete]="fruitAuto"
+                           (focus)="onFruitFocus(i)" (input)="onFruitSearch(i)" (blur)="onFruitBlur(i)"
+                           [attr.aria-label]="'Search fruits for row ' + (i + 1)" placeholder="Search fruit" autocomplete="off" />
+                    <mat-autocomplete class="fruit-search-panel" #fruitAuto="matAutocomplete" (optionSelected)="selectFruit(i, $event)">
+                      @for (fruit of filteredFruits(i); track fruit.fruitID) {
+                        <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
                       }
-                    </select>
+                      @empty {
+                        <mat-option disabled>No fruits match your search</mat-option>
+                      }
+                    </mat-autocomplete>
                   </td>
                   <td>
                     @if (fruitTracksByBox(item.value.fruitID) && fruitBoxWeight(item.value.fruitID) != null) {

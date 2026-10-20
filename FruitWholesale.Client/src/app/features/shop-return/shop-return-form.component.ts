@@ -3,6 +3,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize, forkJoin } from 'rxjs';
 import { ShopReturnService } from './shop-return.service';
@@ -17,7 +18,7 @@ import { toIso } from '../../core/utils/date.util';
 @Component({
   selector: 'app-shop-return-form',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, MatIconModule, MatProgressSpinnerModule, MatAutocompleteModule],
   templateUrl: './shop-return-form.component.html',
   styleUrl: './shop-return-form.component.scss'
 })
@@ -130,8 +131,10 @@ export class ShopReturnFormComponent implements OnInit {
   }
 
   buildItem(fruitID: number | null = null, quantity = 0, unitPrice = 0, boxCount: number | null = null) {
+    const fruitName = this.fruits().find((fruit) => fruit.fruitID === fruitID)?.fruitName ?? '';
     return this.fb.nonNullable.group({
       fruitID: this.fb.control<number | null>(fruitID, Validators.required),
+      fruitSearch: this.fb.nonNullable.control(fruitName),
       saleType: this.fb.nonNullable.control<'kg' | 'box'>(boxCount != null ? 'box' : 'kg'),
       quantity: [quantity, [Validators.required, Validators.min(0.001)]],
       unitPrice: [unitPrice, [Validators.required, Validators.min(0.01)]],
@@ -139,9 +142,40 @@ export class ShopReturnFormComponent implements OnInit {
     });
   }
 
-  onFruitChange(index: number): void {
-    this.itemsArray.at(index).patchValue({ saleType: 'kg', boxCount: null });
+  onFruitFocus(index: number): void {
+    const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
+    item.controls.fruitSearch.setValue('');
   }
+
+  onFruitSearch(index: number): void {
+    const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
+    const selectedFruit = this.fruits().find((fruit) => fruit.fruitID === item.controls.fruitID.value);
+    const query = item.controls.fruitSearch.value.trim().toLocaleLowerCase();
+    if (selectedFruit && query !== selectedFruit.fruitName.trim().toLocaleLowerCase()) {
+      item.patchValue({ fruitID: null, saleType: 'kg', boxCount: null });
+    }
+  }
+
+  onFruitBlur(index: number): void {
+    const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
+    const selectedFruit = this.fruits().find((fruit) => fruit.fruitID === item.controls.fruitID.value);
+    if (selectedFruit) item.controls.fruitSearch.setValue(selectedFruit.fruitName);
+  }
+
+  filteredFruits(index: number): FruitMaster[] {
+    const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
+    const query = item.controls.fruitSearch.value.trim().toLocaleLowerCase();
+    if (!query) return this.fruits();
+    return this.fruits().filter((fruit) => fruit.fruitName.toLocaleLowerCase().includes(query));
+  }
+
+  selectFruit(index: number, event: MatAutocompleteSelectedEvent): void {
+    const fruitID = Number(event.option.value);
+    const fruit = this.fruits().find((item) => item.fruitID === fruitID);
+    if (!fruit) return;
+    this.itemsArray.at(index).patchValue({ fruitID, fruitSearch: fruit.fruitName, saleType: 'kg', boxCount: null });
+  }
+
 
   fruitTracksByBox(fruitID: number | null): boolean {
     return this.fruits().find((f) => f.fruitID === fruitID)?.tracksByBox ?? false;

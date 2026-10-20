@@ -426,3 +426,26 @@ table.mat-mdc-table {
     grid-column: span 1 !important;
   }
 }
+.fruit-search-panel.mat-mdc-autocomplete-panel {
+  padding: 4px;
+  border: 1px solid #e4e8e4;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 20, 0.12);
+}
+
+.fruit-search-panel .mat-mdc-option {
+  min-height: 38px;
+  border-radius: 6px;
+  color: #121614;
+  font: 500 13px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.fruit-search-panel .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.fruit-search-panel .mat-mdc-option.mat-mdc-option-active {
+  background: #eaf2ed;
+}
+
+.fruit-search-panel .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  color: #1c6b45;
+}
