@@ -142,6 +142,27 @@
   }
 }
 
+.btn-zero {
+  margin-left: 5px;
+  padding: 5px 8px;
+  border: 1px solid #f0d5d2;
+  border-radius: 7px;
+  background: #fff;
+  color: #b03a2e;
+  font: 600 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #fbeae8;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
 mat-progress-bar {
   height: 2px;
 }

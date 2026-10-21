@@ -31,6 +31,7 @@ public static class LedgerTransactionTypes
     public const string DailyExpense = "DailyExpense";
     public const string EmployeeWorkLog = "EmployeeWorkLog";
     public const string Adjustment = "Adjustment";
+    public const string StockZero = "StockZero";
     public const string ShopReturn = "ShopReturn";
     public const string SupplierReturn = "SupplierReturn";
     public const string LinkedShopSale = "LinkedShopSale";

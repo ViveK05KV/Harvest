@@ -801,18 +801,43 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
                 FROM SupplierReturnItems ri
                 INNER JOIN SupplierReturns r ON r.SupplierReturnID = ri.SupplierReturnID
                 WHERE ri.FruitID = @FruitID
+
+                UNION ALL
+
+                SELECT 'SUPPLY' AS EventType, sl.StockLedgerID AS ItemID, sl.TransactionDate,
+                       sl.CreatedAt AS ParentCreatedAt, sl.QuantityOut AS Quantity, NULL AS BoxCount, NULL AS PurchaseID
+                FROM StockLedger sl
+                WHERE sl.FruitID = @FruitID
+                  AND sl.TransactionType = @AdjustmentType
+                  AND sl.QuantityOut > 0
+
+                UNION ALL
+
+                SELECT 'CLEAR' AS EventType, sl.StockLedgerID AS ItemID, sl.TransactionDate,
+                       sl.CreatedAt AS ParentCreatedAt, 0::numeric AS Quantity, NULL::numeric AS BoxCount, NULL::int AS PurchaseID
+                FROM StockLedger sl
+                WHERE sl.FruitID = @FruitID AND sl.TransactionType = @StockZeroType
             ) AS events
             ORDER BY TransactionDate ASC,
                      (CASE WHEN EventType = 'PURCHASE' THEN 0 ELSE 1 END) ASC,
                      ParentCreatedAt ASC,
                      ItemID ASC;
             """;
-        var events = await connection.QueryAsync<BoxEvent>(eventsSql, new { FruitID = fruitId }, transaction);
+        var events = await connection.QueryAsync<BoxEvent>(eventsSql, new
+        {
+            FruitID = fruitId,
+            AdjustmentType = LedgerTransactionTypes.Adjustment,
+            StockZeroType = LedgerTransactionTypes.StockZero
+        }, transaction);
 
         var boxes = new List<BoxState>();
         foreach (var evt in events)
         {
-            if (evt.EventType == "PURCHASE")
+            if (evt.EventType == "CLEAR")
+            {
+                boxes.Clear();
+            }
+            else if (evt.EventType == "PURCHASE")
             {
                 // BoxCount can be fractional (half a crate, etc.) - split into whole boxes at the
                 // average weight plus one smaller box holding the exact remainder, so the sum of
@@ -877,7 +902,7 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     private sealed class BoxEvent
     {
         public string EventType { get; set; } = string.Empty;
-        public int ItemID { get; set; }
+        public long ItemID { get; set; }
         public DateTime TransactionDate { get; set; }
         public DateTime ParentCreatedAt { get; set; }
         public decimal Quantity { get; set; }

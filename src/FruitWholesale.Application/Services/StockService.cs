@@ -12,6 +12,7 @@ public interface IStockService
     Task<List<CurrentStockDto>> GetCurrentStockAsync();
     Task<PaginatedList<StockLedgerDto>> GetStockLedgerAsync(int fruitId, DateTime? fromDate, DateTime? toDate, PaginationRequest request);
     Task<Result> ApplyAdjustmentAsync(StockAdjustmentDto dto);
+    Task<Result> SetStockToZeroAsync(int fruitId);
 }
 
 public class StockService(
@@ -71,6 +72,34 @@ public class StockService(
             await ledgerService.AddStockLedgerEntryAsync(connection, transaction, dto.FruitID, DateTime.UtcNow,
                 LedgerTransactionTypes.Adjustment, ReferenceTables.FruitMaster, dto.FruitID, quantityIn, quantityOut, dto.Narration);
             await ledgerService.RecalculateStockLedgerAsync(connection, transaction, dto.FruitID);
+            await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, dto.FruitID);
+
+            transaction.Commit();
+            return Result.Success();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<Result> SetStockToZeroAsync(int fruitId)
+    {
+        var currentStock = await ledgerService.GetCurrentStockAsync(fruitId);
+        using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            var quantityIn = currentStock < 0 ? -currentStock : 0m;
+            var quantityOut = currentStock > 0 ? currentStock : 0m;
+
+            await ledgerService.AddStockLedgerEntryAsync(connection, transaction, fruitId, DateTime.UtcNow,
+                LedgerTransactionTypes.StockZero, ReferenceTables.FruitMaster, fruitId, quantityIn, quantityOut,
+                "Inventory set to zero");
+            await ledgerService.RecalculateStockLedgerAsync(connection, transaction, fruitId);
+            await ledgerService.RecalculateFruitBoxesAsync(connection, transaction, fruitId);
 
             transaction.Commit();
             return Result.Success();

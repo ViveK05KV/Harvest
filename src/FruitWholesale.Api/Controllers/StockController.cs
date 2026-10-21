@@ -21,4 +21,8 @@ public class StockController(IStockService service) : ApiControllerBase
     [HttpPost("adjustment")]
     [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager}")]
     public async Task<ActionResult> ApplyAdjustment(StockAdjustmentDto dto) => FromResult(await service.ApplyAdjustmentAsync(dto));
+
+    [HttpPost("{fruitId:int}/zero")]
+    [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Manager}")]
+    public async Task<ActionResult> SetStockToZero(int fruitId) => FromResult(await service.SetStockToZeroAsync(fruitId));
 }

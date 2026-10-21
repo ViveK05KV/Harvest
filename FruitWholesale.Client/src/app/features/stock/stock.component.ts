@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { HttpErrorResponse } from '@angular/common/http';
 import { StockService } from './stock.service';
 import { StockAdjustmentFormComponent } from './stock-adjustment-form.component';
 import { StockLedgerDialogComponent } from './stock-ledger-dialog.component';
@@ -9,6 +10,7 @@ import { StockItemEditComponent, StockItemEditResult } from './stock-item-edit.c
 import { CurrentStock } from '../../core/models/stock.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
 const LOW_STOCK_THRESHOLD = 10;
 
@@ -24,11 +26,13 @@ export class StockComponent implements OnInit {
   private readonly stockService = inject(StockService);
   private readonly dialog = inject(MatDialog);
   private readonly notification = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   readonly authService = inject(AuthService);
 
   readonly items = signal<CurrentStock[]>([]);
   readonly loading = signal(false);
   readonly sortDirection = signal<'asc' | 'desc' | ''>('');
+  readonly zeroingFruitID = signal<number | null>(null);
 
   readonly sortedItems = computed(() => {
     const direction = this.sortDirection();
@@ -61,6 +65,38 @@ export class StockComponent implements OnInit {
 
   isLow(stock: CurrentStock): boolean {
     return stock.currentStock <= LOW_STOCK_THRESHOLD;
+  }
+
+  hasInventory(stock: CurrentStock): boolean {
+    return stock.currentStock !== 0 || stock.fullBoxCount > 0 || stock.openedBoxRemainingKg != null;
+  }
+
+  setStockToZero(stock: CurrentStock): void {
+    this.confirmDialog.confirm({
+      title: 'Set inventory to zero',
+      message: `Set ${stock.fruitName} stock to zero? This clears its loose stock, full boxes, and opened-box quantity.`,
+      confirmLabel: 'Set to 0',
+      destructive: true
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.zeroingFruitID.set(stock.fruitID);
+      this.stockService.setStockToZero(stock.fruitID).subscribe({
+        next: () => {
+          this.zeroingFruitID.set(null);
+          this.notification.success(`${stock.fruitName} stock set to zero.`);
+          this.load();
+        },
+        error: (error: HttpErrorResponse) => {
+          this.zeroingFruitID.set(null);
+          const detail = Array.isArray(error.error?.errors)
+            ? error.error.errors.join(' ')
+            : typeof error.error?.message === 'string'
+              ? error.error.message
+              : '';
+          this.notification.error(detail || `Could not set ${stock.fruitName} stock to zero (HTTP ${error.status || 'network error'}).`);
+        }
+      });
+    });
   }
 
   boxSummary(stock: CurrentStock): string {

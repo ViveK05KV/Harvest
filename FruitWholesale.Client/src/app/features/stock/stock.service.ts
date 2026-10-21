@@ -25,4 +25,8 @@ export class StockService {
   applyAdjustment(dto: StockAdjustment): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/adjustment`, dto);
   }
+
+  setStockToZero(fruitId: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${fruitId}/zero`, {});
+  }
 }
