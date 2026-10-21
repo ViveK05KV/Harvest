@@ -4,7 +4,7 @@ import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatAutocompleteActivatedEvent, MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize, forkJoin } from 'rxjs';
 import { SupplyService } from './supply.service';
@@ -41,6 +41,8 @@ export class SupplyFormComponent implements OnInit {
   readonly saving = signal(false);
   readonly shops = signal<ShopMaster[]>([]);
   readonly fruits = signal<FruitMaster[]>([]);
+  private readonly activeFruitByRow = new Map<number, number>();
+  private readonly fruitHighlightNavigatedByRow = new Set<number>();
   readonly supplyId = signal<number | null>(null);
   readonly isEdit = computed(() => this.supplyId() !== null);
 
@@ -117,12 +119,15 @@ export class SupplyFormComponent implements OnInit {
 
   onFruitFocus(index: number): void {
     const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
+    this.activeFruitByRow.delete(index);
+    this.fruitHighlightNavigatedByRow.delete(index);
     item.controls.fruitSearch.setValue('');
   }
 
   onFruitSearch(index: number): void {
     const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
     const selectedFruit = this.fruits().find((fruit) => fruit.fruitID === item.controls.fruitID.value);
+    this.fruitHighlightNavigatedByRow.delete(index);
     const query = item.controls.fruitSearch.value.trim().toLocaleLowerCase();
     if (selectedFruit && query !== selectedFruit.fruitName.trim().toLocaleLowerCase()) {
       item.patchValue({ fruitID: null, saleType: 'kg', boxCount: null });
@@ -142,6 +147,27 @@ export class SupplyFormComponent implements OnInit {
     return this.fruits().filter((fruit) => fruit.fruitName.toLocaleLowerCase().includes(query));
   }
 
+  onFruitKeydown(index: number, event: KeyboardEvent): void {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      this.fruitHighlightNavigatedByRow.add(index);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const item = this.itemsArray.at(index) as ReturnType<typeof this.buildItem>;
+    if (!item.controls.fruitSearch.value.trim() || item.controls.fruitID.value !== null) return;
+
+    const matches = this.filteredFruits(index);
+    const activeFruitID = this.fruitHighlightNavigatedByRow.has(index) ? this.activeFruitByRow.get(index) : null;
+    const fruit = matches.find((match) => match.fruitID === activeFruitID) ?? matches[0];
+    if (!fruit) return;
+    item.patchValue({ fruitID: fruit.fruitID, fruitSearch: fruit.fruitName, saleType: 'kg', boxCount: null });
+  }
+
+  onFruitOptionActivated(index: number, event: MatAutocompleteActivatedEvent): void {
+    if (event.option) this.activeFruitByRow.set(index, Number(event.option.value));
+    else this.activeFruitByRow.delete(index);
+  }
   selectFruit(index: number, event: MatAutocompleteSelectedEvent): void {
     const fruitID = Number(event.option.value);
     const fruit = this.fruits().find((item) => item.fruitID === fruitID);

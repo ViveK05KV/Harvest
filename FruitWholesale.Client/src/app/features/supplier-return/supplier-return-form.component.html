@@ -75,9 +75,9 @@
                 <tr [formGroupName]="i">
                   <td>
                     <input class="cell-input" formControlName="fruitSearch" [matAutocomplete]="fruitAuto"
-                           (focus)="onFruitFocus(i)" (input)="onFruitSearch(i)" (blur)="onFruitBlur(i)"
+                           (keydown)="onFruitKeydown(i, $event)" (focus)="onFruitFocus(i)" (input)="onFruitSearch(i)" (blur)="onFruitBlur(i)"
                            [attr.aria-label]="'Search fruits for row ' + (i + 1)" placeholder="Search fruit" autocomplete="off" />
-                    <mat-autocomplete class="fruit-search-panel" #fruitAuto="matAutocomplete" (optionSelected)="selectFruit(i, $event)">
+                    <mat-autocomplete class="fruit-search-panel" [autoActiveFirstOption]="true" #fruitAuto="matAutocomplete" (optionSelected)="selectFruit(i, $event)" (optionActivated)="onFruitOptionActivated(i, $event)">
                       @for (fruit of filteredFruits(i); track fruit.fruitID) {
                         <mat-option [value]="fruit.fruitID">{{ fruit.fruitName }} ({{ fruit.unit }})</mat-option>
                       }
