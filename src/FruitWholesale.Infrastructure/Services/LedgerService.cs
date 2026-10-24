@@ -735,14 +735,9 @@ public class LedgerService(IDbConnectionFactory connectionFactory) : ILedgerServ
     {
         using var connection = connectionFactory.CreateConnection();
         const string sql = """
-            SELECT sl.FruitID, sl.RunningStock
-            FROM StockLedger sl
-            INNER JOIN (
-                SELECT FruitID, MAX(TransactionDate) AS MaxDate FROM StockLedger GROUP BY FruitID
-            ) latestDate ON latestDate.FruitID = sl.FruitID AND latestDate.MaxDate = sl.TransactionDate
-            INNER JOIN (
-                SELECT FruitID, MAX(StockLedgerID) AS MaxID FROM StockLedger GROUP BY FruitID
-            ) latestId ON latestId.FruitID = sl.FruitID AND latestId.MaxID = sl.StockLedgerID;
+            SELECT DISTINCT ON (FruitID) FruitID, RunningStock
+            FROM StockLedger
+            ORDER BY FruitID, TransactionDate DESC, StockLedgerID DESC;
             """;
         var rows = await connection.QueryAsync<(int FruitID, decimal RunningStock)>(sql);
         return rows.ToDictionary(r => r.FruitID, r => r.RunningStock);
